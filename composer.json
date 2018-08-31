@@ -1,0 +1,52 @@
+{
+  "name": "pixelant/pxa-pm-importer",
+  "type": "typo3-cms-extension",
+  "description": "Importer boilerplate extension for pxa_product_manager",
+  "license": ["GPL-2.0+"],
+  "keywords": ["TYPO3 CMS"],
+  "authors": [
+    {
+      "name": "Pixelant AB",
+      "email": "info@pixelant.se",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "typo3/cms-core": "^8.7 || ^9.3",
+    "pixelant/pxa-product-manager": "^8.11 || ^9.2",
+    "php": ">=7.1.0"
+  },
+  "require-dev": {
+    "squizlabs/php_codesniffer": "^3.3",
+    "nimut/testing-framework": "^4.0"
+  },
+  "replace": {
+    "pxa_pm_importer": "self.version"
+  },
+  "autoload": {
+    "psr-4": {
+      "Pixelant\\PxaPmImporter\\": "Classes/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Pixelant\\PxaPmImporter\\Tests\\": "Tests/"
+    }
+  },
+  "config": {
+    "vendor-dir": ".Build/vendor",
+    "bin-dir": ".Build/bin"
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "mkdir -p .Build/Web/typo3conf/ext/",
+      "[ -L .Build/Web/typo3conf/ext/pxa_pm_importer ] || ln -snvf ../../../../. .Build/Web/typo3conf/ext/pxa_pm_importer"
+    ]
+  },
+  "extra": {
+    "typo3/cms": {
+      "cms-package-dir": "{$vendor-dir}/typo3/cms",
+      "web-dir": ".Build/Web"
+    }
+  }
+}
