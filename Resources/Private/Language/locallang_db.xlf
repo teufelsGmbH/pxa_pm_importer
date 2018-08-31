@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2018-08-31T10:43:58Z" product-name="pxa_pm_importer">
+		<header/>
+		<body>
+			<trans-unit id="tx_pxapmimporter_domain_model_import">
+				<source>PM Import</source>
+			</trans-unit>
+			<trans-unit id="tx_pxapmimporter_domain_model_import.name">
+				<source>Name</source>
+			</trans-unit>
+			<trans-unit id="tx_pxapmimporter_domain_model_import.frequency">
+				<source>Frequency cron command or interval in seconds (empty = single)</source>
+			</trans-unit>
+			<trans-unit id="tx_pxapmimporter_domain_model_import.configuration_path">
+				<source>Configuration file</source>
+			</trans-unit>
+			<trans-unit id="tx_pxapmimporter_domain_model_import.last_execution">
+			    <source>Last execution</source>
+			</trans-unit>
+			<trans-unit id="tx_pxapmimporter_domain_model_import.next_execution">
+			    <source>Next execution</source>
+			</trans-unit>
+			<trans-unit id="tx_pxapmimporter_domain_model_import.configuration_path.select">
+			    <source>Select...</source>
+			</trans-unit>
+			<trans-unit id="tabs.scheduler">
+			    <source>Scheduler settings</source>
+			</trans-unit>
+		</body>
+	</file>
+</xliff>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+	<file source-language="en" datatype="plaintext" original="messages" date="2018-08-31T10:43:58Z" product-name="pxa_pm_importer">
+		<header/>
+		<body>
+			<trans-unit id="name.description">
+				<source>Name of import</source>
+			</trans-unit>
+			<trans-unit id="configuration_path.description">
+				<source>Choose configuration file</source>
+			</trans-unit>
+		</body>
+	</file>
+</xliff>
