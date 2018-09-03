@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Domain\Model;
 
+use Pixelant\PxaPmImporter\Service\Configuration\YamlConfiguration;
+use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
@@ -33,6 +36,11 @@ class Import extends AbstractEntity
      * @var \DateTime
      */
     protected $crdate = null;
+
+    /**
+     * @var ConfigurationInterface
+     */
+    protected $configurationService = null;
 
     /**
      * @return string
@@ -88,5 +96,37 @@ class Import extends AbstractEntity
     public function getCrdate(): \DateTime
     {
         return $this->crdate;
+    }
+
+    /**
+     * @return ConfigurationInterface
+     */
+    public function getConfigurationService(): ConfigurationInterface
+    {
+        // Initialize it here, when configurationPath is already mapped
+        if ($this->configurationService === null) {
+            $this->initializeConfiguration();
+        }
+
+        return $this->configurationService;
+    }
+
+    /**
+     * Init configuration
+     */
+    protected function initializeConfiguration()
+    {
+        $this->configurationService = $this->getConfigurationInstance();
+    }
+
+    /**
+     * Get configuration by type
+     * @TODO currently only Yaml is supported
+     *
+     * @return string
+     */
+    protected function getConfigurationInstance(): ConfigurationInterface
+    {
+        return GeneralUtility::makeInstance(YamlConfiguration::class, $this->configurationPath);
     }
 }

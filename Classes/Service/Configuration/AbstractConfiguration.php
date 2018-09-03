@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service;
+namespace Pixelant\PxaPmImporter\Service\Configuration;
 
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
@@ -41,6 +41,30 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     }
 
     /**
+     * Source configuration
+     *
+     * @return array
+     */
+    public function getSourceConfiguration(): array
+    {
+        $configuration = $this->getConfiguration();
+
+        return $configuration['source'] ?? [];
+    }
+
+    /**
+     * Importer configuration
+     *
+     * @return array
+     */
+    public function getImportersConfiguration(): array
+    {
+        $configuration = $this->getConfiguration();
+
+        return $configuration['importers'] ?? [];
+    }
+
+    /**
      * Initialize main method
      */
     protected function initialize(): void
@@ -50,11 +74,11 @@ abstract class AbstractConfiguration implements ConfigurationInterface
             $this->emitSignal('postConfigurationParse', [&$configuration]);
 
             $this->configuration = $configuration;
+        } else {
+            // @codingStandardsIgnoreStart
+            throw new InvalidConfigurationSourceException('Configuration source "' . $this->getConfigurationSource() . '" is invalid', 1535959642938);
+            // @codingStandardsIgnoreEnd
         }
-
-        // @codingStandardsIgnoreStart
-        throw new InvalidConfigurationSourceException('Configuration source "' . $this->getConfigurationSource() . '" is invalid', 1535959642938);
-        // @codingStandardsIgnoreEnd
     }
 
     /**

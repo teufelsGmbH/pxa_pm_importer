@@ -1,0 +1,22 @@
+source:
+  Pixelant\PxaPmImporter\Service\Source\CsvSource:
+    skipRows: 1
+    delimiter: ,
+    filePath: fileadmin/Test.csv
+importers:
+  Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
+    # Layer between raw data and importer
+    adapter: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
+    __adapterSettings:
+        dummySetting: true
+    # Identifier
+    identifierField: 0
+    # Storage
+    pid: 136
+
+    # Mapping fields
+    mapping:
+      name:
+        # cell number
+        field: 17
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'

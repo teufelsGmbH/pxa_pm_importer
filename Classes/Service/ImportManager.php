@@ -5,6 +5,10 @@ namespace Pixelant\PxaPmImporter\Service;
 
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 
 /**
@@ -13,6 +17,8 @@ use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
  */
 class ImportManager
 {
+    use EmitSignalTrait;
+
     /**
      * @var ImportRepository
      */
@@ -35,12 +41,40 @@ class ImportManager
      */
     public function execute(Import $import): void
     {
+        $this->emitSignal('beforeImportExecute', [$import]);
+
+        $source = $this->resolveImportSource($import);
+        $importersConfiguration = $import->getConfigurationService()->getImportersConfiguration();
+
+        foreach ($importersConfiguration as $importerClass => $singleImporterConfiguration) {
+            /** @var ImporterInterface $importer */
+            $importer = GeneralUtility::makeInstance($importerClass);
+            $importer->start($source, $import, $singleImporterConfiguration);
+        }
+
+        $this->emitSignal('afterImportExecute', [$import]);
+
         // Set last execution time
         $import->setLastExecution(new \DateTime());
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($import,'Debug',16);
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($this->importRepository,'Debug',16);
-
-
         $this->importRepository->update($import);
+    }
+
+    /**
+     * Resolve source
+     * @TODO can we have multiple sources ???
+     *
+     * @param Import $import
+     * @return SourceInterface
+     */
+    protected function resolveImportSource(Import $import): SourceInterface
+    {
+        $sourceConfiguration = $import->getConfigurationService()->getSourceConfiguration();
+        foreach ($sourceConfiguration as $sourceClass => $configuration) {
+            /** @var SourceInterface $source */
+            $source = GeneralUtility::makeInstance($sourceClass);
+            $source->initialize($configuration);
+
+            return $source;
+        }
     }
 }

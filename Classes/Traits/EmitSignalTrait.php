@@ -25,8 +25,9 @@ trait EmitSignalTrait
      */
     protected function emitSignal($name, array $variables)
     {
-        $this->signalSlotDispatcher->dispatch(
-            __CLASS__,
+        $class = get_class($this);
+        $this->getSignalSlotDispatcher()->dispatch(
+            $class,
             $name,
             $variables
         );
