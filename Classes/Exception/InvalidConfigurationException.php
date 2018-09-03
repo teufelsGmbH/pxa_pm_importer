@@ -7,7 +7,7 @@ namespace Pixelant\PxaPmImporter\Exception;
  * Class InvalidFrequencyException
  * @package Pixelant\PxaPmImporter\Exception
  */
-class InvalidFrequencyException extends \Exception
+class InvalidConfigurationException extends \Exception
 {
 
 }

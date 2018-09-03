@@ -5,12 +5,13 @@ namespace Pixelant\PxaPmImporter\Command;
 
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
+use Pixelant\PxaPmImporter\Exception\InvalidConfigurationException;
 use Pixelant\PxaPmImporter\Service\ImportManager;
+use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Traits\TranslateBeTrait;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\CommandController;
-use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
 
 /**
  * Class ImportCommandController
@@ -19,16 +20,12 @@ use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
 class ImportCommandController extends CommandController
 {
     use TranslateBeTrait;
+    use EmitSignalTrait;
 
     /**
      * @var ImportRepository
      */
     protected $importRepository = null;
-
-    /**
-     * @var PersistenceManager
-     */
-    protected $persistenceManager = null;
 
     /**
      * @param ImportRepository $importRepository
@@ -39,52 +36,51 @@ class ImportCommandController extends CommandController
     }
 
     /**
-     * @param PersistenceManager $persistenceManager
-     */
-    public function injectPersistenceManager(PersistenceManager $persistenceManager): void
-    {
-        $this->persistenceManager = $persistenceManager;
-    }
-
-    /**
      * Import main task
      *
-     * @param string $email
+     * @param int $importUid Import configuration uid
+     * @param string $email Notify about import errors
      */
-    public function importCommand(string $email = ''): void
+    public function importCommand(int $importUid, string $email = ''): void
     {
-        /** @var Import[] $imports */
-        $imports = $this->importRepository->findAll();
+        try {
+            /** @var Import $import */
+            $import = $this->importRepository->findByUid($importUid);
 
-        $importManager = GeneralUtility::makeInstance(
-            ImportManager::class,
-            $this->persistenceManager,
-            $this->importRepository
-        );
+            if ($import === null) {
+                // @codingStandardsIgnoreStart
+                throw new InvalidConfigurationException('Could not find configuration with UID "' . $importUid . '"', 1535957269248);
+                // @codingStandardsIgnoreEnd
+            }
 
-        foreach ($imports as $import) {
-            try {
-                // Run import
-                $importManager->runScheduled($import);
-            } catch (\Exception $exception) {
-                if (GeneralUtility::isValidUrl($email)) {
-                    $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
+            $importManager = GeneralUtility::makeInstance(
+                ImportManager::class,
+                $this->importRepository
+            );
 
-                    $mailMessage
-                        ->setTo([$email])
-                        ->setSubject($this->translate('be.mail.error_subject'))
-                        ->setBody(
-                            $this->translate(
-                                'be.import_error_occurred',
-                                [$import->getName(), $exception->getMessage()]
-                            ),
-                            'text/plain'
-                        );
+            $this->emitSignal('beforeImportExecution', [$import]);
+            // Run import
+            $importManager->execute($import);
 
-                    $mailMessage->send();
-                } else {
-                    throw $exception;
-                }
+            $this->emitSignal('afterImportExecution', [$import]);
+        } catch (\Exception $exception) {
+            if (GeneralUtility::isValidUrl($email)) {
+                $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
+
+                $mailMessage
+                    ->setTo([$email])
+                    ->setSubject($this->translate('be.mail.error_subject'))
+                    ->setBody(
+                        $this->translate(
+                            'be.import_error_occurred',
+                            [$import->getName(), $exception->getMessage()]
+                        ),
+                        'text/plain'
+                    );
+
+                $mailMessage->send();
+            } else {
+                throw $exception;
             }
         }
     }

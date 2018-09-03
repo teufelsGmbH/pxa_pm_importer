@@ -21,9 +21,9 @@ trait EmitSignalTrait
      * Emit signal
      *
      * @param string $name
-     * @param array &$variables
+     * @param array $variables
      */
-    protected function emitSignal($name, array &$variables)
+    protected function emitSignal($name, array $variables)
     {
         $this->signalSlotDispatcher->dispatch(
             __CLASS__,

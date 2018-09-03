@@ -5,8 +5,6 @@ namespace Pixelant\PxaPmImporter\Service;
 
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
-use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
-use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 
 /**
@@ -16,11 +14,6 @@ use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 class ImportManager
 {
     /**
-     * @var PersistenceManager
-     */
-    protected $persistenceManagerManager = null;
-
-    /**
      * @var ImportRepository
      */
     protected $importRepository = null;
@@ -28,32 +21,11 @@ class ImportManager
     /**
      * Initialize
      *
-     * @param PersistenceManagerInterface $persistenceManager
      * @param RepositoryInterface $repository
      */
-    public function __construct(PersistenceManagerInterface $persistenceManager, RepositoryInterface $repository)
+    public function __construct(RepositoryInterface $repository)
     {
-        $this->persistenceManagerManager = $persistenceManager;
         $this->importRepository = $repository;
-    }
-
-    /**
-     * Start import for configuration
-     *
-     * @param Import $import
-     */
-    public function runScheduled(Import $import): void
-    {
-        if ($this->shouldExecute($import)) {
-            $this->execute($import);
-
-            // Set last execution time
-            $import->setLastExecution(new \DateTime());
-            $import->setNextExecution($import->calculateNextExecutionTime());
-            $this->importRepository->update($import);
-
-            $this->persistenceManagerManager->persistAll();
-        }
     }
 
     /**
@@ -61,25 +33,10 @@ class ImportManager
      *
      * @param Import $import
      */
-    protected function execute(Import $import): void
+    public function execute(Import $import): void
     {
-
-    }
-
-    /**
-     * Check if import should run on this execution
-     *
-     * @param Import $import
-     * @return bool
-     */
-    protected function shouldExecute(Import $import): bool
-    {
-        if ($import->isSingleTimeExecution()) {
-            return $import->getLastExecution() === null;
-        } else {
-            $nextExecution = $import->getNextExecution() ?? $import->calculateNextExecutionTime();
-
-            return $nextExecution->getTimestamp() <= $GLOBALS['EXEC_TIME'];
-        }
+        // Set last execution time
+        $import->setLastExecution(new \DateTime());
+        $this->importRepository->update($import);
     }
 }
