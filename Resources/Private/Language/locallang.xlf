@@ -4,6 +4,32 @@
 		<header/>
 		<body>
 
+			<!--BE module:START-->
+			<trans-unit id="be.index.title">
+			    <source>Single import execution</source>
+			</trans-unit>
+			<trans-unit id="be.index.description">
+			    <source>You can run import manually. This is mostly used for single time execution.</source>
+			</trans-unit>
+			<trans-unit id="be.select_conf">
+			    <source>Select import configuration</source>
+			</trans-unit>
+			<trans-unit id="be.submit">
+			    <source>Execute import</source>
+			</trans-unit>
+			<trans-unit id="be.success">
+			    <source>Success</source>
+			</trans-unit>
+			<trans-unit id="be.executed">
+			    <source>Import executed</source>
+			</trans-unit>
+			<trans-unit id="be.error">
+			    <source>Error</source>
+			</trans-unit>
+			<trans-unit id="be.failed_execution">
+			    <source>Failed while trying to execute import with message "%s".</source>
+			</trans-unit>
+			<!--BE module:END-->
 		</body>
 	</file>
 </xliff>

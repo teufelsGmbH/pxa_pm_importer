@@ -37,6 +37,10 @@ class ImportManager
     {
         // Set last execution time
         $import->setLastExecution(new \DateTime());
+        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($import,'Debug',16);
+        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($this->importRepository,'Debug',16);
+
+
         $this->importRepository->update($import);
     }
 }
