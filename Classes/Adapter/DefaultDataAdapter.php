@@ -3,32 +3,41 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Adapter;
 
-
-class DefaultDataAdapter implements AdapterInterface
+/**
+ * Class DefaultDataAdapter
+ * @package Pixelant\PxaPmImporter\Adapter
+ */
+class DefaultDataAdapter extends AbstractDefaultAdapter
 {
     /**
-     * @var array
-     */
-    protected $data = [];
-
-    public function adapt(array $data, array $configuration): void
-    {
-        $this->data = $data;
-    }
-
-    public function getData(): array
-    {
-        return $this->data;
-    }
-
-    /**
-     * Nothing here
+     * Convert source data
      *
-     * @param int $languageUid
+     * @param array $data
      * @return array
      */
-    public function getLocalizationData(int $languageUid): array
+    protected function adaptSourceData(array $data): array
     {
-        return [];
+        $adaptData = [];
+        // Prepare arrays with languages
+        foreach (array_keys($this->languagesMapping) as $languageUid) {
+            $adaptData[$languageUid] = [];
+        }
+
+        foreach ($data as $dataRow) {
+            $id = $this->getFieldData($this->identifier, $dataRow);
+            foreach ($this->languagesMapping as $language => $mapping) {
+                $languageDataRow = [
+                    'id' => $id
+                ];
+
+                foreach ($mapping as $fieldName => $column) {
+                    $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
+                }
+
+                $adaptData[$language][] = $languageDataRow;
+            }
+        }
+
+        return $adaptData;
     }
 }

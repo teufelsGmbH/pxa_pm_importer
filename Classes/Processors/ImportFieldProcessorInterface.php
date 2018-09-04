@@ -3,12 +3,23 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+
 /**
  * Interface ImportFieldProcessorInterface
  * @package Pixelant\PxaPmImporter\Processors
  */
 interface ImportFieldProcessorInterface
 {
+    /**
+     * Init processor
+     *
+     * @param AbstractEntity $entity
+     * @param string $property
+     * @param array $configuration
+     */
+    public function init(AbstractEntity $entity, string $property, array $configuration): void;
+
     /**
      * Pre-process value
      *
@@ -21,10 +32,9 @@ interface ImportFieldProcessorInterface
      * Check if value is valid before import
      *
      * @param $value
-     * @param string $fieldName
      * @return bool
      */
-    public function isValid($value, string $fieldName): bool;
+    public function isValid($value): bool;
 
     /**
      * Post process single import field

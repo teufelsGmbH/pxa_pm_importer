@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
  * Class AbstractFieldProcessor
@@ -16,7 +17,14 @@ abstract class AbstractFieldProcessor implements ImportFieldProcessorInterface
      *
      * @var array
      */
-    protected $fieldConfiguration = [];
+    protected $configuration = [];
+
+    /**
+     * Current property
+     *
+     * @var string
+     */
+    protected $property = '';
 
     /**
      * Error message
@@ -25,14 +33,26 @@ abstract class AbstractFieldProcessor implements ImportFieldProcessorInterface
      */
     protected $validationError = '';
 
+
     /**
-     * Initialize
+     * Model that is currently populated
      *
-     * @param array $fieldConfiugration
+     * @var AbstractEntity
      */
-    public function __construct(array $fieldConfiugration)
+    protected $entity = null;
+
+    /**
+     * Init
+     *
+     * @param AbstractEntity $entity
+     * @param string $property
+     * @param array $configuration
+     */
+    public function init(AbstractEntity $entity, string $property, array $configuration): void
     {
-        $this->fieldConfiguration = $fieldConfiugration;
+        $this->entity = $entity;
+        $this->property = $property;
+        $this->configuration = $configuration;
     }
 
     /**
@@ -47,34 +67,13 @@ abstract class AbstractFieldProcessor implements ImportFieldProcessorInterface
     }
 
     /**
-     * General validation rules
-     *
-     * @param $value
-     * @param string $fieldName
-     * @return bool
-     */
-    public function isValid($value, string $fieldName): bool
-    {
-        if ($this->isRequired() && empty($value)) {
-            $this->validationError = sprintf(
-                'Field "%s" is required',
-                $fieldName
-            );
-
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
      * Check if field is required
      *
      * @return bool
      */
     protected function isRequired()
     {
-        return GeneralUtility::inList($this->fieldConfiguration['validation'] ?? '', 'required');
+        return GeneralUtility::inList($this->configuration['validation'] ?? '', 'required');
     }
 
     /**

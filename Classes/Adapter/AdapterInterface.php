@@ -10,11 +10,6 @@ namespace Pixelant\PxaPmImporter\Adapter;
 interface AdapterInterface
 {
     /**
-     * Yaml field name
-     */
-    const SETTINGS_FIELD = '__adapterSettings';
-
-    /**
      * Adapt raw data from source
      *
      * @param array $data Raw data from source
@@ -24,9 +19,7 @@ interface AdapterInterface
     public function adapt(array $data, array $configuration): void;
 
     /**
-     * Get default data to import after adapt
-     * Could be data language layer if language field is forced to set, but in this case
-     * record won't have parent
+     * Get full adapted data for all languages
      *
      * @return array
      */
@@ -38,5 +31,12 @@ interface AdapterInterface
      * @param int $languageUid
      * @return array
      */
-    public function getLocalizationData(int $languageUid): array;
+    public function getLanguageData(int $languageUid): array;
+
+    /**
+     * Array with UIDs of languages
+     *
+     * @return array
+     */
+    public function getLanguages(): array;
 }

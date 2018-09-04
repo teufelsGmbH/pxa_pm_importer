@@ -13,22 +13,23 @@ class IntegerProcessor extends AbstractFieldProcessor
      * Check if numeric
      *
      * @param $value
-     * @param string $fieldName
      * @return bool
      */
-    public function isValid($value, string $fieldName): bool
+    public function isValid($value): bool
     {
-        if (parent::isValid($value, $fieldName)) {
-            // Empty value is valid if not required
-            if (!empty($value) && !is_numeric($value)) {
-                $this->validationError = 'Field "' . $fieldName . '" should be numeric';
-                return false;
-            }
+        if ($this->isRequired() && empty($value)) {
+            $this->validationError = 'Property "' . $this->property . '" value is required';
 
-            return true;
+            return false;
         }
 
-        return false;
+        // Empty value is valid if not required
+        if (!empty($value) && !is_numeric($value)) {
+            $this->validationError = 'Property "' . $this->property . '" value should be numeric';
+            return false;
+        }
+
+        return true;
     }
 
     /**

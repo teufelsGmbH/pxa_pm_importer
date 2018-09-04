@@ -6,17 +6,26 @@ source:
 importers:
   Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
     # Layer between raw data and importer
-    adapter: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
-    __adapterSettings:
-        dummySetting: true
-    # Identifier
-    identifierField: 0
+    adapter:
+      className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
+      mapping:
+        # Import unique identifier for all fields
+        id: 0
+        # Per language, field name to column from raw data, 0 is first
+        languages:
+          0:
+            name: 12
+            parent: 18
+          1:
+            name: 17
+    # Default
+    identifierField: id
     # Storage
     pid: 136
 
-    # Mapping fields
+    # Mapping fields, data adapter should return array with associative array
     mapping:
-      name:
-        # cell number
-        field: 17
+      0:
+        field: name
+        property: name
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'

@@ -13,6 +13,21 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class StringProcessor extends AbstractFieldProcessor
 {
     /**
+     * @param $value
+     * @return bool
+     */
+    public function isValid($value): bool
+    {
+        if ($this->isRequired() && empty($value)) {
+            $this->validationError = 'Property "' . $this->property . '" value is required';
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Return as string always
      *
      * @param $value

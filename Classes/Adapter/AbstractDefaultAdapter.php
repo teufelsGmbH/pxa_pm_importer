@@ -1,0 +1,127 @@
+<?php
+declare(strict_types=1);
+
+namespace Pixelant\PxaPmImporter\Adapter;
+
+use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
+
+/**
+ * Class AbstractDefaultAdapter
+ * @package Pixelant\PxaPmImporter\Adapter
+ */
+abstract class AbstractDefaultAdapter implements AdapterInterface
+{
+    /**
+     * Adapted data for all lanugages
+     *
+     * @var array
+     */
+    protected $data = [];
+
+    /**
+     * Identifier column
+     *
+     * @var int
+     */
+    protected $identifier = null;
+
+    /**
+     * Mapping configuration for languages
+     *
+     * @var null
+     */
+    protected $languagesMapping = null;
+
+    /**
+     * Adapt source data
+     *
+     * @param array $data
+     * @param array $configuration
+     */
+    public function adapt(array $data, array $configuration): void
+    {
+        $this->initialize($configuration);
+        $this->data = $this->adaptSourceData($data);
+    }
+
+    /**
+     * @return array
+     */
+    public function getData(): array
+    {
+        return $this->data;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLanguages(): array
+    {
+        return array_keys($this->languagesMapping);
+    }
+
+    /**
+     * @param int $languageUid
+     * @return array
+     */
+    public function getLanguageData(int $languageUid): array
+    {
+        if (isset($this->data[$languageUid])) {
+            return $this->data[$languageUid];
+        }
+
+        // @codingStandardsIgnoreStart
+        throw new \UnexpectedValueException('Language with uid "' . $languageUid . '" doesn\'t have data in data adapter', 1536051135215);
+        // @codingStandardsIgnoreEnd
+    }
+
+    /**
+     * Initialize default settings
+     *
+     * @param array $configuration
+     */
+    protected function initialize(array $configuration): void
+    {
+        if (empty($configuration['mapping'])) {
+            throw new \RuntimeException('Adapter mapping configuration is invalid.', 1536050678725);
+        }
+
+        if (isset($configuration['mapping']['id'])) {
+            $this->identifier = (int)$configuration['mapping']['id'];
+        } else {
+            throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
+        }
+
+        if (!empty($configuration['mapping']['languages']) && is_array($configuration['mapping']['languages'])) {
+            $this->languagesMapping = $configuration['mapping']['languages'];
+        } else {
+            // @codingStandardsIgnoreStart
+            throw new \RuntimeException('Adapter mapping require at least one language mapping configuration.', 1536050795179);
+            // @codingStandardsIgnoreEnd
+        }
+    }
+
+    /**
+     * Get single field data from row
+     *
+     * @param int $column
+     * @param array $row
+     * @return mixed
+     */
+    protected function getFieldData(int $column, array $row)
+    {
+        if (isset($row[$column])) {
+            return $row[$column];
+        }
+
+        throw new InvalidAdapterFieldMapping('Data column "' . $column . '" is not set', 1536051927592);
+    }
+
+    /**
+     * Convert source data according to mapping
+     *
+     * @param array $data
+     * @return array
+     */
+    abstract protected function adaptSourceData(array $data): array;
+}

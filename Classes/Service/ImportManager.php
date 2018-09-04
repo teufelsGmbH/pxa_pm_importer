@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Service;
 
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
+use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
@@ -49,7 +50,15 @@ class ImportManager
         foreach ($importersConfiguration as $importerClass => $singleImporterConfiguration) {
             /** @var ImporterInterface $importer */
             $importer = GeneralUtility::makeInstance($importerClass);
+            if (!($importer instanceof ImporterInterface)) {
+                // @codingStandardsIgnoreStart
+                throw new \UnexpectedValueException('Class "' . $importerClass . '" should be instance of ImporterInterface', 1536044275945);
+                // @codingStandardsIgnoreEnd
+            }
+
+            $importer->preImport($source, $import, $singleImporterConfiguration);
             $importer->start($source, $import, $singleImporterConfiguration);
+            $importer->postImport($import);
         }
 
         $this->emitSignal('afterImportExecute', [$import]);
@@ -72,9 +81,18 @@ class ImportManager
         foreach ($sourceConfiguration as $sourceClass => $configuration) {
             /** @var SourceInterface $source */
             $source = GeneralUtility::makeInstance($sourceClass);
+            if (!($source instanceof SourceInterface)) {
+                // @codingStandardsIgnoreStart
+                throw new \UnexpectedValueException('Class "' . $sourceClass . '" should be instance of SourceInterface', 1536044243356);
+                // @codingStandardsIgnoreEnd
+            }
             $source->initialize($configuration);
 
             return $source;
         }
+
+        // @codingStandardsIgnoreStart
+        throw new InvalidConfigurationSourceException('It\'s not possible to resolve source in "' . $import->getName() . '" configuration.', 1536043244442);
+        // @codingStandardsIgnoreEnd
     }
 }
