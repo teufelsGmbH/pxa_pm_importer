@@ -17,29 +17,25 @@ class IntegerProcessor extends AbstractFieldProcessor
      */
     public function isValid($value): bool
     {
-        if ($this->isRequired() && empty($value)) {
-            $this->validationError = 'Property "' . $this->property . '" value is required';
-
-            return false;
-        }
+        $valid = parent::isValid($value);
 
         // Empty value is valid if not required
         if (!empty($value) && !is_numeric($value)) {
-            $this->validationError = 'Property "' . $this->property . '" value should be numeric';
+            $this->validationErrors = 'Property "' . $this->property . '" value should be numeric';
+
             return false;
         }
 
-        return true;
+        return $valid;
     }
 
     /**
-     * Process
+     * Set as int
      *
      * @param $value
-     * @return int
      */
-    public function postProcess($value): int
+    public function process($value): void
     {
-        return intval($value);
+        $this->simplePropertySet(intval($value));
     }
 }

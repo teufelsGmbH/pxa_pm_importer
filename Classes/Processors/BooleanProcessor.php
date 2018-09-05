@@ -10,22 +10,12 @@ namespace Pixelant\PxaPmImporter\Processors;
 class BooleanProcessor extends AbstractFieldProcessor
 {
     /**
-     * @param $value
-     * @return bool
-     */
-    public function isValid($value): bool
-    {
-        return true; // @TODO is empty string valid?
-    }
-
-    /**
-     * Boolean
+     * Set boolean value
      *
      * @param $value
-     * @return bool
      */
-    public function postProcess($value): bool
+    public function process($value): void
     {
-        return (bool)$value;
+        $this->simplePropertySet((bool)$value);
     }
 }

@@ -6,16 +6,18 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Logging\Logger;
+use Pixelant\PxaPmImporter\Processors\ImportFieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
-use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
+use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
  * Class AbstractImporter
@@ -24,16 +26,6 @@ use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 abstract class AbstractImporter implements ImporterInterface
 {
     use EmitSignalTrait;
-
-    /**
-     * DB field name with identifier original value
-     */
-    const DB_IMPORT_ID_FIELD = 'pm_importer_import_id';
-
-    /**
-     * DB field name where import hash stored
-     */
-    const DB_IMPORT_ID_HASH_FIELD = 'pm_importer_import_id_hash';
 
     /**
      * @var AdapterInterface
@@ -96,6 +88,18 @@ abstract class AbstractImporter implements ImporterInterface
     protected $import = null;
 
     /**
+     * Multiple array with default values for new record
+     * Example:
+     * [
+     *    'values' => ['title' => ''],
+     *    'types' => [Connection::PARAM_STR]
+     * ]
+     *
+     * @var array
+     */
+    protected $defaultNewRecordFields = [];
+
+    /**
      * Initialize
      */
     public function __construct()
@@ -118,7 +122,7 @@ abstract class AbstractImporter implements ImporterInterface
         $this->initImporterRelated();
 
         $this->runImport();
-        die;
+        //die;
     }
 
     /**
@@ -201,24 +205,15 @@ abstract class AbstractImporter implements ImporterInterface
                 // @codingStandardsIgnoreEnd
             }
             $name = $fieldMapping['field'];
+            $fieldConfiguration = $fieldMapping;
+            unset($fieldConfiguration['field'], $fieldConfiguration['processor'], $fieldConfiguration['property']);
 
             $this->mapping[$name] = [
                 'property' => $fieldMapping['property'] ?? $name,
-                'processor' => $fieldMapping['processor'] ?? false
+                'processor' => $fieldMapping['processor'] ?? false,
+                'configuration' => $fieldConfiguration
             ];
         }
-    }
-
-    protected function processRowFieldValueUsingMapping(AbstractEntity $entity, string $field, $value)
-    {
-        if (!isset($this->mapping[$field])) {
-            // @codingStandardsIgnoreStart
-            throw new \RuntimeException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
-            // @codingStandardsIgnoreEnd
-        }
-
-        $mapping = $this->mapping[$field];
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($mapping,'Debug',16);die;
     }
 
     /**
@@ -246,7 +241,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function getImportIdHash(string $id): string
     {
-        return md5($id);
+        return MainUtility::getImportIdHash($id);
     }
 
     /**
@@ -306,38 +301,209 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function mapRow(array $row): AbstractEntity
     {
-        $dataMapper = GeneralUtility::makeInstance(DataMapper::class);
-
-        $result = $dataMapper->map($this->modelName, [$row]);
-        return $result[0];
+        return MainUtility::convertRecordArrayToModel($row, $this->modelName);
     }
 
     /**
-     * Check if there is any changed property
-     *
-     * @param AbstractEntity $entity
-     * @return bool
-     * @throws \TYPO3\CMS\Extbase\Persistence\Generic\Exception\TooDirtyException
+     * @return int
      */
-    protected function modelHasChanged(AbstractEntity $entity): bool
+    public function getPid(): int
     {
-        foreach ($entity->_getProperties() as $property) {
-            if ($entity->_isDirty($property)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->pid;
     }
 
+    /**
+     * Add import data to model
+     *
+     * @param AbstractEntity $model
+     * @param array $record
+     * @param array $importRow
+     * @return bool Return false if something went wrong, true otherwise
+     */
     protected function populateModelWithImportData(
         AbstractEntity $model,
         array $record,
-        array $importRow,
-        int $language
-    ): void {
+        array $importRow
+    ): bool {
         foreach ($importRow as $field => $value) {
+            if ($field === $this->identifier) {
+                // it was already set when create new record
+                continue;
+            }
+            if (!isset($this->mapping[$field])) {
+                // @codingStandardsIgnoreStart
+                throw new \RuntimeException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
+                // @codingStandardsIgnoreEnd
+            }
 
+            $mapping = $this->mapping[$field];
+            $property = $mapping['property'];
+
+            // If processor is set, it should set value for model property
+            if (!empty($mapping['processor'])) {
+                $processor = GeneralUtility::makeInstance($mapping['processor']);
+                if (!($processor instanceof ImportFieldProcessorInterface)) {
+                    // @codingStandardsIgnoreStart
+                    throw new \UnexpectedValueException('Processor "' . $mapping['processor'] . '" should be instance of "ImportFieldProcessorInterface"', 1536128672117);
+                    // @codingStandardsIgnoreEnd
+                }
+
+                $processor->init($model, $record, $property, $this, $mapping['configuration']);
+
+                $processor->preProcess($value);
+                if ($processor->isValid($value)) {
+                    $processor->process($value);
+                } else {
+                    $this->logger->error(sprintf(
+                        'Property "%s" validation failed for import ID "%s(hash:%s)", with messages: %s',
+                        $property,
+                        $record[self::DB_IMPORT_ID_FIELD],
+                        $record[self::DB_IMPORT_ID_HASH_FIELD],
+                        $processor->getValidationErrorsString()
+                    ));
+
+                    return false;
+                }
+            } else {
+                // Just set it if no processor
+                $currentValue = ObjectAccess::getProperty($model, $property);
+                if ($currentValue != $value) {
+                    ObjectAccess::setProperty($model, $property, $value);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Create new empty record
+     *
+     * @param string $id
+     * @param string $idHash
+     * @param int $language
+     */
+    protected function createNewEmptyRecord(string $id, string $idHash, int $language): void
+    {
+        $defaultValues = $this->defaultNewRecordFields['values'] ?? [];
+        $defaultTypes = $this->defaultNewRecordFields['types'] ?? [];
+        if (count($defaultValues) !== count($defaultTypes)) {
+            // @codingStandardsIgnoreStart
+            throw new \UnexpectedValueException('Values in "defaultNewRecordFields" require corresponding types', 1536138820478);
+            // @codingStandardsIgnoreEnd
+        }
+
+        $values = array_merge(
+            [
+                self::DB_IMPORT_ID_FIELD => $id,
+                self::DB_IMPORT_ID_HASH_FIELD => $idHash,
+                'sys_language_uid' => $language,
+                'pid' => $this->pid
+            ],
+            $defaultValues
+        );
+        $types = array_merge(
+            [
+                Connection::PARAM_STR,
+                Connection::PARAM_STR,
+                Connection::PARAM_INT,
+                Connection::PARAM_INT
+            ],
+            $defaultTypes
+        );
+
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($this->dbTable)
+            ->insert(
+                $this->dbTable,
+                $values,
+                $types
+            );
+    }
+
+    /**
+     * Handle localization relation
+     *
+     * @param array $record
+     */
+    protected function handleLocalization(array $record): void
+    {
+        $transOrigPointerField = $GLOBALS['TCA'][$this->dbTable]['ctrl']['transOrigPointerField'];
+        // If translation default language record is not set try to find it and set
+        if ((int)$record[$transOrigPointerField] === 0) {
+            $defaultLanguageRecord = $this->getRecordByImportIdHash($record[self::DB_IMPORT_ID_HASH_FIELD], 0);
+
+            if ($defaultLanguageRecord !== null) {
+                GeneralUtility::makeInstance(ConnectionPool::class)
+                    ->getConnectionForTable($this->dbTable)
+                    ->update(
+                        $this->dbTable,
+                        [$transOrigPointerField => (int)$defaultLanguageRecord['uid']],
+                        ['uid' => (int)$record['uid']],
+                        [Connection::PARAM_INT]
+                    );
+            }
+        }
+    }
+
+    /**
+     * Actual import
+     */
+    protected function runImport(): void
+    {
+        $languages = $this->adapter->getLanguages();
+
+        foreach ($languages as $language) {
+            $data = $this->adapter->getLanguageData($language);
+
+            // One row per record
+            foreach ($data as $row) {
+                $id = $this->getImportIdFromRow($row);
+                $idHash = $this->getImportIdHash($id);
+                $record = $this->getRecordByImportIdHash($idHash, $language);
+
+                if ($record === null) {
+                    $this->logger->info(sprintf(
+                        'Creating new record for table "%", with ID "%s"',
+                        $this->dbTable,
+                        $id
+                    ));
+
+                    $this->createNewEmptyRecord($id, $idHash, $language);
+
+                    // Get new empty record
+                    $record = $this->getRecordByImportIdHash($idHash, $language);
+                    if ($record === null) {
+                        // @codingStandardsIgnoreStart
+                        throw new \RuntimeException('Error fetching new created record. This should never happen.', 1536063924811);
+                        // @codingStandardsIgnoreEnd
+                    }
+                }
+
+                $model = $this->mapRow($record);
+
+                if (is_object($model)) {
+                    $result = $this->populateModelWithImportData($model, $record, $row);
+
+                    if ($result === false) {
+                        // Skip record where population failed
+                        continue;
+                    }
+                }
+
+                if ($model->_isDirty()) {
+                    $this->logger->info(sprintf(
+                        'Update record for table "%", with UID "%s"',
+                        $this->dbTable,
+                        $model->getUid()
+                    ));
+                    $this->repository->update($model);
+                }
+
+                if ($language > 0) {
+                    $this->handleLocalization($record);
+                }
+            }
         }
     }
 
@@ -355,20 +521,4 @@ abstract class AbstractImporter implements ImporterInterface
      * Init target model repository
      */
     abstract protected function initRepository(): void;
-
-    /**
-     * Create new empty record
-     *
-     * @param string $id
-     * @param string $idHash
-     * @param int $language
-     */
-    abstract protected function createNewEmptyRecord(string $id, string $idHash, int $language): void;
-
-    /**
-     * Actual import
-     *
-     * @return mixed
-     */
-    abstract protected function runImport(): void;
 }

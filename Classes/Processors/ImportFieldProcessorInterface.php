@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
@@ -15,18 +16,25 @@ interface ImportFieldProcessorInterface
      * Init processor
      *
      * @param AbstractEntity $entity
+     * @param array $dbRow
      * @param string $property
+     * @param ImporterInterface $importer
      * @param array $configuration
      */
-    public function init(AbstractEntity $entity, string $property, array $configuration): void;
+    public function init(
+        AbstractEntity $entity,
+        array $dbRow,
+        string $property,
+        ImporterInterface $importer,
+        array $configuration
+    ): void;
 
     /**
-     * Pre-process value
+     * Pre-process value, before validation
      *
-     * @param mixed $value
-     * @return mixed
+     * @param mixed &$value
      */
-    public function preProcess($value);
+    public function preProcess(&$value): void;
 
     /**
      * Check if value is valid before import
@@ -37,11 +45,17 @@ interface ImportFieldProcessorInterface
     public function isValid($value): bool;
 
     /**
-     * Post process single import field
-     * This should return compatible value for extbase model where import
+     * Process single import field
+     * This method is called to set value in model property and do any other required operations
      *
      * @param $value
-     * @return mixed $value Value after processing
      */
-    public function postProcess($value);
+    public function process($value): void;
+
+    /**
+     * Return validation errors
+     *
+     * @return string
+     */
+    public function getValidationErrorsString(): string;
 }

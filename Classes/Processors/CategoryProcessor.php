@@ -3,10 +3,16 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
-use Pixelant\PxaPmImporter\Command\ImportCommandController;
-use Pixelant\PxaPmImporter\Domain\Model\Category;
-use Pixelant\PxaPmImporter\Domain\Repository\CategoryRepository;
+use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use Pixelant\PxaProductManager\Domain\Model\Category;
+use Pixelant\PxaProductManager\Domain\Repository\CategoryRepository;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class CategoryProcessor
@@ -20,72 +26,86 @@ class CategoryProcessor extends AbstractFieldProcessor
     protected $categoryRepository = null;
 
     /**
-     * @var Category
+     * @var Category[]
      */
-    protected $category = null;
+    protected $categories = [];
 
     /**
      * Initialize
      */
     public function __construct()
     {
-        parent::__construct();
-        $this->categoryRepository = MainUtility::getObjectManager()->get(CategoryRepository::class);
+        $this->categoryRepository = GeneralUtility::makeInstance(ObjectManager::class)->get(CategoryRepository::class);
     }
 
     /**
-     * Check if category exist and is valid
+     * Check if category exist
      *
-     * @param $value
-     * @param ImportCommandController $pObj
-     * @param array $fieldConfiguration
-     * @return bool
+     * @param mixed $value
      */
-    public function isValid($value, ImportCommandController $pObj, array $fieldConfiguration = []): bool
+    public function preProcess(&$value): void
     {
-        $isRequired = $this->isRequired($fieldConfiguration);
+        $this->categories = []; // Reset categories
+        $value = GeneralUtility::trimExplode(',', $value, true);
 
-        if ($isRequired && empty($value)) {
-            return false;
+        foreach ($value as $categoryIdentifier) {
+            $record = $this->getCategoryRecord($categoryIdentifier); // Default language record
+            if ($record !== null) {
+                $category = MainUtility::convertRecordArrayToModel($record, Category::class);
+                $this->categories[] = $category;
+            } else {
+                // @codingStandardsIgnoreStart
+                throw new PostponeProcessorException('Category with id "' . $categoryIdentifier . '" not found.', 1536148407513);
+                // @codingStandardsIgnoreEnd
+            }
         }
-
-        $category = $this->categoryRepository->findByPimUid($value);
-
-        if ($category !== null) {
-            $this->setCategory($category);
-
-            return true;
-        }
-
-        $this->logger->error('Category with ID "' . $value . '" was not found.');
-
-        return false;
     }
 
     /**
-     * Assign categories
+     * @param $value
+     */
+    public function process($value): void
+    {
+        $this->updateRelationProperty($this->categories);
+    }
+
+    /**
+     * Fetch category record
      *
-     * @param array $data
-     * @param array $product
-     * @param string $field
-     * @param $value
-     * @param ImportCommandController $pObj
+     * @param string $identifier
+     * @return array|null
      */
-    public function process(array &$data, array &$product, string $field, $value, ImportCommandController $pObj): void
+    protected function getCategoryRecord(string $identifier): ?array
     {
-        if ($product[$field] !== $value) {
-            $product['categories'] = $this->category->getUid();
-            $product[$field] = $value;
+        $hash = MainUtility::getImportIdHash($identifier);
 
-            $this->markProductAsChanged($product, $field, 'categories');
-        }
-    }
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('sys_category');
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
 
-    /**
-     * @param Category $category
-     */
-    public function setCategory(Category $category): void
-    {
-        $this->category = $category;
+        $row = $queryBuilder
+            ->select('*')
+            ->from('sys_category')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    ImporterInterface::DB_IMPORT_ID_HASH_FIELD,
+                    $queryBuilder->createNamedParameter($hash, Connection::PARAM_STR)
+                ),
+                $queryBuilder->expr()->eq(
+                    'sys_language_uid',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($this->importer->getPid(), Connection::PARAM_INT)
+                )
+            )
+            ->setMaxResults(1)
+            ->execute()
+            ->fetch();
+
+        return is_array($row) ? $row : null;
     }
 }

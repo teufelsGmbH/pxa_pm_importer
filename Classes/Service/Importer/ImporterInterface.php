@@ -13,6 +13,16 @@ use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 interface ImporterInterface
 {
     /**
+     * DB field name with identifier original value
+     */
+    const DB_IMPORT_ID_FIELD = 'pm_importer_import_id';
+
+    /**
+     * DB field name where import hash stored
+     */
+    const DB_IMPORT_ID_HASH_FIELD = 'pm_importer_import_id_hash';
+
+    /**
      * Before import starts
      *
      * @param SourceInterface $source
@@ -37,4 +47,11 @@ interface ImporterInterface
      * @return void
      */
     public function postImport(Import $import): void;
+
+    /**
+     * Return storage
+     *
+     * @return int
+     */
+    public function getPid(): int;
 }

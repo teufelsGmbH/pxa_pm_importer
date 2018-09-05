@@ -14,10 +14,10 @@ importers:
         # Per language, field name to column from raw data, 0 is first
         languages:
           0:
-            name: 12
+            title: 12
             parent: 18
           1:
-            name: 17
+            title: 17
     # Default
     identifierField: id
     # Storage
@@ -26,6 +26,13 @@ importers:
     # Mapping fields, data adapter should return array with associative array
     mapping:
       0:
-        field: name
-        property: name
+        field: 'title'
+        # Property name is necessary only if differ from field name
+        property: 'title'
+        #
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+        # Custom settings
+        validation: 'required'
+      1:
+        field: 'parent'
+        processor: 'Pixelant\PxaPmImporter\Processors\CategoryProcessor'

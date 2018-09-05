@@ -13,12 +13,11 @@ class FloatProcessor extends AbstractFieldProcessor
      * Remove comma
      *
      * @param mixed $value
-     * @return mixed|string
      */
-    public function preProcess($value)
+    public function preProcess(&$value): void
     {
-        $value = parent::preProcess($value);
-        return str_replace(',', '.', $value);
+        parent::preProcess($value);
+        $value = str_replace(',', '.', $value);
     }
 
     /**
@@ -29,30 +28,25 @@ class FloatProcessor extends AbstractFieldProcessor
      */
     public function isValid($value): bool
     {
-        if ($this->isRequired() && empty($value)) {
-            $this->validationError = 'Property "' . $this->property . '" value is required';
-
-            return false;
-        }
+        $valid = parent::isValid($value);
 
         // Empty value is valid if not required
         if (!empty($value) && !is_numeric($value)) {
-            $this->validationError = 'Property "' . $this->property . '" value should be numeric';
+            $this->addError('Property "' . $this->property . '" value should be numeric');
 
             return false;
         }
 
-        return true;
+        return $valid;
     }
 
     /**
-     * Process
+     * Set as float
      *
      * @param $value
-     * @return float
      */
-    public function postProcess($value): float
+    public function process($value): void
     {
-        return (float)$value;
+        $this->simplePropertySet((float)$value);
     }
 }

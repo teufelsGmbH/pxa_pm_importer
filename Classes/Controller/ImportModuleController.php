@@ -85,7 +85,6 @@ class ImportModuleController extends ActionController
 
             $importManager->execute($import);
 
-            die('executed');
             $this->addFlashMessage(
                 $this->translate('be.executed'),
                 $this->translate('be.success'),
