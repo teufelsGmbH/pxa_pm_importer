@@ -156,7 +156,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      */
     protected function getFieldData(int $column, array $row)
     {
-        if (isset($row[$column])) {
+        if (array_key_exists($column, $row)) {
             return $row[$column];
         }
 

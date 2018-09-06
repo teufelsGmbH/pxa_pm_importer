@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service\Source;
 
 use Pixelant\PxaPmImporter\Exception\InvalidSourceFileException;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class CsvSource
@@ -20,11 +19,11 @@ class CsvSource extends AbstractFileSource
     protected $delimiter = ',';
 
     /**
-     * What rows to skip
+     * How many rows to skip
      *
-     * @var array
+     * @var int
      */
-    protected $skipRows = [];
+    protected $skipRows = 0;
 
     /**
      * Source data from file
@@ -49,12 +48,12 @@ class CsvSource extends AbstractFileSource
             $fileStream = (new \SplFileObject($this->getAbsoluteFilePath()));
             $sourceData = [];
 
-            // Import
+            // Read
             while (!$fileStream->eof()) {
                 $row = $fileStream->fgetcsv($this->delimiter);
 
                 // Skip empty or ignored lines
-                if ($this->isLineEmpty($row) || in_array($fileStream->key() + 1, $this->skipRows)) {
+                if ($this->isLineEmpty($row) || (($fileStream->key() + 1) <= $this->skipRows)) {
                     continue;
                 }
 
@@ -81,7 +80,7 @@ class CsvSource extends AbstractFileSource
             $this->delimiter = $sourceSettings['delimiter'];
         }
         if (!empty($sourceSettings['skipRows'])) {
-            $this->skipRows = GeneralUtility::trimExplode(',', $sourceSettings['skipRows'], true);
+            $this->skipRows = (int)$sourceSettings['skipRows'];
         }
 
         $this->filePath = $sourceSettings['filePath'] ?? '';

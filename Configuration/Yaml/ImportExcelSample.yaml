@@ -1,0 +1,38 @@
+source:
+  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+    skipRows: 1
+    filePath: fileadmin/categoriesxls.xlsx
+    sheet: -1
+importers:
+  Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
+    # Layer between raw data and importer
+    adapter:
+      className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
+      mapping:
+        # Import unique identifier for all fields
+        id: A
+        # Per language, field name to column from raw data, 0 is first
+        languages:
+          0:
+            title: M
+            parent: S
+          1:
+            # Or use column letter
+            title: R
+    # Default
+    identifierField: id
+    # Storage
+    pid: 136
+
+    # Mapping fields, data adapter should return array with associative array
+    mapping:
+      0:
+        field: 'title'
+        # Property name is necessary only if it differ from field name
+        property: 'title'
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+        # Custom settings
+        validation: 'required'
+      1:
+        field: 'parent'
+        processor: 'Pixelant\PxaPmImporter\Processors\CategoryProcessor'
