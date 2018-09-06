@@ -60,6 +60,8 @@ class CsvSource extends AbstractFileSource
                 $sourceData[] = $row;
             }
 
+            $this->emitSignal('sourceDataBeforeSet', [&$sourceData]);
+
             $this->sourceData = $sourceData;
             unset($sourceData);
 

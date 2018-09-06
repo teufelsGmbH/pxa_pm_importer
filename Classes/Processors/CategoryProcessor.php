@@ -45,6 +45,9 @@ class CategoryProcessor extends AbstractFieldProcessor
      */
     public function preProcess(&$value): void
     {
+        if (!is_string($value)) {
+            $value = (string)$value;
+        }
         parent::preProcess($value);
         $value = strtolower($value);
 

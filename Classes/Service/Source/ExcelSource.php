@@ -66,6 +66,8 @@ class ExcelSource extends AbstractFileSource
                 $sourceData = array_slice($sourceData, $this->skipRows);
             }
 
+            $this->emitSignal('sourceDataBeforeSet', [&$sourceData]);
+
             $this->sourceData = $sourceData;
             unset($sourceData);
 

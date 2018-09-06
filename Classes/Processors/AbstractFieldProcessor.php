@@ -88,7 +88,9 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      */
     public function preProcess(&$value): void
     {
-        $value = trim($value);
+        if (is_string($value)) {
+            $value = trim($value);
+        }
     }
 
     /**

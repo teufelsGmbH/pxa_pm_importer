@@ -1,0 +1,9 @@
+Import ID,label EN,Label SV,parent
+1,Suppliers,Suppliers,10
+24,24MX,24MX,
+10,Streetwear,Streetwear,24
+18,Lisäravinteet,Suplementy diety,10
+37,Lahjakortti,Bony upominkowe,18
+38,Lehdet,Magazyny,18
+92,Miehille,Odzież męska,10
+122,Paidat & Hupparit,Swetry i bluzy z kapturem,92

@@ -1,8 +1,8 @@
 source:
   Pixelant\PxaPmImporter\Service\Source\ExcelSource:
     skipRows: 1
-    filePath: fileadmin/categoriesxls.xlsx
     sheet: -1
+    filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/categoriesxls.xlsx
 importers:
   Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
     # Layer between raw data and importer
@@ -14,11 +14,11 @@ importers:
         # Per language, field name to column from raw data, 0 is first
         languages:
           0:
-            title: M
-            parent: S
+            title: B
+            parent: D
           1:
             # Or use column letter
-            title: R
+            title: C
     # Default
     identifierField: id
     # Storage
