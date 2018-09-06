@@ -45,6 +45,9 @@ class CategoryProcessor extends AbstractFieldProcessor
      */
     public function preProcess(&$value): void
     {
+        parent::preProcess($value);
+        $value = strtolower($value);
+
         $this->categories = []; // Reset categories
         $value = GeneralUtility::trimExplode(',', $value, true);
 
@@ -55,7 +58,7 @@ class CategoryProcessor extends AbstractFieldProcessor
                 $this->categories[] = $category;
             } else {
                 // @codingStandardsIgnoreStart
-                throw new PostponeProcessorException('Category with id "' . $categoryIdentifier . '" not found.', 1536148407513);
+                throw new PostponeProcessorException('Category with id "' . $categoryIdentifier . '" not found for record with id "' . $record[ImporterInterface::DB_IMPORT_ID_FIELD] . '".', 1536148407513);
                 // @codingStandardsIgnoreEnd
             }
         }

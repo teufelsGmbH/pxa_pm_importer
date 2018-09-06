@@ -21,11 +21,11 @@ class Logger
     protected $logger = null;
 
     /**
-     * Define if logging is enabled
+     * Save messages for output
      *
-     * @var bool
+     * @var array
      */
-    protected $isEnabled = true;
+    protected $messages = [];
 
     /**
      * Initialize

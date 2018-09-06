@@ -538,7 +538,9 @@ abstract class AbstractImporter implements ImporterInterface
                     $this->repository->update($processor->getProcessingEntity());
                 }
             } catch (PostponeProcessorException $exception) {
-                $this->logger->error('Failed executing postponed processor with message "' . $exception->getMessage() . '"');
+                $this->logger->error(
+                    'Failed executing postponed processor with message "' . $exception->getMessage() . '"'
+                );
             }
         }
         unset($this->postponedProcessors);

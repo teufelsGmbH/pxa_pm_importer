@@ -2,7 +2,7 @@ source:
   Pixelant\PxaPmImporter\Service\Source\CsvSource:
     skipRows: 1
     delimiter: ,
-    filePath: fileadmin/Test.csv
+    filePath: fileadmin/categories.csv
 importers:
   Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
     # Layer between raw data and importer
@@ -10,7 +10,7 @@ importers:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
       mapping:
         # Import unique identifier for all fields
-        id: A
+        id: 0
         # Per language, field name to column from raw data, 0 is first
         languages:
           0:
@@ -18,7 +18,7 @@ importers:
             parent: 18
           1:
             # Or use column letter
-            title: R
+            title: 17
     # Default
     identifierField: id
     # Storage
