@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Logging;
 
+use Pixelant\PxaPmImporter\Logging\Writer\FileWriter;
 use Psr\Log\LoggerTrait;
+use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -21,11 +23,11 @@ class Logger
     protected $logger = null;
 
     /**
-     * Save messages for output
+     * Save some messages
      *
      * @var array
      */
-    protected $messages = [];
+    protected $errorMessages = [];
 
     /**
      * Initialize
@@ -46,7 +48,36 @@ class Logger
      */
     public function log($level, $message, array $context = []): void
     {
+        $errorLevel = [LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR];
+        if (in_array($level, $errorLevel)) {
+            $this->errorMessages[] = $message;
+        }
+
         $this->logger->log($level, $message, $context);
+    }
+
+    /**
+     * Get errors
+     */
+    public function getErrorMessages(): array
+    {
+        return $this->errorMessages;
+    }
+
+    /**
+     * Get path to log file
+     *
+     * @return string
+     */
+    public function getLogFilePath(): string
+    {
+        foreach ($this->logger->getWriters() as $writer) {
+            if ($writer instanceof FileWriter) {
+                return $writer->getLogFile();
+            }
+        }
+
+        return '';
     }
 
     /**

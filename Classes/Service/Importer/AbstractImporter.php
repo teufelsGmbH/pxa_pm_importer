@@ -116,10 +116,12 @@ abstract class AbstractImporter implements ImporterInterface
 
     /**
      * Initialize
+     *
+     * @param Logger $logger
      */
-    public function __construct()
+    public function __construct(Logger $logger = null)
     {
-        $this->logger = Logger::getInstance(__CLASS__);
+        $this->logger = $logger !== null ? $logger : Logger::getInstance(__CLASS__);
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
     }
@@ -138,6 +140,14 @@ abstract class AbstractImporter implements ImporterInterface
         $this->initImporterRelated();
 
         $this->runImport();
+    }
+
+    /**
+     * @return int
+     */
+    public function getPid(): int
+    {
+        return $this->pid;
     }
 
     /**
@@ -317,14 +327,6 @@ abstract class AbstractImporter implements ImporterInterface
     protected function mapRow(array $row): AbstractEntity
     {
         return MainUtility::convertRecordArrayToModel($row, $this->modelName);
-    }
-
-    /**
-     * @return int
-     */
-    public function getPid(): int
-    {
-        return $this->pid;
     }
 
     /**

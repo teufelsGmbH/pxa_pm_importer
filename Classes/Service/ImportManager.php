@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Service;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
+use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
@@ -26,6 +27,11 @@ class ImportManager
     protected $importRepository = null;
 
     /**
+     * @var Logger
+     */
+    protected $logger = null;
+
+    /**
      * Initialize
      *
      * @param RepositoryInterface $repository
@@ -33,6 +39,7 @@ class ImportManager
     public function __construct(RepositoryInterface $repository)
     {
         $this->importRepository = $repository;
+        $this->logger = Logger::getInstance(__CLASS__);
     }
 
     /**
@@ -49,7 +56,7 @@ class ImportManager
 
         foreach ($importersConfiguration as $importerClass => $singleImporterConfiguration) {
             /** @var ImporterInterface $importer */
-            $importer = GeneralUtility::makeInstance($importerClass);
+            $importer = GeneralUtility::makeInstance($importerClass, $this->logger);
             if (!($importer instanceof ImporterInterface)) {
                 // @codingStandardsIgnoreStart
                 throw new \UnexpectedValueException('Class "' . $importerClass . '" should be instance of ImporterInterface', 1536044275945);
@@ -59,6 +66,8 @@ class ImportManager
             $importer->preImport($source, $import, $singleImporterConfiguration);
             $importer->start($source, $import, $singleImporterConfiguration);
             $importer->postImport($import);
+
+            $this->logger->getErrorMessages();die;
         }
 
         $this->emitSignal('afterImportExecute', [$import]);
