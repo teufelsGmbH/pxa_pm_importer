@@ -10,14 +10,15 @@ importers:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
       mapping:
         # Import unique identifier for all fields
-        id: 0
+        id: A
         # Per language, field name to column from raw data, 0 is first
         languages:
           0:
             title: 12
             parent: 18
           1:
-            title: 17
+            # Or use column letter
+            title: R
     # Default
     identifierField: id
     # Storage
@@ -27,9 +28,8 @@ importers:
     mapping:
       0:
         field: 'title'
-        # Property name is necessary only if differ from field name
+        # Property name is necessary only if it differ from field name
         property: 'title'
-        #
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
         # Custom settings
         validation: 'required'

@@ -13,7 +13,7 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  * Class AbstractFieldProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-abstract class AbstractFieldProcessor implements ImportFieldProcessorInterface
+abstract class AbstractFieldProcessor implements FieldProcessorInterface
 {
     /**
      * Field processing configuration
@@ -122,6 +122,38 @@ abstract class AbstractFieldProcessor implements ImportFieldProcessorInterface
     public function getValidationErrorsString(): string
     {
         return '"' . implode('", "', $this->validationErrors) . '"';
+    }
+
+    /**
+     * @return AbstractEntity
+     */
+    public function getProcessingEntity(): AbstractEntity
+    {
+        return $this->entity;
+    }
+
+    /**
+     * @return array
+     */
+    public function getProcessingDbRow(): array
+    {
+        return $this->dbRow;
+    }
+
+    /**
+     * @return array
+     */
+    public function getConfiguration(): array
+    {
+        return $this->configuration;
+    }
+
+    /**
+     * @return string
+     */
+    public function getProcessingProperty(): string
+    {
+        return $this->property;
     }
 
     /**

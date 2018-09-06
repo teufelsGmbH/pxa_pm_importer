@@ -7,10 +7,10 @@ use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
- * Interface ImportFieldProcessorInterface
+ * Interface FieldProcessorInterface
  * @package Pixelant\PxaPmImporter\Processors
  */
-interface ImportFieldProcessorInterface
+interface FieldProcessorInterface
 {
     /**
      * Init processor
@@ -58,4 +58,32 @@ interface ImportFieldProcessorInterface
      * @return string
      */
     public function getValidationErrorsString(): string;
+
+    /**
+     * Get current entity
+     *
+     * @return AbstractEntity
+     */
+    public function getProcessingEntity(): AbstractEntity;
+
+    /**
+     * Get current record row
+     *
+     * @return array
+     */
+    public function getProcessingDbRow(): array;
+
+    /**
+     * Get processor configuration
+     *
+     * @return array
+     */
+    public function getConfiguration(): array;
+
+    /**
+     * Get name of processing property
+     *
+     * @return string
+     */
+    public function getProcessingProperty(): string;
 }

@@ -12,6 +12,38 @@ use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 abstract class AbstractDefaultAdapter implements AdapterInterface
 {
     /**
+     * @var array
+     */
+    protected static $alphabet = [
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+        'G',
+        'H',
+        'I',
+        'J',
+        'K',
+        'L',
+        'M',
+        'N',
+        'O',
+        'P',
+        'Q',
+        'R',
+        'S',
+        'T',
+        'U',
+        'V',
+        'W',
+        'X',
+        'Y',
+        'Z'
+    ];
+
+    /**
      * Adapted data for all lanugages
      *
      * @var array
@@ -87,13 +119,27 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         if (isset($configuration['mapping']['id'])) {
-            $this->identifier = (int)$configuration['mapping']['id'];
+            if (is_numeric($configuration['mapping']['id'])) {
+                $this->identifier = (int)$configuration['mapping']['id'];
+            } else {
+                $this->identifier = $this->convertAlphabetColumnToNumber($configuration['mapping']['id']);
+            }
+
         } else {
             throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
         }
 
         if (!empty($configuration['mapping']['languages']) && is_array($configuration['mapping']['languages'])) {
             $this->languagesMapping = $configuration['mapping']['languages'];
+
+            foreach ($this->languagesMapping as $language => $languageMapping) {
+                foreach ($languageMapping as $field => $column) {
+                    if (!is_numeric($column)) {
+                        $columnNumber = $this->convertAlphabetColumnToNumber($column);
+                        $this->languagesMapping[$language][$field] = $columnNumber;
+                    }
+                }
+            }
         } else {
             // @codingStandardsIgnoreStart
             throw new \RuntimeException('Adapter mapping require at least one language mapping configuration.', 1536050795179);
@@ -115,6 +161,32 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         throw new InvalidAdapterFieldMapping('Data column "' . $column . '" is not set', 1536051927592);
+    }
+
+    /**
+     * Convert A to 0, B to 1 and so on
+     *
+     * @param string $column
+     * @return int
+     */
+    public function convertAlphabetColumnToNumber(string $column): int
+    {
+        $column = trim($column);
+
+        if (empty($column)) {
+            throw new \UnexpectedValueException('Column value could not be empty', 1536221838124);
+        }
+        $length = strlen($column);
+        if ($length > 2) {
+            throw new \LengthException('Maximum column value can be 2 chars', 1536221841673);
+        }
+
+        if ($length === 1) {
+            return array_search(strtoupper($column), self::$alphabet);
+        } else {
+            $firstValue = (array_search(strtoupper($column[0]), self::$alphabet) + 1) * count(self::$alphabet);
+            return $firstValue + array_search(strtoupper($column[1]), self::$alphabet);
+        }
     }
 
     /**

@@ -5,17 +5,20 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
+use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Logging\Logger;
-use Pixelant\PxaPmImporter\Processors\ImportFieldProcessorInterface;
+use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -36,6 +39,11 @@ abstract class AbstractImporter implements ImporterInterface
      * @var ObjectManager
      */
     protected $objectManager = null;
+
+    /**
+     * @var PersistenceManager
+     */
+    protected $persistenceManager = null;
 
     /**
      * Identifier field name
@@ -88,6 +96,13 @@ abstract class AbstractImporter implements ImporterInterface
     protected $import = null;
 
     /**
+     * Array of import processor that should be run in postImport
+     *
+     * @var FieldProcessorInterface[]
+     */
+    protected $postponedProcessors = [];
+
+    /**
      * Multiple array with default values for new record
      * Example:
      * [
@@ -106,6 +121,7 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->logger = Logger::getInstance(__CLASS__);
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
     }
 
     /**
@@ -122,7 +138,6 @@ abstract class AbstractImporter implements ImporterInterface
         $this->initImporterRelated();
 
         $this->runImport();
-        //die;
     }
 
     /**
@@ -342,27 +357,21 @@ abstract class AbstractImporter implements ImporterInterface
             // If processor is set, it should set value for model property
             if (!empty($mapping['processor'])) {
                 $processor = GeneralUtility::makeInstance($mapping['processor']);
-                if (!($processor instanceof ImportFieldProcessorInterface)) {
+                if (!($processor instanceof FieldProcessorInterface)) {
                     // @codingStandardsIgnoreStart
-                    throw new \UnexpectedValueException('Processor "' . $mapping['processor'] . '" should be instance of "ImportFieldProcessorInterface"', 1536128672117);
+                    throw new \UnexpectedValueException('Processor "' . $mapping['processor'] . '" should be instance of "FieldProcessorInterface"', 1536128672117);
                     // @codingStandardsIgnoreEnd
                 }
 
                 $processor->init($model, $record, $property, $this, $mapping['configuration']);
 
-                $processor->preProcess($value);
-                if ($processor->isValid($value)) {
-                    $processor->process($value);
-                } else {
-                    $this->logger->error(sprintf(
-                        'Property "%s" validation failed for import ID "%s(hash:%s)", with messages: %s',
-                        $property,
-                        $record[self::DB_IMPORT_ID_FIELD],
-                        $record[self::DB_IMPORT_ID_HASH_FIELD],
-                        $processor->getValidationErrorsString()
-                    ));
-
-                    return false;
+                try {
+                    $processingResult = $this->executeProcessor($processor, $value);
+                    if (false === $processingResult) {
+                        return false;
+                    }
+                } catch (PostponeProcessorException $exception) {
+                    $this->postponeProcessor($processor, $value);
                 }
             } else {
                 // Just set it if no processor
@@ -374,6 +383,33 @@ abstract class AbstractImporter implements ImporterInterface
         }
 
         return true;
+    }
+
+    /**
+     * Execute import field processor
+     *
+     * @param FieldProcessorInterface $processor
+     * @param $value
+     * @return bool
+     */
+    protected function executeProcessor(FieldProcessorInterface $processor, $value): bool
+    {
+        $processor->preProcess($value);
+        if ($processor->isValid($value)) {
+            $processor->process($value);
+
+            return true;
+        } else {
+            $this->logger->error(sprintf(
+                'Property "%s" validation failed for import ID "%s(hash:%s)", with messages: %s',
+                $processor->getProcessingProperty(),
+                $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
+                $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD],
+                $processor->getValidationErrorsString()
+            ));
+
+            return false;
+        }
     }
 
     /**
@@ -422,28 +458,90 @@ abstract class AbstractImporter implements ImporterInterface
     }
 
     /**
-     * Handle localization relation
+     * Try to create localization if default record exist
      *
-     * @param array $record
+     * @param string $hash
+     * @param int $language
+     * @return int Localization status. 1 - success, 0 - no default record exist, but can continue, -1 - failed
      */
-    protected function handleLocalization(array $record): void
+    protected function handleLocalization(string $hash, int $language): int
     {
-        $transOrigPointerField = $GLOBALS['TCA'][$this->dbTable]['ctrl']['transOrigPointerField'];
-        // If translation default language record is not set try to find it and set
-        if ((int)$record[$transOrigPointerField] === 0) {
-            $defaultLanguageRecord = $this->getRecordByImportIdHash($record[self::DB_IMPORT_ID_HASH_FIELD], 0);
+        $defaultLanguageRecord = $this->getRecordByImportIdHash($hash, 0);
+        if ($defaultLanguageRecord !== null) {
+            $cmd = [];
+            $cmd[$this->dbTable][(string)$defaultLanguageRecord['uid']]['localize'] = $language;
 
-            if ($defaultLanguageRecord !== null) {
-                GeneralUtility::makeInstance(ConnectionPool::class)
-                    ->getConnectionForTable($this->dbTable)
-                    ->update(
-                        $this->dbTable,
-                        [$transOrigPointerField => (int)$defaultLanguageRecord['uid']],
-                        ['uid' => (int)$record['uid']],
-                        [Connection::PARAM_INT]
-                    );
+            $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+            $dataHandler->start([], $cmd);
+            $dataHandler->process_cmdmap();
+
+            if (!empty($dataHandler->errorLog)) {
+                foreach ($dataHandler->errorLog as $error) {
+                    $this->logger->error($error);
+                }
+
+                return -1;
+            }
+            // Assuming we are success
+            return 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Delete new record
+     *
+     * @param int $uid
+     */
+    protected function deleteNewRecord(int $uid)
+    {
+        $this->logger->info('Delete new record with UID "' . $uid . '"');
+
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($this->dbTable)
+            ->delete(
+                $this->dbTable,
+                ['uid' => $uid],
+                [Connection::PARAM_INT]
+            );
+    }
+
+    /**
+     * Postpone processor for later execution
+     *
+     * @param FieldProcessorInterface $processor
+     * @param mixed $value
+     */
+    protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
+    {
+        $this->postponedProcessors[] = [
+            'value' => $value,
+            'processorInstance' => $processor
+        ];
+    }
+
+    /**
+     * Execute postponed processors
+     */
+    protected function executePostponedProcessors(): void
+    {
+        foreach ($this->postponedProcessors as $postponedProcessor) {
+            $value = $postponedProcessor['value'];
+            /** @var FieldProcessorInterface $processor */
+            $processor = $postponedProcessor['processorInstance'];
+
+            try {
+                $this->executeProcessor($processor, $value);
+                // Update again if something changed
+                if ($processor->getProcessingEntity()->_isDirty()) {
+                    $this->repository->update($processor->getProcessingEntity());
+                }
+            } catch (PostponeProcessorException $exception) {
+                $this->logger->error('Failed executing postponed processor with message "' . $exception->getMessage() . '"');
             }
         }
+        unset($this->postponedProcessors);
     }
 
     /**
@@ -460,12 +558,31 @@ abstract class AbstractImporter implements ImporterInterface
             foreach ($data as $row) {
                 $id = $this->getImportIdFromRow($row);
                 $idHash = $this->getImportIdHash($id);
+                $isNew = false;
                 $record = $this->getRecordByImportIdHash($idHash, $language);
 
+                // Try to create localization if doesn't exist
+                if ($record === null && $language > 0) {
+                    // Try to localize
+                    $localizeStatus = $this->handleLocalization($idHash, $language);
+                    // Failed, skip record
+                    if ($localizeStatus === -1) {
+                        $this->logger->error('Could not localize record with import id "' . $id . '"');
+                        continue;
+                    }
+                    // If localization was created, fetch it,
+                    // otherwise it'll create independent record
+                    if ($localizeStatus === 1) {
+                        $record = $this->getRecordByImportIdHash($idHash, $language);
+                    }
+                }
+
                 if ($record === null) {
+                    $isNew = true;
                     $this->logger->info(sprintf(
-                        'Creating new record for table "%", with ID "%s"',
+                        'Creating new record for table "%s" and language "%s", with ID "%s"',
                         $this->dbTable,
+                        $language,
                         $id
                     ));
 
@@ -482,28 +599,57 @@ abstract class AbstractImporter implements ImporterInterface
 
                 $model = $this->mapRow($record);
 
+                // If everything is fine try to populate model
                 if (is_object($model)) {
-                    $result = $this->populateModelWithImportData($model, $record, $row);
+                    try {
+                        $result = $this->populateModelWithImportData($model, $record, $row);
 
-                    if ($result === false) {
-                        // Skip record where population failed
-                        continue;
+                        if ($result === false) {
+                            if ($isNew) {
+                                // Clean new empty record
+                                $this->deleteNewRecord((int)$record['uid']);
+                            }
+                            // Skip record where population failed
+                            continue;
+                        }
+                    } catch (\Exception $exception) {
+                        if ($isNew) {
+                            // Clean new empty record
+                            $this->deleteNewRecord((int)$record['uid']);
+                        }
+
+                        throw  $exception;
                     }
+                } else {
+                    $this->logger->error(sprintf(
+                        'Failed mapping record with UID "%s" and import id "%s"',
+                        $record['uid'],
+                        $id
+                    ));
+                    if ($isNew) {
+                        // Clean new empty record
+                        $this->deleteNewRecord((int)$record['uid']);
+                    }
+                    // Go to next record
+                    continue;
                 }
 
                 if ($model->_isDirty()) {
                     $this->logger->info(sprintf(
-                        'Update record for table "%", with UID "%s"',
+                        'Update record for table "%s", with UID "%s"',
                         $this->dbTable,
                         $model->getUid()
                     ));
                     $this->repository->update($model);
                 }
-
-                if ($language > 0) {
-                    $this->handleLocalization($record);
-                }
             }
+
+            // Persist after each language import. Next language might require data for localization.
+            $this->persistenceManager->persistAll();
+
+            // Execute postponed processors and persist again
+            $this->executePostponedProcessors();
+            $this->persistenceManager->persistAll();
         }
     }
 
