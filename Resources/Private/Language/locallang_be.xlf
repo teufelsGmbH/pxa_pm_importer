@@ -4,7 +4,16 @@
 		<header/>
 		<body>
 			<trans-unit id="be.import_error_occurred">
-			    <source>An error occurred while importing "%s" import configuration: "%s"</source>
+			    <source>An error occurred while importing.</source>
+			</trans-unit>
+			<trans-unit id="be.import_name">
+			    <source>Import name "%s"</source>
+			</trans-unit>
+			<trans-unit id="be.error_message">
+			    <source>Error messages:</source>
+			</trans-unit>
+			<trans-unit id="be.see_log">
+			    <source>Please, check import log for more information.</source>
 			</trans-unit>
 			<trans-unit id="be.mail.error_subject">
 			    <source>Error importing</source>

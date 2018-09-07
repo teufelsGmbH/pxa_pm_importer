@@ -12,38 +12,6 @@ use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 abstract class AbstractDefaultAdapter implements AdapterInterface
 {
     /**
-     * @var array
-     */
-    protected static $alphabet = [
-        'A',
-        'B',
-        'C',
-        'D',
-        'E',
-        'F',
-        'G',
-        'H',
-        'I',
-        'J',
-        'K',
-        'L',
-        'M',
-        'N',
-        'O',
-        'P',
-        'Q',
-        'R',
-        'S',
-        'T',
-        'U',
-        'V',
-        'W',
-        'X',
-        'Y',
-        'Z'
-    ];
-
-    /**
      * Adapted data for all lanugages
      *
      * @var array
@@ -171,6 +139,10 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      */
     public function convertAlphabetColumnToNumber(string $column): int
     {
+        /// @codingStandardsIgnoreStart
+        $alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+        // @codingStandardsIgnoreEnd
+
         $column = trim($column);
 
         if (empty($column)) {
@@ -182,10 +154,10 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         if ($length === 1) {
-            return array_search(strtoupper($column), self::$alphabet);
+            return array_search(strtoupper($column), $alphabet);
         } else {
-            $firstValue = (array_search(strtoupper($column[0]), self::$alphabet) + 1) * count(self::$alphabet);
-            return $firstValue + array_search(strtoupper($column[1]), self::$alphabet);
+            $firstValue = (array_search(strtoupper($column[0]), $alphabet) + 1) * count($alphabet);
+            return $firstValue + array_search(strtoupper($column[1]), $alphabet);
         }
     }
 

@@ -40,8 +40,9 @@ class ImportCommandController extends CommandController
      *
      * @param int $importUid Import configuration uid
      * @param string $email Notify about import errors
+     * @param string $senderEmail Sender email
      */
-    public function importCommand(int $importUid, string $email = ''): void
+    public function importCommand(int $importUid, string $email = '', string $senderEmail = ''): void
     {
         try {
             /** @var Import $import */
@@ -63,25 +64,68 @@ class ImportCommandController extends CommandController
             $importManager->execute($import);
 
             $this->emitSignal('afterImportExecution', [$import]);
-        } catch (\Exception $exception) {
-            if (GeneralUtility::isValidUrl($email)) {
-                $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
 
-                $mailMessage
-                    ->setTo([$email])
-                    ->setSubject($this->translate('be.mail.error_subject'))
-                    ->setBody(
-                        $this->translate(
-                            'be.import_error_occurred',
-                            [$import->getName(), $exception->getMessage()]
-                        ),
-                        'text/plain'
+            if (!empty($importManager->getErrors())) {
+                if (GeneralUtility::validEmail($email)) {
+                    $body = array_merge(
+                        [
+                            $this->translate('be.import_error_occurred'),
+                            $this->translate('be.import_name', [$import->getName() . ' (UID - '.$import->getUid().')']),
+                            '<br />',
+                            $this->translate('be.error_message'),
+                        ],
+                        $importManager->getErrors(),
+                        [
+                            '<br />',
+                            $this->translate('be.see_log'),
+                            '"' . $importManager->getLogFilePath() . '"'
+                        ]
                     );
 
-                $mailMessage->send();
+                    $this->sendEmail($email, $senderEmail, $body);
+                }
+            }
+        } catch (\Exception $exception) {
+            if (GeneralUtility::validEmail($email)) {
+                $body = [
+                    $this->translate('be.import_error_occurred'),
+                    $this->translate('be.import_name', [$import->getName() . ' (UID - '.$import->getUid().')']),
+                    '<br />',
+                    $this->translate('be.error_message'),
+                    $exception->getMessage(),
+                    '<br />',
+                    $this->translate('be.see_log'),
+                    '"' . $importManager->getLogFilePath() . '"'
+                ];
+
+                $this->sendEmail($email, $senderEmail, $body);
             } else {
                 throw $exception;
             }
         }
+    }
+
+    /**
+     * Send email
+     *
+     * @param string $receiver
+     * @param string $sender
+     * @param array $body
+     */
+    protected function sendEmail(string $receiver, string $sender, array $body): void
+    {
+        $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
+        $mailMessage
+            ->setTo([$receiver])
+            ->setSubject($this->translate('be.mail.error_subject'))
+            ->setBody(
+                implode('<br />', $body),
+                'text/html'
+            );
+        if ($sender !== '') {
+            $mailMessage->setFrom($sender);
+        }
+
+        $mailMessage->send();
     }
 }

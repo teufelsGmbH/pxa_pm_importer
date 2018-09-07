@@ -49,7 +49,9 @@ class Logger
     public function log($level, $message, array $context = []): void
     {
         $errorLevel = [LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR];
-        if (in_array($level, $errorLevel)) {
+
+        // Save errors, but max 10
+        if (in_array($level, $errorLevel) && count($this->errorMessages) <= 10) {
             $this->errorMessages[] = $message;
         }
 
@@ -71,9 +73,11 @@ class Logger
      */
     public function getLogFilePath(): string
     {
-        foreach ($this->logger->getWriters() as $writer) {
-            if ($writer instanceof FileWriter) {
-                return $writer->getLogFile();
+        foreach ($this->logger->getWriters() as $writers) {
+            foreach ($writers as $writer) {
+                if ($writer instanceof FileWriter) {
+                    return $writer->getLogFile();
+                }
             }
         }
 
@@ -83,7 +87,7 @@ class Logger
     /**
      * Get instance
      *
-     * @param string $clasName
+     * @param string $className
      * @return Logger
      */
     public static function getInstance(string $clasName): Logger

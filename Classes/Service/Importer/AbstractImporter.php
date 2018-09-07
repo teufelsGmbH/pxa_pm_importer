@@ -11,6 +11,7 @@ use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -162,6 +163,10 @@ abstract class AbstractImporter implements ImporterInterface
         $this->determinateIdentifierField($configuration);
         $this->setMapping($configuration);
         $this->pid = (int)($configuration['pid'] ?? 0);
+
+        if (BackendUtility::getRecord('pages', $this->pid, 'uid') === null) {
+            throw new \RuntimeException('Storage with UID "' . $this->pid . '" doesn\'t exist', 1536310162347);
+        }
     }
 
     /**
@@ -546,6 +551,7 @@ abstract class AbstractImporter implements ImporterInterface
             }
         }
         unset($this->postponedProcessors);
+        $this->postponedProcessors = [];
     }
 
     /**

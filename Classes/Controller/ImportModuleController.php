@@ -9,6 +9,7 @@ use Pixelant\PxaPmImporter\Exception\InvalidConfigurationException;
 use Pixelant\PxaPmImporter\Service\ImportManager;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
@@ -64,6 +65,16 @@ class ImportModuleController extends ActionController
      */
     public function indexAction()
     {
+        $registry = $this->getRegistry();
+        $lastImportInfo = $registry->get('tx_pxapmimporter', 'lastImport');
+        if (is_array($lastImportInfo)) {
+            $this->view
+                ->assign('errors', $lastImportInfo['errors'])
+                ->assign('logFile', $lastImportInfo['logFile']);
+
+            $this->saveLastImportInformation(null); // Save with null
+        }
+
         $this->view->assign('configurations', $this->importRepository->findAll());
     }
 
@@ -90,6 +101,11 @@ class ImportModuleController extends ActionController
                 $this->translate('be.success'),
                 FlashMessage::OK
             );
+
+            $this->saveLastImportInformation([
+                'logFile' => $importManager->getLogFilePath(),
+                'errors' => $importManager->getErrors()
+            ]);
         } catch (\Exception $exception) {
             $this->addFlashMessage(
                 $this->translate('be.failed_execution', [$exception->getMessage()]),
@@ -99,6 +115,23 @@ class ImportModuleController extends ActionController
         }
 
         $this->redirect('index');
+    }
+
+    /**
+     * Save last import info
+     * @param ?array $information
+     */
+    protected function saveLastImportInformation(?array $information): void
+    {
+        $this->getRegistry()->set('tx_pxapmimporter', 'lastImport', $information);
+    }
+
+    /**
+     * @return Registry
+     */
+    protected function getRegistry(): Registry
+    {
+        return GeneralUtility::makeInstance(Registry::class);
     }
 
     /**

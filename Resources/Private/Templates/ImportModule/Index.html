@@ -4,6 +4,15 @@
 
     <f:section name="main">
         <f:flashMessages />
+        <f:if condition="{errors}">
+            <p class="bg-warning" style="padding: 15px;"><f:translate key="be.with_errors" /></p>
+            <f:for each="{errors}" as="error">
+                <p class="bg-danger" style="padding: 15px;">{error}</p>
+            </f:for>
+        </f:if>
+        <f:if condition="{logFile}">
+            <p class="bg-info" style="padding: 15px;"><f:translate key="be.check_log" />: "{logFile}"</p>
+        </f:if>
         <h4><f:translate key="be.index.title" /></h4>
         <p class="lead"><f:translate key="be.index.description" /></p>
 

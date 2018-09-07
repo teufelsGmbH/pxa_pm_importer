@@ -66,8 +66,6 @@ class ImportManager
             $importer->preImport($source, $import, $singleImporterConfiguration);
             $importer->start($source, $import, $singleImporterConfiguration);
             $importer->postImport($import);
-
-            $this->logger->getErrorMessages();die;
         }
 
         $this->emitSignal('afterImportExecute', [$import]);
@@ -75,6 +73,26 @@ class ImportManager
         // Set last execution time
         $import->setLastExecution(new \DateTime());
         $this->importRepository->update($import);
+    }
+
+    /**
+     * Get errors that appears while importing
+     *
+     * @return array
+     */
+    public function getErrors(): array
+    {
+        return $this->logger->getErrorMessages();
+    }
+
+    /**
+     * File to log with all messages
+     *
+     * @return string
+     */
+    public function getLogFilePath(): string
+    {
+        return $this->logger->getLogFilePath();
     }
 
     /**
