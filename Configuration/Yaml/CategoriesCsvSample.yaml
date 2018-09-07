@@ -19,19 +19,17 @@ importers:
           1:
             title: 2
     # Default
-    identifierField: id
+    identifierField: 'id'
     # Storage
     pid: 136
 
     # Mapping fields, data adapter should return array with associative array
     mapping:
-      0:
-        field: 'title'
+      title:
         # Property name is necessary only if it differ from field name
         property: 'title'
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
         # Custom settings
         validation: 'required'
-      1:
-        field: 'parent'
+      parent:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'

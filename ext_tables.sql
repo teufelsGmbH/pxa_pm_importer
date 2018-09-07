@@ -43,3 +43,11 @@ CREATE TABLE tx_pxaproductmanager_domain_model_attribute (
 	pm_importer_import_id_hash varchar(55) DEFAULT '' NOT NULL,
 	pm_importer_import_id varchar(255) DEFAULT '' NOT NULL
 );
+
+#
+# Table structure for table 'tx_pxaproductmanager_domain_model_option'
+#
+CREATE TABLE tx_pxaproductmanager_domain_model_option (
+	pm_importer_import_id_hash varchar(55) DEFAULT '' NOT NULL,
+	pm_importer_import_id varchar(255) DEFAULT '' NOT NULL
+);

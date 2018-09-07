@@ -1,0 +1,85 @@
+source:
+  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+    skipRows: 1
+    filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/products.xlsx
+importers:
+  Pixelant\PxaPmImporter\Service\Importer\ProductsImporter:
+    # Layer between raw data and importer
+    adapter:
+      className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
+      mapping:
+        # Import unique identifier for all fields
+        id: 'B'
+        # Per language, field name to column from raw data, 0 is first
+        languages:
+          0:
+            name: 'A'
+            sku: 'B'
+            teaser: 'C'
+            description: 'D'
+            categories: 'E'
+            brand: 'F'
+            color: 'G'
+            tireSize: 'H'
+            engine: 'I'
+            turboEngine: 'J'
+            release: 'K'
+            images: 'L'
+            mediaElements: 'M'
+            relatedProducts: 'N'
+            subProducts: 'O'
+            accessories: 'P'
+            files: 'Q'
+            metaDescription: 'R'
+
+    # Default
+    identifierField: 'id'
+    # Storage
+    pid: 136
+
+    # Mapping fields, data adapter should return array with associative array
+    mapping:
+      name:
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+        # Custom settings
+        validation: 'required'
+      sku:
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+      teaser:
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+      description:
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+      categories:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      brand:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 1
+      color:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 2
+      tireSize:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 3
+      engine:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 4
+      turboEngine:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 5
+      release:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 6
+      images:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      mediaElements:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      relatedProducts:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      subProducts:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      accessories:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      files:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+      metaDescription:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'

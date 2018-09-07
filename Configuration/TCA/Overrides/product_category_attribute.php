@@ -23,6 +23,7 @@ call_user_func(function () {
     $importTables = [
         'tx_pxaproductmanager_domain_model_attribute',
         'tx_pxaproductmanager_domain_model_product',
+        'tx_pxaproductmanager_domain_model_option',
         'sys_category'
     ];
 

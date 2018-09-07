@@ -228,15 +228,9 @@ abstract class AbstractImporter implements ImporterInterface
             throw new \RuntimeException('No mapping found for importer "' . get_class($this) . '"', 1536054721032);
         }
 
-        foreach ($configuration['mapping'] as $fieldMapping) {
-            if (empty($fieldMapping['field'])) {
-                // @codingStandardsIgnoreStart
-                throw new \RuntimeException('Every mapping field should have "field" name set. Empty was found.', 1536058780669);
-                // @codingStandardsIgnoreEnd
-            }
-            $name = $fieldMapping['field'];
+        foreach ($configuration['mapping'] as $name => $fieldMapping) {
             $fieldConfiguration = $fieldMapping;
-            unset($fieldConfiguration['field'], $fieldConfiguration['processor'], $fieldConfiguration['property']);
+            unset($fieldConfiguration['processor'], $fieldConfiguration['property']);
 
             $this->mapping[$name] = [
                 'property' => $fieldMapping['property'] ?? $name,
