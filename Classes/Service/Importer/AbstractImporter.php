@@ -254,7 +254,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function getImportIdFromRow(array $row): string
     {
-        $id = trim((string)$row[$this->identifier]);
+        $id = strtolower(trim((string)$row[$this->identifier]));
 
         if (empty($id)) {
             throw new \RuntimeException('Each row in import data should have import identifier', 1536058556481);
@@ -489,10 +489,20 @@ abstract class AbstractImporter implements ImporterInterface
 
                 return -1;
             }
+            $this->logger->info(sprintf(
+                'Successfully localized record UID "%s" for language "%s"',
+                $defaultLanguageRecord['uid'],
+                $language
+            ));
             // Assuming we are success
             return 1;
         }
 
+        $this->logger->info(sprintf(
+            'Could not found default record for hash "%s" and language "%s"',
+            $hash,
+            $language
+        ));
         return 0;
     }
 
@@ -555,6 +565,23 @@ abstract class AbstractImporter implements ImporterInterface
     }
 
     /**
+     * Check for duplicated identifiers in data
+     *
+     * @param array $data
+     */
+    protected function checkForDuplicatedIdentifiers(array $data): void
+    {
+        $identifiers = [];
+        foreach ($data as $row) {
+            $id = $this->getImportIdFromRow($row);
+            if (in_array($id, $identifiers)) {
+                throw new \RuntimeException('Duplicated identifier "' . $id . '" found.', 1536316466353);
+            }
+            $identifiers[] = $id;
+        }
+    }
+
+    /**
      * Actual import
      */
     protected function runImport(): void
@@ -563,6 +590,7 @@ abstract class AbstractImporter implements ImporterInterface
 
         foreach ($languages as $language) {
             $data = $this->adapter->getLanguageData($language);
+            $this->checkForDuplicatedIdentifiers($data);
 
             // One row per record
             foreach ($data as $row) {
@@ -590,7 +618,7 @@ abstract class AbstractImporter implements ImporterInterface
                 if ($record === null) {
                     $isNew = true;
                     $this->logger->info(sprintf(
-                        'Creating new record for table "%s" and language "%s", with ID "%s"',
+                        'New record for table "%s" and language "%s", with UID "%s" was created.',
                         $this->dbTable,
                         $language,
                         $id

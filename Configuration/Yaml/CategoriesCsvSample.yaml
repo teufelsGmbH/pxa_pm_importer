@@ -34,4 +34,4 @@ importers:
         validation: 'required'
       1:
         field: 'parent'
-        processor: 'Pixelant\PxaPmImporter\Processors\CategoryProcessor'
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'

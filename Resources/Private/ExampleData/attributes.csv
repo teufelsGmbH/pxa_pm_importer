@@ -1,4 +1,7 @@
-Import ID,Name,Type
-1,Input,1
-2,Text,2
-3,Invalid,
+Import ID,Name,Type,Options
+brand,Brand,4,"Chevrolet,BMW,Cannondale "
+color,Color,9,"Black,White,Red"
+tire-size,Tire size,9,"16,17,18"
+engine,Engine,1,
+turbo-engine,Turbo engine,5,
+release,Release,3,

@@ -1,24 +1,21 @@
 source:
-  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+  Pixelant\PxaPmImporter\Service\Source\CsvSource:
     skipRows: 1
-    sheet: -1
-    filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/categoriesxls.xlsx
+    delimiter: ,
+    filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/products.csv
 importers:
-  Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
+  Pixelant\PxaPmImporter\Service\Importer\AttributesImporter:
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
       mapping:
         # Import unique identifier for all fields
-        id: A
+        id: 0
         # Per language, field name to column from raw data, 0 is first
         languages:
           0:
-            title: B
-            parent: D
-          1:
-            # Or use column letter
-            title: C
+            name: 1
+            type: 2
     # Default
     identifierField: id
     # Storage
@@ -27,12 +24,11 @@ importers:
     # Mapping fields, data adapter should return array with associative array
     mapping:
       0:
-        field: 'title'
-        # Property name is necessary only if it differ from field name
-        property: 'title'
+        field: 'name'
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
         # Custom settings
         validation: 'required'
       1:
-        field: 'parent'
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+        field: 'type'
+        processor: 'Pixelant\PxaPmImporter\Processors\IntegerProcessor'
+        validation: 'required'

@@ -16,6 +16,7 @@ importers:
           0:
             name: 1
             type: 2
+            options: 3
     # Default
     identifierField: id
     # Storage
@@ -32,3 +33,6 @@ importers:
         field: 'type'
         processor: 'Pixelant\PxaPmImporter\Processors\IntegerProcessor'
         validation: 'required'
+      2:
+        field: 'options'
+        processor: 'Pixelant\PxaPmImporter\Processors\IntegerProcessor'
