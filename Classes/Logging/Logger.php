@@ -51,7 +51,7 @@ class Logger
         $errorLevel = [LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR];
 
         // Save errors, but max 10
-        if (in_array($level, $errorLevel) && count($this->errorMessages) <= 10) {
+        if (in_array(LogLevel::normalizeLevel($level), $errorLevel) && count($this->errorMessages) <= 10) {
             $this->errorMessages[] = $message;
         }
 
