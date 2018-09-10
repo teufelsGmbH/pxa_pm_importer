@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Service\Configuration;
 
-
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Utility\GeneralUtility;

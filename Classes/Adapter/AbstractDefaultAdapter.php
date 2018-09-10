@@ -92,7 +92,6 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
             } else {
                 $this->identifier = $this->convertAlphabetColumnToNumber($configuration['mapping']['id']);
             }
-
         } else {
             throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
         }
