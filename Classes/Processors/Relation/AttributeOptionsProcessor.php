@@ -19,42 +19,42 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
 {
     /**
      * Flag if validation should fail
+     *
      * @var bool
      */
     protected $failedCreateOptions = false;
 
     /**
-     * Check if category exist
+     * Set options
      *
      * @param mixed $value
      */
-    public function preProcess(&$value): void
+    public function initEntities($value): void
     {
-        if (!is_string($value)) {
-            $value = trim((string)$value);
-        }
-
-        $this->entities = []; // Reset categories
+        $this->entities = []; // Reset
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
             if (true === (bool)$this->configuration['treatAsIdentifierAsUid']) {
-                $record = BackendUtility::getRecord($this->getDbTable(), (int)$identifier);
+                $record = BackendUtility::getRecord('tx_pxaproductmanager_domain_model_option', (int)$identifier);
             } else {
-                $record = $this->getRecord($identifier); // Default language record
+                $record = $this->getRecordByImportIdentifier($identifier, 'tx_pxaproductmanager_domain_model_option'); // Default language record
                 if ($record === null) {
+                    $time = time();
                     // If not found create one
                     GeneralUtility::makeInstance(ConnectionPool::class)
-                        ->getConnectionForTable($this->getDbTable())
+                        ->getConnectionForTable('tx_pxaproductmanager_domain_model_option')
                         ->insert(
-                            $this->getDbTable(),
+                            'tx_pxaproductmanager_domain_model_option',
                             [
                                 'value' => $identifier,
                                 'pid' => $this->importer->getPid(),
                                 'sys_language_uid' => 0,
                                 'attribute' => $this->entity->getUid(),
                                 ImporterInterface::DB_IMPORT_ID_FIELD => $identifier,
-                                ImporterInterface::DB_IMPORT_ID_HASH_FIELD => MainUtility::getImportIdHash($identifier)
+                                ImporterInterface::DB_IMPORT_ID_HASH_FIELD => MainUtility::getImportIdHash($identifier),
+                                'tstamp' => $time,
+                                'crdate' => $time,
                             ],
                             [
                                 \PDO::PARAM_STR,
@@ -62,15 +62,17 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
                                 \PDO::PARAM_INT,
                                 \PDO::PARAM_INT,
                                 \PDO::PARAM_STR,
-                                \PDO::PARAM_STR
+                                \PDO::PARAM_STR,
+                                \PDO::PARAM_INT,
+                                \PDO::PARAM_INT
                             ]
                         );
-                    $record = $this->getRecord($identifier); // Try again
+                    $record = $this->getRecordByImportIdentifier($identifier, 'tx_pxaproductmanager_domain_model_option'); // Try again
                 }
             }
 
             if ($record !== null) {
-                $model = MainUtility::convertRecordArrayToModel($record, $this->getModelClassName());
+                $model = MainUtility::convertRecordArrayToModel($record, Option::class);
             }
 
             if (isset($model) && is_object($model)) {
@@ -95,32 +97,5 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
         }
 
         return parent::isValid($value);
-    }
-
-    /**
-     * Table
-     *
-     * @return string
-     */
-    protected function getDbTable(): string
-    {
-        return 'tx_pxaproductmanager_domain_model_option';
-    }
-
-
-    /**
-     * @return string
-     */
-    protected function getModelClassName(): string
-    {
-        return Option::class;
-    }
-
-    /**
-     * @return Repository
-     */
-    protected function getRepository(): Repository
-    {
-        throw new \RuntimeException('Options repository doesn\'t exists', 1536319446223);
     }
 }

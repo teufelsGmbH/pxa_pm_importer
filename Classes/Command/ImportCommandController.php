@@ -45,6 +45,11 @@ class ImportCommandController extends CommandController
     public function importCommand(int $importUid, string $email = '', string $senderEmail = ''): void
     {
         try {
+            $importManager = GeneralUtility::makeInstance(
+                ImportManager::class,
+                $this->importRepository
+            );
+
             /** @var Import $import */
             $import = $this->importRepository->findByUid($importUid);
 
@@ -53,11 +58,6 @@ class ImportCommandController extends CommandController
                 throw new InvalidConfigurationException('Could not find configuration with UID "' . $importUid . '"', 1535957269248);
                 // @codingStandardsIgnoreEnd
             }
-
-            $importManager = GeneralUtility::makeInstance(
-                ImportManager::class,
-                $this->importRepository
-            );
 
             $this->emitSignal('beforeImportExecution', [$import]);
             // Run import
@@ -70,7 +70,10 @@ class ImportCommandController extends CommandController
                     $body = array_merge(
                         [
                             $this->translate('be.import_error_occurred'),
-                            $this->translate('be.import_name', [$import->getName() . ' (UID - '.$import->getUid().')']),
+                            $this->translate(
+                                'be.import_name',
+                                [$import->getName() . ' (UID - ' . $import->getUid() . ')']
+                            ),
                             '<br />',
                             $this->translate('be.error_message'),
                         ],
@@ -89,7 +92,7 @@ class ImportCommandController extends CommandController
             if (GeneralUtility::validEmail($email)) {
                 $body = [
                     $this->translate('be.import_error_occurred'),
-                    $this->translate('be.import_name', [$import->getName() . ' (UID - '.$import->getUid().')']),
+                    $this->translate('be.import_name', [$import->getName() . ' (UID - ' . $import->getUid() . ')']),
                     '<br />',
                     $this->translate('be.error_message'),
                     $exception->getMessage(),
@@ -99,9 +102,9 @@ class ImportCommandController extends CommandController
                 ];
 
                 $this->sendEmail($email, $senderEmail, $body);
-            } else {
-                throw $exception;
             }
+
+            throw $exception;
         }
     }
 

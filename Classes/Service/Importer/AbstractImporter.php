@@ -493,7 +493,7 @@ abstract class AbstractImporter implements ImporterInterface
         }
 
         $this->logger->info(sprintf(
-            'Could not found default record for hash "%s" and language "%s"',
+            'Could not find default record for hash "%s" and language "%s"',
             $hash,
             $language
         ));
@@ -666,12 +666,15 @@ abstract class AbstractImporter implements ImporterInterface
                     continue;
                 }
 
+                $this->emitSignal('beforeUpdatingImportModel', [$model]);
+
                 if ($model->_isDirty()) {
                     $this->logger->info(sprintf(
                         'Update record for table "%s", with UID "%s"',
                         $this->dbTable,
                         $model->getUid()
                     ));
+
                     $this->repository->update($model);
                 }
             }

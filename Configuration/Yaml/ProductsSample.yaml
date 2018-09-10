@@ -25,11 +25,11 @@ importers:
             turboEngine: 'J'
             release: 'K'
             images: 'L'
-            mediaElements: 'M'
+            assets: 'M'
             relatedProducts: 'N'
             subProducts: 'O'
             accessories: 'P'
-            files: 'Q'
+            falLinks: 'Q'
             metaDescription: 'R'
 
     # Default
@@ -69,17 +69,24 @@ importers:
       release:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
         attributeUid: 6
+        dateFormat: 'H:i d-m-Y'
       images:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
-      mediaElements:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
+        fieldName: 'images'
+        folder: 'importers'
+      assets:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
+        fieldName: 'assets'
+        folder: 'importers'
       relatedProducts:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
       subProducts:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
       accessories:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
-      files:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
+      falLinks:
+        processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
+        fieldName: 'fal_links'
+        folder: 'importers'
       metaDescription:
-        processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+        processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'

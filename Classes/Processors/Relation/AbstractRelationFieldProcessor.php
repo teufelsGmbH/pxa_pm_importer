@@ -3,17 +3,9 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
-use Pixelant\PxaPmImporter\Utility\MainUtility;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
-use TYPO3\CMS\Extbase\Persistence\Repository;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
@@ -25,17 +17,12 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
 {
     /**
-     * @var Repository
-     */
-    protected $repository = null;
-
-    /**
      * @var AbstractEntity[]
      */
     protected $entities = [];
 
     /**
-     * Check if category exist
+     * Call init entities method
      *
      * @param mixed $value
      */
@@ -45,29 +32,8 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
             $value = (string)$value;
         }
         parent::preProcess($value);
-        $value = strtolower($value);
-
-        $this->entities = []; // Reset categories
-        $value = GeneralUtility::trimExplode(',', $value, true);
-
-        foreach ($value as $identifier) {
-            if (true === (bool)$this->configuration['treatAsIdentifierAsUid']) {
-                $model = $this->repository->findByUid((int)$identifier);
-            } else {
-                $record = $this->getRecord($identifier); // Default language record
-                if ($record !== null) {
-                    $model = MainUtility::convertRecordArrayToModel($record, $this->getModelClassName());
-                }
-            }
-
-            if (isset($model) && is_object($model)) {
-                $this->entities[] = $model;
-            } else {
-                // @codingStandardsIgnoreStart
-                throw new PostponeProcessorException('Record with id "' . $identifier . '" in table "' . $this->getDbTable() . '" not found for main record with id "' . $record[ImporterInterface::DB_IMPORT_ID_FIELD] . '".', 1536148407513);
-                // @codingStandardsIgnoreEnd
-            }
-        }
+        
+        $this->initEntities($value);
     }
 
     /**
@@ -144,64 +110,9 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Fetch record
+     * This method should prepare entities for later call in process
      *
-     * @param string $identifier
-     * @return array|null
+     * @param $value
      */
-    protected function getRecord(string $identifier): ?array
-    {
-        $hash = MainUtility::getImportIdHash($identifier);
-
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable($this->getDbTable());
-        $queryBuilder
-            ->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-
-        $row = $queryBuilder
-            ->select('*')
-            ->from($this->getDbTable())
-            ->where(
-                $queryBuilder->expr()->eq(
-                    ImporterInterface::DB_IMPORT_ID_HASH_FIELD,
-                    $queryBuilder->createNamedParameter($hash, Connection::PARAM_STR)
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    'pid',
-                    $queryBuilder->createNamedParameter($this->importer->getPid(), Connection::PARAM_INT)
-                )
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetch();
-
-        return is_array($row) ? $row : null;
-    }
-
-    /**
-     * Return repository
-     *
-     * @return Repository
-     */
-    abstract protected function getRepository(): Repository;
-
-    /**
-     * Table name of current record
-     *
-     * @return string
-     */
-    abstract protected function getDbTable(): string;
-
-    /**
-     * Name of model to map record
-     *
-     * @return string
-     */
-    abstract protected function getModelClassName(): string;
+    abstract protected function initEntities($value): void;
 }
