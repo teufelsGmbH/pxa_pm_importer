@@ -119,7 +119,7 @@ class ImportModuleController extends ActionController
 
     /**
      * Save last import info
-     * @param ?array $information
+     * @param array $information
      */
     protected function saveLastImportInformation(?array $information): void
     {

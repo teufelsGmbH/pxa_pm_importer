@@ -6,6 +6,7 @@ CREATE TABLE tx_pxapmimporter_domain_model_import (
 	uid int(11) NOT NULL auto_increment,
 	pid int(11) DEFAULT '0' NOT NULL,
 
+	type int(11) unsigned DEFAULT '0' NOT NULL,
 	name varchar(255) DEFAULT '' NOT NULL,
 	configuration_path varchar(255) DEFAULT '' NOT NULL,
 	last_execution int(11) unsigned DEFAULT '0' NOT NULL,

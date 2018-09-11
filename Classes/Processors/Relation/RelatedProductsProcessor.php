@@ -30,7 +30,8 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor
 
         foreach ($value as $identifier) {
             if (true === (bool)$this->configuration['treatAsIdentifierAsUid']) {
-                $model = GeneralUtility::makeInstance(ObjectManager::class)->get(ProductRepository::class)
+                $model = GeneralUtility::makeInstance(ObjectManager::class)
+                    ->get(ProductRepository::class)
                     ->findByUid((int)$identifier);
             } else {
                 $record = $this->getRecordByImportIdentifier($identifier, 'tx_pxaproductmanager_domain_model_product'); // Default language record

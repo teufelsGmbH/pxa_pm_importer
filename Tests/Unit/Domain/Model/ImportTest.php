@@ -22,11 +22,13 @@ class ImportTest extends UnitTestCase
 
     protected function setUp()
     {
+        parent::setUp();
         $this->subject = $this->createPartialMock(Import::class, ['getConfigurationInstance']);
     }
 
     protected function tearDown()
     {
+        parent::tearDown();
         unset($this->subject);
     }
 
@@ -88,14 +90,6 @@ class ImportTest extends UnitTestCase
         $this->subject->setLastExecution($value);
 
         $this->assertSame($value, $this->subject->getLastExecution());
-    }
-
-    /**
-     * @test
-     */
-    public function defaultCrdateIsNull()
-    {
-        $this->assertNull($this->subject->getCrdate());
     }
 
     /**

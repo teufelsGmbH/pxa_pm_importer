@@ -20,20 +20,6 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 class LocalFileProcessor extends AbstractRelationFieldProcessor
 {
     /**
-     * Table name in sys_file_reference
-     *
-     * @var string
-     */
-    protected $tableName = 'tx_pxaproductmanager_domain_model_product';
-
-    /**
-     * Field name in sys_file_reference
-     *
-     * @var string
-     */
-    protected $fieldName = '';
-
-    /**
      * Flag if files preparations failed
      *
      * @var bool
@@ -127,18 +113,6 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
      */
     public function initEntities($value): void
     {
-        if (isset($this->configuration['tableName'])) {
-            $this->tableName = $this->configuration['tableName'];
-        }
-
-        if (empty($this->configuration['fieldName'])) {
-            // @codingStandardsIgnoreStart
-            throw new \UnexpectedValueException('Configuration "fieldName" is required for files processing', 1536575576736);
-            // @codingStandardsIgnoreEnd
-        }
-
-        $this->fieldName = $this->configuration['fieldName'];
-
         $storage = $this->resourceFactory->getStorageObject(intval($this->configuration['storageUid'] ?? 1));
         try {
             $folder = isset($this->configuration['folder'])

@@ -63,9 +63,20 @@ class ImportManager
                 // @codingStandardsIgnoreEnd
             }
 
+            $this->logger->info(sprintf(
+                'Start import for import configuration "%s" with UID - %d',
+                $import->getName(),
+                $import->getUid()
+            ));
             $importer->preImport($source, $import, $singleImporterConfiguration);
             $importer->start($source, $import, $singleImporterConfiguration);
             $importer->postImport($import);
+
+            $this->logger->info(sprintf(
+                'End import for import configuration "%s" with UID - %d',
+                $import->getName(),
+                $import->getUid()
+            ));
         }
 
         $this->emitSignal('afterImportExecute', [$import]);

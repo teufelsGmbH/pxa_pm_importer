@@ -24,9 +24,7 @@ class ProductsImporter extends AbstractImporter
      *
      * @var array
      */
-    protected $defaultNewRecordFields = [
-
-    ];
+    protected $defaultNewRecordFields = [];
 
     /**
      * @param SourceInterface $source

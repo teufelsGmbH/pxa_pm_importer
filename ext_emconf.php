@@ -6,14 +6,13 @@ $EM_CONF[$_EXTKEY] = [
     'category' => 'plugin',
     'author' => 'Andriy Oprysko',
     'author_email' => 'andriy.oprysko@resultify.se',
-    'state' => 'alpha',
+    'state' => 'beta',
     'clearCacheOnLoad' => true,
     'version' => '1.0.0',
     'constraints' => [
         'depends' => [
             'typo3' => '8.7-9.4.99',
-            'pxa_product_manager' => '',
-            'scheduler' => ''
+            'pxa_product_manager' => ''
         ],
         'conflicts' => [],
         'suggests' => []

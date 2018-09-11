@@ -16,8 +16,9 @@ class FloatProcessor extends AbstractFieldProcessor
      */
     public function preProcess(&$value): void
     {
-        parent::preProcess($value);
-        $value = str_replace(',', '.', $value);
+        if (is_string($value)) {
+            $value = str_replace(',', '.', trim($value));
+        }
     }
 
     /**

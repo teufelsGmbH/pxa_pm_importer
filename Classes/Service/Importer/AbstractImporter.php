@@ -182,7 +182,7 @@ abstract class AbstractImporter implements ImporterInterface
 
         if ($identifier === null) {
             // @codingStandardsIgnoreStart
-            throw new \RuntimeException('Identifier could not be null, check your import settings', 1535983109427);
+            throw new \UnexpectedValueException('Identifier could not be null, check your import settings', 1535983109427);
             // @codingStandardsIgnoreEnd
         }
 
@@ -224,7 +224,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function setMapping(array $configuration): void
     {
-        if (!is_array($configuration['mapping']) || empty($configuration['mapping'])) {
+        if (empty($configuration['mapping']) || !is_array($configuration['mapping'])) {
             throw new \RuntimeException('No mapping found for importer "' . get_class($this) . '"', 1536054721032);
         }
 
@@ -248,7 +248,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function getImportIdFromRow(array $row): string
     {
-        $id = strtolower(trim((string)$row[$this->identifier]));
+        $id = strtolower(trim((string)($row[$this->identifier] ?? '')));
 
         if (empty($id)) {
             throw new \RuntimeException('Each row in import data should have import identifier', 1536058556481);
@@ -346,13 +346,7 @@ abstract class AbstractImporter implements ImporterInterface
                 // it was already set when create new record
                 continue;
             }
-            if (!isset($this->mapping[$field])) {
-                // @codingStandardsIgnoreStart
-                throw new \RuntimeException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
-                // @codingStandardsIgnoreEnd
-            }
-
-            $mapping = $this->mapping[$field];
+            $mapping = $this->getFieldMapping($field);
             $property = $mapping['property'];
 
             // If processor is set, it should set value for model property
@@ -384,6 +378,23 @@ abstract class AbstractImporter implements ImporterInterface
         }
 
         return true;
+    }
+
+    /**
+     * Get mapping for single field
+     *
+     * @param string $field
+     * @return array
+     */
+    protected function getFieldMapping(string $field): array
+    {
+        if (!isset($this->mapping[$field])) {
+            // @codingStandardsIgnoreStart
+            throw new \RuntimeException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
+            // @codingStandardsIgnoreEnd
+        }
+
+        return $this->mapping[$field];
     }
 
     /**
@@ -472,7 +483,7 @@ abstract class AbstractImporter implements ImporterInterface
             $cmd = [];
             $cmd[$this->dbTable][(string)$defaultLanguageRecord['uid']]['localize'] = $language;
 
-            $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+            $dataHandler = $this->getDataHandler();
             $dataHandler->start([], $cmd);
             $dataHandler->process_cmdmap();
 
@@ -497,6 +508,7 @@ abstract class AbstractImporter implements ImporterInterface
             $hash,
             $language
         ));
+
         return 0;
     }
 
@@ -686,6 +698,14 @@ abstract class AbstractImporter implements ImporterInterface
             $this->executePostponedProcessors();
             $this->persistenceManager->persistAll();
         }
+    }
+
+    /**
+     * @return DataHandler
+     */
+    protected function getDataHandler(): DataHandler
+    {
+        return GeneralUtility::makeInstance(DataHandler::class);
     }
 
     /**

@@ -59,11 +59,8 @@ class ImportCommandController extends CommandController
                 // @codingStandardsIgnoreEnd
             }
 
-            $this->emitSignal('beforeImportExecution', [$import]);
             // Run import
             $importManager->execute($import);
-
-            $this->emitSignal('afterImportExecution', [$import]);
 
             if (!empty($importManager->getErrors())) {
                 if (GeneralUtility::validEmail($email)) {

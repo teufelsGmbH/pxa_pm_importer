@@ -14,6 +14,16 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 class Import extends AbstractEntity
 {
     /**
+     * Configuration is fetched from extension by default
+     */
+    const CONFIGURATION_PROVIDER_EXTENSION = 0;
+
+    /**
+     * Configuration file is selected from local system
+     */
+    const CONFIGURATION_PROVIDER_LOCAL_FILE = 1;
+
+    /**
      * name
      *
      * @var string

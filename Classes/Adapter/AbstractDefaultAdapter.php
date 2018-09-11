@@ -28,7 +28,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     /**
      * Mapping configuration for languages
      *
-     * @var null
+     * @var array
      */
     protected $languagesMapping = null;
 
