@@ -14,16 +14,6 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 class Import extends AbstractEntity
 {
     /**
-     * Configuration is fetched from extension by default
-     */
-    const CONFIGURATION_PROVIDER_EXTENSION = 0;
-
-    /**
-     * Configuration file is selected from local system
-     */
-    const CONFIGURATION_PROVIDER_LOCAL_FILE = 1;
-
-    /**
      * name
      *
      * @var string
@@ -36,6 +26,16 @@ class Import extends AbstractEntity
      * @var string
      */
     protected $configurationPath = '';
+
+    /**
+     * @var string
+     */
+    protected $localFilePath = '';
+
+    /**
+     * @var bool
+     */
+    protected $localConfiguration = false;
 
     /**
      * @var \DateTime|null
@@ -98,6 +98,38 @@ class Import extends AbstractEntity
     public function setLastExecution(\DateTime $lastExecution): void
     {
         $this->lastExecution = $lastExecution;
+    }
+
+    /**
+     * @return string
+     */
+    public function getLocalFilePath(): string
+    {
+        return $this->localFilePath;
+    }
+
+    /**
+     * @param string $localFilePath
+     */
+    public function setLocalFilePath(string $localFilePath): void
+    {
+        $this->localFilePath = $localFilePath;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isLocalConfiguration(): bool
+    {
+        return $this->localConfiguration;
+    }
+
+    /**
+     * @param bool $localConfiguration
+     */
+    public function setLocalConfiguration(bool $localConfiguration): void
+    {
+        $this->localConfiguration = $localConfiguration;
     }
 
     /**

@@ -16,10 +16,10 @@ return [
         'iconfile' => 'EXT:pxa_pm_importer/Resources/Public/Icons/import.svg'
     ],
     'interface' => [
-        'showRecordFieldList' => 'hidden, name, configuration_path',
+        'showRecordFieldList' => 'hidden, name, configuration_path, local_file_path',
     ],
     'types' => [
-        '1' => ['showitem' => 'hidden, name, configuration_path'],
+        '1' => ['showitem' => 'hidden, name, local_configuration, configuration_path, local_file_path'],
     ],
     'columns' => [
         'hidden' => [
@@ -57,6 +57,7 @@ return [
         'configuration_path' => [
             'exclude' => true,
             'label' => 'LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_db.xlf:tx_pxapmimporter_domain_model_import.configuration_path',
+            'displayCond' => 'FIELD:local_configuration:REQ:false',
             'config' => [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
@@ -69,6 +70,36 @@ return [
                 'minitems' => 1,
                 'eval' => 'required'
             ],
+        ],
+        'local_file_path' => [
+            'exclude' => true,
+            'label' => 'LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_db.xlf:tx_pxapmimporter_domain_model_import.local_file_path',
+            'displayCond' => 'FIELD:local_configuration:REQ:true',
+            'config' => [
+                'type' => 'input',
+                'renderType' => 'inputLink',
+                'fieldControl' => [
+                    'linkPopup' => [
+                        'options' => [
+                            'blindLinkOptions' => 'page,url,folder,mail,spec',
+                            'blindLinkFields' => 'class,title,params,target',
+                            'allowedExtensions' => 'yaml',
+                        ]
+                    ]
+                ],
+                'eval' => 'trim,required'
+            ],
+        ],
+        'local_configuration' => [
+            'exclude' => true,
+            'onChange' => 'reload',
+            'label' => 'LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_db.xlf:tx_pxapmimporter_domain_model_import.local_configuration',
+            'config' => [
+                'type' => 'check',
+                'items' => [
+                    ['LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_db.xlf:tx_pxapmimporter_domain_model_import.local_configuration.yes', 1],
+                ],
+            ]
         ],
         'crdate' => [
             'config' => [

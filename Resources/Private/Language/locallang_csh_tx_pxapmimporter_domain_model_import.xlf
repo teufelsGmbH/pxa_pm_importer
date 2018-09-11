@@ -9,6 +9,12 @@
 			<trans-unit id="configuration_path.description">
 				<source>Choose configuration file</source>
 			</trans-unit>
+			<trans-unit id="local_file_path.description">
+			    <source>Link on file from fileadmin</source>
+			</trans-unit>
+			<trans-unit id="local_configuration.description">
+			    <source>Check if want to choose configuration file from fileadmin.</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>
