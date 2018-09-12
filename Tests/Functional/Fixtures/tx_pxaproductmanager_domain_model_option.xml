@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dataset>
+    <tx_pxaproductmanager_domain_model_option>
+        <uid>131</uid>
+        <pid>1</pid>
+        <value></value>
+        <sys_language_uid>0</sys_language_uid>
+        <attribute>3344</attribute>
+        <!--This is BWM hash, need to keep value empty for test-->
+        <pm_importer_import_id_hash>e2529ce292b4cbb4bacd671d283110fa</pm_importer_import_id_hash>
+    </tx_pxaproductmanager_domain_model_option>
+
+    <tx_pxaproductmanager_domain_model_option>
+        <uid>141</uid>
+        <pid>1</pid>
+        <value>Tesla</value>
+        <sys_language_uid>0</sys_language_uid>
+        <pm_importer_import_id_hash></pm_importer_import_id_hash>
+        <attribute>3344</attribute>
+    </tx_pxaproductmanager_domain_model_option>
+
+    <tx_pxaproductmanager_domain_model_option>
+        <uid>11111</uid>
+        <pid>1</pid>
+        <value>dummy</value>
+        <sys_language_uid>0</sys_language_uid>
+        <attribute>3344</attribute>
+        <pm_importer_import_id_hash>d36bf9b390c6337c021838a31f14e443</pm_importer_import_id_hash>
+    </tx_pxaproductmanager_domain_model_option>
+</dataset>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dataset>
+	<tx_pxaproductmanager_domain_model_attributevalue>
+		<uid>1</uid>
+		<pid>1</pid>
+		<product>11</product>
+		<attribute>22</attribute>
+		<sys_language_uid>0</sys_language_uid>
+		<value>old_value</value>
+	</tx_pxaproductmanager_domain_model_attributevalue>
+
+	<tx_pxaproductmanager_domain_model_attributevalue>
+		<uid>2</uid>
+		<pid>1</pid>
+		<product>1</product>
+		<attribute>22</attribute>
+		<sys_language_uid>0</sys_language_uid>
+		<value>dummy</value>
+	</tx_pxaproductmanager_domain_model_attributevalue>
+</dataset>
