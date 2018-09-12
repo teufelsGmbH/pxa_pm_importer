@@ -184,7 +184,7 @@ This will register your extension as import configration provider.
 
 Import configuration files put in:
 
-`EXT:pxa_pm_importer/Configuration/Yaml`
+`EXT:pm_myimport/Configuration/Yaml`
 
 As second parameter you can provide array of custom paths where to fetch yamk files, but these should be inside `Configuration` folder.
 
