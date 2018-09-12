@@ -19,7 +19,7 @@ class YamlConfiguration extends AbstractConfiguration
     /**
      * Initialize
      *
-     * @param string $yamlPath
+     * @param string $yamlPath Absolute path to file
      */
     public function __construct(string $yamlPath)
     {
@@ -35,9 +35,7 @@ class YamlConfiguration extends AbstractConfiguration
     public function isSourceValid(): bool
     {
         if (!empty($this->yamlPath)) {
-            $filePath = GeneralUtility::getFileAbsFileName($this->yamlPath);
-
-            return file_exists($filePath) && is_readable($filePath);
+            return file_exists($this->yamlPath) && is_readable($this->yamlPath);
         }
 
         return false;

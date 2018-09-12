@@ -121,4 +121,41 @@ class ImportTest extends UnitTestCase
 
         $this->assertSame($mockedService, $this->subject->getConfigurationService());
     }
+
+    /**
+     * @test
+     */
+    public function defaultLocalFilePathEmptyString()
+    {
+        $this->assertEmpty($this->subject->getLocalFilePath());
+    }
+
+    /**
+     * @test
+     */
+    public function localFilePathCanBeSet()
+    {
+        $value = 'test/path';
+        $this->subject->setLocalFilePath($value);
+
+        $this->assertEquals($value, $this->subject->getLocalFilePath());
+    }
+
+    /**
+     * @test
+     */
+    public function defaultLocalConfigurationIsFalse()
+    {
+        $this->assertFalse($this->subject->isLocalConfiguration());
+    }
+
+    /**
+     * @test
+     */
+    public function localConfigurationCanBeSet()
+    {
+        $this->subject->setLocalConfiguration(true);
+
+        $this->assertTrue($this->subject->isLocalConfiguration());
+    }
 }

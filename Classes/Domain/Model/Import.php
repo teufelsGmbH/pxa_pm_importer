@@ -5,6 +5,8 @@ namespace Pixelant\PxaPmImporter\Domain\Model;
 
 use Pixelant\PxaPmImporter\Service\Configuration\YamlConfiguration;
 use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationInterface;
+use TYPO3\CMS\Core\LinkHandling\LinkService;
+use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
@@ -169,6 +171,29 @@ class Import extends AbstractEntity
      */
     protected function getConfigurationInstance(): ConfigurationInterface
     {
-        return GeneralUtility::makeInstance(YamlConfiguration::class, $this->configurationPath);
+        return GeneralUtility::makeInstance(YamlConfiguration::class, $this->resolveConfigurationFilePath());
+    }
+
+    /**
+     * Resolve absolute path to configuration file
+     *
+     * @return string
+     * @throws \TYPO3\CMS\Core\LinkHandling\Exception\UnknownLinkHandlerException
+     * @throws \TYPO3\CMS\Core\LinkHandling\Exception\UnknownUrnException
+     */
+    protected function resolveConfigurationFilePath(): string
+    {
+        if ($this->isLocalConfiguration()) {
+            $linkService = GeneralUtility::makeInstance(LinkService::class);
+            $data = $linkService->resolveByStringRepresentation($this->getLocalFilePath());
+            $file = $data['file'] ?: null;
+            if (is_object($file) && $file instanceof File) {
+                return $file->getForLocalProcessing(false);
+            }
+        } else {
+            return GeneralUtility::getFileAbsFileName($this->configurationPath);
+        }
+
+        return '';
     }
 }

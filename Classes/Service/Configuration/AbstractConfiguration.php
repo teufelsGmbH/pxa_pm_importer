@@ -89,8 +89,6 @@ abstract class AbstractConfiguration implements ConfigurationInterface
      */
     protected function readFileRawContent(string $filePath): string
     {
-        $filePath = GeneralUtility::getFileAbsFileName($filePath);
-
         $content = @file_get_contents($filePath);
 
         return $content ?: '';
