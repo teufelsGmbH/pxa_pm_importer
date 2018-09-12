@@ -72,11 +72,9 @@ importers:
         dateFormat: 'H:i d-m-Y'
       images:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
-        fieldName: 'images'
         folder: 'importers'
       assets:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
-        fieldName: 'assets'
         folder: 'importers'
       relatedProducts:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
@@ -86,7 +84,6 @@ importers:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
       falLinks:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
-        fieldName: 'fal_links'
         folder: 'importers'
       metaDescription:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'

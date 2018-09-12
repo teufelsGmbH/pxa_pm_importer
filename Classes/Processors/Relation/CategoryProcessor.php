@@ -29,7 +29,7 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
-            if (true === (bool)$this->configuration['treatAsIdentifierAsUid']) {
+            if (true === (bool)$this->configuration['treatIdentifierAsUid']) {
                 $model = GeneralUtility::makeInstance(ObjectManager::class)->get(CategoryRepository::class)
                     ->findByUid((int)$identifier);
             } else {
