@@ -3,19 +3,18 @@
 
 ## Short information
 
-This extension was for create to make it easier to import products and products data from **different sources**.
+This extension was for created to make it easier to import products and products data from **different sources**.
 
 By default it supports import from **CSV and Excel** files.
 
-Import configuration should be provided by **Yaml**.
+Import configuration is provided by **Yaml**.
 
 ## Example configuration and source files
 
-You can find some examples of import configuration and source data structure checking next folders:
+You can find some examples of import configuration and source data structure in next folders:
 
-Yaml configuration files `EXT:pxa_pm_importer/Configuration/Example/Yaml/`
-
-Source data files `EXT:pxa_pm_importer/Resources/Private/ExampleData/`
+- Yaml configuration files `EXT:pxa_pm_importer/Configuration/Example/Yaml/`
+- Source data files `EXT:pxa_pm_importer/Resources/Private/ExampleData/`
 
 ## Usage
 
@@ -23,11 +22,11 @@ Source data files `EXT:pxa_pm_importer/Resources/Private/ExampleData/`
 
 First you need to create import configuration:
 
-- All import configuration reocrds should exist only with PID - 0.
+- All import configuration records should exist only with PID - 0.
 - Go to `List` module on root page with **UID 0**.
-- Create new record "PM Import". IT has next options
+- Create new record "PM Import". It has next options
     - *Name* - anything.
-    - *Use local file* - check this, if import is not using any additional import extension and import configuration file is located in fileadmin. If your import is more complex leave this unchecked. 
+    - *Use local file* - check this, if import configuration file is located in fileadmin. If your import is more complex and you want to use configuration from other importer this unchecked.
     - *Configuration file provided by extensions importers* - list of configuration files registered by other import extensions.
     - *Local file* - fileadmin configuration file.
 
@@ -45,7 +44,7 @@ Task accept next parameters:
 
 If you want to import data from CSV or Excel files and data is not really complex, possibilities of extension should be enough.
 
-But in case you need to do more complex import, or source of data is an API or anything else, read about to [extend importer](#advanced-import)
+But in case you need to do more complex import, or source of data is an API or anything else, read about how to [extend importer](#advanced-import)
 
 #### Import yaml configuration
 
@@ -128,18 +127,40 @@ Also adapter need to prepare data for language layers is there are such.
 By default extension has `Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter`
 
 **Adapter require mapping configuration**:
-- *id* - tells in which column unique identifier is
-- *mapping* - language UID to field mapping array, where **field name => to column number or letter**
+```yaml
+mapping:
+  # tells in which column unique identifier is
+  id: 'A'
+  # Each language UID has field mapping array, where field name => to column number or letter
+  languages:
+    0:
+      # Field name to column number from raw data, 0 is first
+      title: 1
+    1:
+      # Or field name to column letter like in excel
+      title: 'D'
+```
 
 **Importer configuration**
-
-- *identifierField* - field name with unique identifier from data adapter
-- *pid* - Storage
-- *mapping* - Field to extbase property model mapping rules. Support next settings:
-    - *property* - Extbase property name. Set this in case property name differs from field name
-    - *processor* - Custom field processor. If set processor take care of setting model property value, otherwise value will be set as simple string without any processing.
-    - *validation* - Only required is supported so far. But you can implement any in your own processor
-    - Any other options will be passed as configuration array to processor
+```yaml
+# Field name with unique identifier from data adapter
+identifierField: 'id'
+# Import storage
+pid: 136
+# Mapping fields, data adapter should return array with associative array
+mapping:
+  # Field to Extbase property model mapping rules. Support next settings:
+  title:
+    # Extbase property name. Set this in case property name differs from field name
+    property: 'title'
+    # Custom field processor. If set processor take care of setting model property value, otherwise value will be set as simple string without any processing.
+    processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+    # Only required is supported so far. But you can implement any in your own processor
+    validation: 'required'
+    # Any other options will be passed as configuration array to processor
+    customSetting: true
+    anotherSettingValue: 123321
+```
 
 ##### Processors
 
@@ -153,17 +174,34 @@ Extension has next processors out of box:
 - `Pixelant\PxaPmImporter\Processors\IntegerProcessor` - integer values. No parameter
 - `Pixelant\PxaPmImporter\Processors\StringProcessor` - string values. No parameters.
 - `Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor` - set value for product attribute. Parameters:
-    - *attributeUid* - UID of attribute
-    - *dateFormat* - optional, date format for *\DateTime::createFromFormat*. Parse date for date attribute type.
+```yaml
+# UID of attribute
+attributeUid: 11
+# Optional, date format for \DateTime::createFromFormat. Parse date for date attribute type.
+dateFormat: 'Y-m-d'
+```
 - `Pixelant\PxaPmImporter\Processors\Relation\AttributeOptionsProcessor` - transform field value (for ex.'Red,Blue,Green') into attribute options and attach to attribute. Use only for attributes importer. Parameters:
-    - *treatIdentifierAsUid* - if values are comma-separated uids of options instead of titles.
+```yaml
+# If values are comma-separated uids of options instead of titles.
+treatIdentifierAsUid: 1
+```
 - `Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor` - transform field value like 'Food,Car' into categories and attach to object. Use for products importer. Parameters:
-    - *treatIdentifierAsUid* - if values are comma-separated uids of categories.
+```yaml
+# If values are comma-separated uids of categories.
+treatIdentifierAsUid: 1
+```
 - `Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor` - transform product identifiers into products and attach to object. Use for products importer. Parameters:
-    - *treatIdentifierAsUid* - if values are comma-separated uids of products.
+```yaml
+# If values are comma-separated uids of products.
+treatIdentifierAsUid: 1
+```
 - `Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor` - attach file by name. Parameters:
-    - *storageUid* - optional storage UID, 1 - default.
-    - *folder* - relative folder path where file can be found. Skip "fileadmin" for default storage.
+```yaml
+# Optional storage UID, 1 - default.
+storageUid: 1
+# Relative folder path where file can be found. Skip "fileadmin" for default storage.
+folder: 'uploads'
+```
 
 ## Advanced import  
 
@@ -195,9 +233,7 @@ Then in your import configuration file you can use **your own importers, source 
 - Adapter implement `Pixelant\PxaPmImporter\Adapter\AdapterInterface`
 - Processor implement `Pixelant\PxaPmImporter\Processors\FieldProcessorInterface`
     - `Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor` is useful to handle relation like 1:1, 1:n and n:m
-    - `Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor` basic class to work with simple values, like string and numbers 
+    - `Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor` basic class to work with simple values, like string and numbers
 - Source implement `Pixelant\PxaPmImporter\Service\Source\SourceInterface`
 - Importer implement `Pixelant\PxaPmImporter\Service\Importer\ImporterInterface`
     - `Pixelant\PxaPmImporter\Service\Importer\AbstractImporter` - basic class for products, categories and attributes import
-
- 
