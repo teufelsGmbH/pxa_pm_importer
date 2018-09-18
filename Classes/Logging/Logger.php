@@ -33,9 +33,18 @@ class Logger
      * Initialize
      *
      * @param string $className
+     * @param bool $dontReplaceClassNameSpace By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension
      */
-    public function __construct(string $className)
+    public function __construct(string $className, bool $dontReplaceClassNameSpace = false)
     {
+        if (false === $dontReplaceClassNameSpace) {
+            $classParts = GeneralUtility::trimExplode('\\', $className, true);
+            if (count($classParts) > 2) {
+                $classParts[1] = 'PxaPmImporter';
+            }
+            $className = implode('\\', $classParts);
+        }
+
         $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger($className);
     }
 
