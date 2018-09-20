@@ -100,7 +100,7 @@ class Logger
      * @param bool $dontReplaceClassNameSpace By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension
      * @return Logger
      */
-    public static function getInstance(string $clasName, bool $dontReplaceClassNameSpace): Logger
+    public static function getInstance(string $clasName, bool $dontReplaceClassNameSpace = false): Logger
     {
         return GeneralUtility::makeInstance(__CLASS__, $clasName, $dontReplaceClassNameSpace);
     }
