@@ -34,6 +34,13 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     protected $languagesMapping = null;
 
     /**
+     * Adapter configuration
+     *
+     * @var array
+     */
+    protected $configuration = [];
+
+    /**
      * Adapt source data
      *
      * @param array $data
@@ -99,12 +106,17 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
 
         if (!empty($configuration['mapping']['languages']) && is_array($configuration['mapping']['languages'])) {
             $this->languagesMapping = $configuration['mapping']['languages'];
+            $isExcelColumns = isset($configuration['mapping']['excelColumns'])
+                ? (bool)$configuration['mapping']['excelColumns']
+                : false;
 
-            foreach ($this->languagesMapping as $language => $languageMapping) {
-                foreach ($languageMapping as $field => $column) {
-                    if (!is_numeric($column)) {
-                        $columnNumber = MainUtility::convertAlphabetColumnToNumber($column);
-                        $this->languagesMapping[$language][$field] = $columnNumber;
+            if ($isExcelColumns) {
+                foreach ($this->languagesMapping as $language => $languageMapping) {
+                    foreach ($languageMapping as $field => $column) {
+                        if (!is_numeric($column)) {
+                            $columnNumber = MainUtility::convertAlphabetColumnToNumber($column);
+                            $this->languagesMapping[$language][$field] = $columnNumber;
+                        }
                     }
                 }
             }
@@ -113,6 +125,9 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
             throw new \RuntimeException('Adapter mapping require at least one language mapping configuration.', 1536050795179);
             // @codingStandardsIgnoreEnd
         }
+
+        // Save configuration
+        $this->configuration = $configuration;
     }
 
     /**
@@ -130,7 +145,6 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
 
         throw new InvalidAdapterFieldMapping('Data column "' . $column . '" is not set', 1536051927592);
     }
-
 
 
     /**
