@@ -49,7 +49,9 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     public function adapt(array $data, array $configuration): void
     {
         $this->initialize($configuration);
-        $this->data = $this->adaptSourceData($data);
+        $this->data = $this->adaptData(
+            $this->transformSourceData($data)
+        );
     }
 
     /**
@@ -146,12 +148,43 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         throw new InvalidAdapterFieldMapping('Data column "' . $column . '" is not set', 1536051927592);
     }
 
-
     /**
      * Convert source data according to mapping
      *
      * @param array $data
      * @return array
      */
-    abstract protected function adaptSourceData(array $data): array;
+    protected function adaptData(array $data): array
+    {
+        $adaptData = [];
+        // Prepare arrays with languages
+        foreach (array_keys($this->languagesMapping) as $languageUid) {
+            $adaptData[$languageUid] = [];
+        }
+
+        foreach ($data as $dataRow) {
+            $id = $this->getFieldData($this->identifier, $dataRow);
+            foreach ($this->languagesMapping as $language => $mapping) {
+                $languageDataRow = [
+                    'id' => $id
+                ];
+
+                foreach ($mapping as $fieldName => $column) {
+                    $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
+                }
+
+                $adaptData[$language][] = $languageDataRow;
+            }
+        }
+
+        return $adaptData;
+    }
+
+    /**
+     * Do final source raw data processing before adapting
+     *
+     * @param array $data
+     * @return array
+     */
+    abstract protected function transformSourceData(array $data): array;
 }
