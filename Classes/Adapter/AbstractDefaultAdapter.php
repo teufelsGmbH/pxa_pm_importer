@@ -95,12 +95,17 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         if (empty($configuration['mapping'])) {
             throw new \RuntimeException('Adapter mapping configuration is invalid.', 1536050678725);
         }
+        $isExcelColumns = isset($configuration['mapping']['excelColumns'])
+            ? (bool)$configuration['mapping']['excelColumns']
+            : false;
 
         if (isset($configuration['mapping']['id'])) {
             if (is_numeric($configuration['mapping']['id'])) {
                 $this->identifier = (int)$configuration['mapping']['id'];
-            } else {
+            } elseif ($isExcelColumns) {
                 $this->identifier = MainUtility::convertAlphabetColumnToNumber($configuration['mapping']['id']);
+            } else {
+                $this->identifier = $configuration['mapping']['id'];
             }
         } else {
             throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
@@ -108,9 +113,6 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
 
         if (!empty($configuration['mapping']['languages']) && is_array($configuration['mapping']['languages'])) {
             $this->languagesMapping = $configuration['mapping']['languages'];
-            $isExcelColumns = isset($configuration['mapping']['excelColumns'])
-                ? (bool)$configuration['mapping']['excelColumns']
-                : false;
 
             if ($isExcelColumns) {
                 foreach ($this->languagesMapping as $language => $languageMapping) {
