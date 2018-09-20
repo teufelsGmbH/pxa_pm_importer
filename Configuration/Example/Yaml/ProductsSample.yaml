@@ -10,7 +10,9 @@ importers:
       mapping:
         # Import unique identifier for all fields
         id: 'B'
-        # Per language, field name to column from raw data, 0 is first
+        # Set this if excel columns instead of numbers is used
+        excelColumns: true
+        # Per language, field to excel column, A is first
         languages:
           0:
             name: 'A'

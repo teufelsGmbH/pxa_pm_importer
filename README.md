@@ -62,18 +62,17 @@ importers:
       className: 'AdapterDataClass'
       mapping:
         # Import unique identifier for all fields
-        id: 'A'
+        id: 0
+        excelColumns: false
         # Per language
         languages:
           0:
             # Field name to column number from raw data, 0 is first
-            # or field name to column letter like in excel
             title: 1
             parent: 2
           1:
-            # Or use column letter
-            title: 'C',
-            parent: 'D'
+            title: 3
+            parent: 4
     # Identifier field from data adapter
     identifierField: 'id'
     # Import storage
@@ -122,7 +121,7 @@ Available importers:
 
 Every importer require **adapter**. Adapter should transform raw data from source to associative array.
 
-Also adapter need to prepare data for language layers is there are such.
+Also adapter need to prepare data for language layers if there are such.
 
 By default extension has `Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter`
 
@@ -132,6 +131,8 @@ mapping:
   # tells in which column unique identifier is
   id: 'A'
   # Each language UID has field mapping array, where field name => to column number or letter
+  # Set this if excel columns instead of numbers is used
+  excelColumns: true
   languages:
     0:
       # Field name to column number from raw data, 0 is first
@@ -140,7 +141,7 @@ mapping:
       # Or field name to column letter like in excel
       title: 'D'
 ```
-
+**Important** to set "excelColumns: true" if you are using excel columns letters as column instead of nubmers. **Only number or only letters can be used for one adapter configuration**.
 **Importer configuration**
 ```yaml
 # Field name with unique identifier from data adapter

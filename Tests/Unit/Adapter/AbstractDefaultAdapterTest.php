@@ -24,7 +24,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
         parent::setUp();
         $this->subject = $this->getAccessibleMock(
             AbstractDefaultAdapter::class,
-            ['adaptSourceData']
+            ['transformSourceData']
         );
     }
 
@@ -168,25 +168,71 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     }
 
     /**
-     * Convert excel columns A to 0, B to 1 and so on
      * @test
      */
-    public function convertAlphabetColumnToNumber()
+    public function adaptSourceDataWillSetDataAccordingToMapping()
     {
-        $columnToExpect = [
-            'A' => 0,
-            'b' => 1,
-            'Aa' => 26,
-            'AB' => 27,
-            'AZ' => 51,
-            'SZ' => 519,
+        $configuration = [
+            'mapping' => [
+                'id' => 4,
+                'languages' => [
+                    0 => [
+                        'title' => 0,
+                        'description' => 1
+                    ],
+                    1 => [
+                        'title' => 2,
+                        'description' => 3
+                    ],
+                ]
+            ]
         ];
 
-        foreach ($columnToExpect as $column => $expect) {
-            $this->assertEquals(
-                $expect,
-                $this->subject->_call('convertAlphabetColumnToNumber', $column)
-            );
-        }
+        $data = [
+            [
+                0 => 'English title 1',
+                1 => 'English desc 1',
+                2 => 'Ukrainian title 1',
+                3 => 'Ukrainian desc 1',
+                4 => 'id1'
+            ],
+            [
+                0 => 'English title 2',
+                1 => 'English desc 2',
+                2 => 'Ukrainian title 2',
+                3 => 'Ukrainian desc 2',
+                4 => 'id2'
+            ],
+        ];
+
+        $expect = [
+            0 => [
+                [
+                    'title' => 'English title 1',
+                    'description' => 'English desc 1',
+                    'id' => 'id1'
+                ],
+                [
+                    'title' => 'English title 2',
+                    'description' => 'English desc 2',
+                    'id' => 'id2'
+                ]
+            ],
+            1 => [
+                [
+                    'title' => 'Ukrainian title 1',
+                    'description' => 'Ukrainian desc 1',
+                    'id' => 'id1'
+                ],
+                [
+                    'title' => 'Ukrainian title 2',
+                    'description' => 'Ukrainian desc 2',
+                    'id' => 'id2'
+                ]
+            ],
+        ];
+
+        $this->subject->_call('initialize', $configuration);
+        $this->assertEquals($expect, $this->subject->_call('adaptData', $data));
     }
 }

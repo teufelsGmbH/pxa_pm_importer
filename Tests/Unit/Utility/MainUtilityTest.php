@@ -21,4 +21,27 @@ class MainUtilityTest extends UnitTestCase
 
         $this->assertEquals(md5($id), MainUtility::getImportIdHash($id));
     }
+
+    /**
+     * Convert excel columns A to 0, B to 1 and so on
+     * @test
+     */
+    public function convertAlphabetColumnToNumber()
+    {
+        $columnToExpect = [
+            'A' => 0,
+            'b' => 1,
+            'Aa' => 26,
+            'AB' => 27,
+            'AZ' => 51,
+            'SZ' => 519,
+        ];
+
+        foreach ($columnToExpect as $column => $expect) {
+            $this->assertEquals(
+                $expect,
+                MainUtility::convertAlphabetColumnToNumber($column)
+            );
+        }
+    }
 }
