@@ -137,11 +137,11 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     /**
      * Get single field data from row
      *
-     * @param int $column
+     * @param $column
      * @param array $row
      * @return mixed
      */
-    protected function getFieldData(int $column, array $row)
+    protected function getFieldData($column, array $row)
     {
         if (array_key_exists($column, $row)) {
             return $row[$column];
