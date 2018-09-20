@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+
 namespace Pixelant\PxaPmImporter\Logging\Writer;
 
 use TYPO3\CMS\Core\Log\Exception\InvalidLogWriterConfigurationException;
@@ -53,9 +54,9 @@ class FileWriter extends LogFileWriter
             $data = '- ' . json_encode($recordData);
         }
 
-        // Take only last 3 parts of component
+        // Skip vendor and extension name
         $componentParts = explode('.', $record->getComponent());
-        $component = implode('.', [$componentParts[2], $componentParts[3], $componentParts[4]]);
+        $component = implode('.', array_slice($componentParts, 2));
 
         $message = sprintf(
             '[%s] component="%s": %s %s',
