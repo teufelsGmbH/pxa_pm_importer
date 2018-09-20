@@ -33,7 +33,7 @@ class Logger
      * Initialize
      *
      * @param string $className
-     * @param bool $dontReplaceClassNameSpace By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension
+     * @param bool $dontReplaceClassNameSpace
      */
     public function __construct(string $className, bool $dontReplaceClassNameSpace = false)
     {
@@ -97,10 +97,11 @@ class Logger
      * Get instance
      *
      * @param string $className
+     * @param bool $dontReplaceClassNameSpace By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension
      * @return Logger
      */
-    public static function getInstance(string $clasName): Logger
+    public static function getInstance(string $clasName, bool $dontReplaceClassNameSpace): Logger
     {
-        return GeneralUtility::makeInstance(__CLASS__, $clasName);
+        return GeneralUtility::makeInstance(__CLASS__, $clasName, $dontReplaceClassNameSpace);
     }
 }
