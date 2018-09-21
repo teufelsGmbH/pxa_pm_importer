@@ -82,16 +82,14 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     }
 
     /**
-     * Read content from file
+     * Check if file path is valid
      *
      * @param string $filePath
-     * @return string
+     * @return bool
      */
-    protected function readFileRawContent(string $filePath): string
+    protected function isFileValid(string $filePath): bool
     {
-        $content = @file_get_contents($filePath);
-
-        return $content ?: '';
+        return file_exists($filePath) && is_readable($filePath);
     }
 
     /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service\Configuration;
 
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
+use Pixelant\PxaPmImporter\Exception\YamlResourceInvalidException;
 use Symfony\Component\Yaml\Yaml;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class YamlConfiguration extends AbstractConfiguration
 {
@@ -35,7 +35,7 @@ class YamlConfiguration extends AbstractConfiguration
     public function isSourceValid(): bool
     {
         if (!empty($this->yamlPath)) {
-            return file_exists($this->yamlPath) && is_readable($this->yamlPath);
+            return $this->isFileValid($this->yamlPath);
         }
 
         return false;
@@ -48,13 +48,31 @@ class YamlConfiguration extends AbstractConfiguration
      */
     protected function parseConfiguration(): array
     {
-        $configuration = Yaml::parse($this->readFileRawContent($this->yamlPath));
+        $configuration = Yaml::parseFile($this->yamlPath);
 
         if (!is_array($configuration)) {
             // @codingStandardsIgnoreStart
             throw new InvalidConfigurationSourceException('Parsed configuration is not array, but "' . gettype($configuration) . '"', 1535961126729);
             // @codingStandardsIgnoreEnd
         }
+
+        if (isset($configuration['imports']) && is_array($configuration['imports'])) {
+            foreach ($configuration['imports'] as $importYaml) {
+                if (!empty($importYaml['resource'])) {
+                    $importPath = dirname($this->yamlPath) . '/' . trim($importYaml['resource'], '/');
+
+                    if ($this->isFileValid($importPath)) {
+                        $configuration = array_merge($configuration, Yaml::parseFile($importPath));
+                    } else {
+                        // @codingStandardsIgnoreStart
+                        throw new YamlResourceInvalidException('Invalid imports resource "' . $importYaml['resource'] . '"', 1537530881729);
+                        // @codingStandardsIgnoreEnd
+                    }
+                }
+            }
+            unset($configuration['imports']);
+        }
+
         return $configuration;
     }
 
