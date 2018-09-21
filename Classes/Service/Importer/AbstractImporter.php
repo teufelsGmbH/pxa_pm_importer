@@ -68,6 +68,13 @@ abstract class AbstractImporter implements ImporterInterface
     protected $mapping = [];
 
     /**
+     * Additonal settings
+     *
+     * @var array
+     */
+    protected $settings = [];
+
+    /**
      * @var Logger
      */
     protected $logger = null;
@@ -162,6 +169,7 @@ abstract class AbstractImporter implements ImporterInterface
         $this->initializeAdapter($source, $configuration);
         $this->determinateIdentifierField($configuration);
         $this->setMapping($configuration);
+        $this->setSettings($configuration);
         $this->pid = (int)($configuration['pid'] ?? 0);
 
         if (BackendUtility::getRecord('pages', $this->pid, 'uid') === null) {
@@ -237,6 +245,18 @@ abstract class AbstractImporter implements ImporterInterface
                 'processor' => $fieldMapping['processor'] ?? false,
                 'configuration' => $fieldConfiguration
             ];
+        }
+    }
+
+    /**
+     * Set settings from Yaml
+     *
+     * @param array $configuration
+     */
+    protected function setSettings(array $configuration): void
+    {
+        if (isset($configuration['settings']) && is_array($configuration['settings'])) {
+            $this->settings = $configuration['settings'];
         }
     }
 

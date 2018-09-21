@@ -60,6 +60,9 @@ importers:
     # Layer between raw data and importer
     adapter:
       className: 'AdapterDataClass'
+      # Any additional settings
+      settings:
+        dummy: true
       mapping:
         # Import unique identifier for all fields
         id: 0
@@ -88,6 +91,9 @@ importers:
         validation: 'required'
       parent:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
+    # Additional settings
+    settings:
+      dummy: 'test'
 ```
 
 ##### Configuration parts
@@ -127,6 +133,9 @@ By default extension has `Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter`
 
 **Adapter require mapping configuration**:
 ```yaml
+# Adapter settings
+settings:
+  dummy: 123
 mapping:
   # tells in which column unique identifier is
   id: 'A'
@@ -149,6 +158,9 @@ identifierField: 'id'
 # Import storage
 pid: 136
 # Mapping fields, data adapter should return array with associative array
+# Importer settings
+settings:
+  dummy: 123
 mapping:
   # Field to Extbase property model mapping rules. Support next settings:
   title:

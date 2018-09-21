@@ -159,6 +159,26 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     /**
      * @test
      */
+    public function initializeWithSettingsWillSetSettings()
+    {
+        $settings = [
+            'test' => 'setting'
+        ];
+        $configuration = [
+            'mapping' => [
+                'id' => '12',
+                'languages' => [0 => []]
+            ],
+            'settings' => $settings
+        ];
+        $this->subject->_call('initialize', $configuration);
+
+        $this->assertEquals($settings, $this->subject->_get('settings'));
+    }
+
+    /**
+     * @test
+     */
     public function getFieldDataReturnRowColumnData()
     {
         $row = [0 => 'test', 1 => 'data'];
