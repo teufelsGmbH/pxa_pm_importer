@@ -340,4 +340,21 @@ class AbstractImporterTest extends UnitTestCase
         $this->expectException(\RuntimeException::class);
         $this->subject->_call('checkForDuplicatedIdentifiers', $data);
     }
+
+    /**
+     * @test
+     */
+    public function setSettingWillSetSettingsFromConfigurationArray()
+    {
+        $settings = [
+            'testing' => [
+                'key' => 'value'
+            ]
+        ];
+        $configuration['settings'] = $settings;
+
+        $this->subject->_call('setSettings', $configuration);
+
+        $this->assertEquals($settings, $this->subject->_get('settings'));
+    }
 }

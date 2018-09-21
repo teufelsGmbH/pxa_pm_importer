@@ -38,7 +38,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      *
      * @var array
      */
-    protected $configuration = [];
+    protected $settings = [];
 
     /**
      * Adapt source data
@@ -130,8 +130,10 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
             // @codingStandardsIgnoreEnd
         }
 
-        // Save configuration
-        $this->configuration = $configuration;
+        // Set settings
+        if (isset($configuration['settings']) && is_array($configuration['settings'])) {
+            $this->settings = $configuration['settings'];
+        }
     }
 
     /**
