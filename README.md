@@ -257,3 +257,17 @@ Then in your import configuration file you can use **your own importers, source 
 - Source implement `Pixelant\PxaPmImporter\Service\Source\SourceInterface`
 - Importer implement `Pixelant\PxaPmImporter\Service\Importer\ImporterInterface`
     - `Pixelant\PxaPmImporter\Service\Importer\AbstractImporter` - basic class for products, categories and attributes import
+
+
+## Import inside YAML
+If you have one general configuration, for example product importer mapping, for all your imports and you want to have it in one place, you can create a subfolder inside "Configuration/Yaml", lets call it "imports"
+
+`EXT:pm_myimport/Configuration/Yaml/imports`
+
+Create "general_conf.yaml" YAML file there with and put configuration there. Then in your import file you can import like below
+
+```yaml
+# imports/general_conf.yaml
+imports:
+    - { resource: imports/general_conf.yaml }
+```
