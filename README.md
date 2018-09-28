@@ -215,6 +215,13 @@ storageUid: 1
 # Relative folder path where file can be found. Skip "fileadmin" for default storage.
 folder: 'uploads'
 ```
+- `Pixelant\PxaPmImporter\Processors\DateTimeProcessor` - DateTime values. Parameters:
+```yaml
+# Input format, the format to use when creating a DateTime object from value (DateTime::createFromFormat)
+inputFormat: 'd/m/Y h:i:s'
+# Output format, the format to store data in entity
+outputFormat: 'U'
+```
 
 ## Advanced import  
 
