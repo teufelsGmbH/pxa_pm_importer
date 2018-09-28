@@ -34,7 +34,7 @@ class DateTimeProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Check if numeric
+     * Check if value can be formatted according input format
      *
      * @param $value
      * @return bool
@@ -60,7 +60,7 @@ class DateTimeProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Set as float
+     * Set property according the "outputFormat"
      *
      * @param $value
      */
@@ -72,6 +72,11 @@ class DateTimeProcessor extends AbstractFieldProcessor
         $this->simplePropertySet($inputDate->format($outputFormat));
     }
 
+    /**
+     * Generate string of errors in getLastErrors
+     *
+     * @return string
+     */
     protected function getDateTimeErrorString(): string
     {
         $errorString = '';
