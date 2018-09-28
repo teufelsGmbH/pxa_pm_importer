@@ -49,7 +49,10 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     {
         $configuration = $this->getConfiguration();
 
-        return $configuration['source'] ?? [];
+        if (!isset($configuration['source']) || !is_array($configuration['source'])) {
+            throw new \UnexpectedValueException('Configuration expect "source" to be set as array.', 1538134061217);
+        }
+        return $configuration['source'];
     }
 
     /**
@@ -61,7 +64,10 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     {
         $configuration = $this->getConfiguration();
 
-        return $configuration['importers'] ?? [];
+        if (!isset($configuration['importers']) || !is_array($configuration['importers'])) {
+            throw new \UnexpectedValueException('Configuration expect "importers" to be set as array.', 1538134039200);
+        }
+        return $configuration['importers'];
     }
 
     /**
