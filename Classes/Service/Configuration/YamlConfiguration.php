@@ -62,7 +62,7 @@ class YamlConfiguration extends AbstractConfiguration
                     $importPath = dirname($this->yamlPath) . '/' . trim($importYaml['resource'], '/');
 
                     if ($this->isFileValid($importPath)) {
-                        $configuration = array_merge($configuration, Yaml::parseFile($importPath));
+                        $configuration = array_merge_recursive($configuration, Yaml::parseFile($importPath));
                     } else {
                         // @codingStandardsIgnoreStart
                         throw new YamlResourceInvalidException('Invalid imports resource "' . $importYaml['resource'] . '"', 1537530881729);
