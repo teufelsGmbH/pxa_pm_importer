@@ -90,4 +90,32 @@ class AbstractConfigurationTest extends UnitTestCase
         $this->subject->_set('configuration', $configuration);
         $this->assertEquals($importers, $this->subject->getImportersConfiguration());
     }
+
+    /**
+     * @test
+     */
+    public function getSourceConfigurationIfNotSetThrowsException()
+    {
+        $configuration = [
+            'test' => 'bla',
+        ];
+
+        $this->subject->_set('configuration', $configuration);
+        $this->expectException(\UnexpectedValueException::class);
+        $this->subject->getSourceConfiguration();
+    }
+
+    /**
+     * @test
+     */
+    public function getImportersConfigurationIfNotSetThrowsException()
+    {
+        $configuration = [
+            'test' => 'bla',
+        ];
+
+        $this->subject->_set('configuration', $configuration);
+        $this->expectException(\UnexpectedValueException::class);
+        $this->subject->getSourceConfiguration();
+    }
 }

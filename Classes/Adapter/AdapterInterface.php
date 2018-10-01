@@ -27,6 +27,10 @@ interface AdapterInterface
 
     /**
      * Language layer data
+     * [
+     *  'fieldName' => 'value',
+     *  'field2' => 'value2'
+     * ]
      *
      * @param int $languageUid
      * @return array
