@@ -190,6 +190,9 @@ Extension has next processors out of box:
 ```yaml
 # UID of attribute
 attributeUid: 11
+# You can set this to true if "attributeUid" above has import identifier value.
+# This means that attibute was previously imported and you want to find it by this import identifier
+treatAttributeUidAsImportUid: false
 # Optional, date format for \DateTime::createFromFormat. Parse date for date attribute type.
 dateFormat: 'Y-m-d'
 ```

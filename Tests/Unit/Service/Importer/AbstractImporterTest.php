@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Service\Importer;
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\AbstractImporter;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
@@ -189,7 +190,7 @@ class AbstractImporterTest extends UnitTestCase
         ];
         $this->subject->_set('mapping', $mapping);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(MissingPropertyMappingException::class);
         $this->subject->_call('getFieldMapping', 'none');
     }
 

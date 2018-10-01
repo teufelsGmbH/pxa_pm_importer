@@ -58,7 +58,20 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             // @codingStandardsIgnoreEnd
         }
 
-        $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);
+        if (isset($this->configuration['treatAttributeUidAsImportUid'])
+            && (bool)$this->configuration['treatAttributeUidAsImportUid'] === true
+        ) {
+            $record = $this->getRecordByImportIdentifier(
+                $this->configuration['attributeUid'],
+                'tx_pxaproductmanager_domain_model_attribute'
+            );
+
+            if ($record !== null) {
+                $this->attribute = MainUtility::convertRecordArrayToModel($record, Attribute::class);
+            }
+        } else {
+            $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);
+        }
 
         if ($this->attribute === null) {
             // @codingStandardsIgnoreStart
