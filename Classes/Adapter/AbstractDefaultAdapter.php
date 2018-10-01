@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Adapter;
 
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
+use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class AbstractDefaultAdapter
@@ -22,7 +24,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     /**
      * Identifier column
      *
-     * @var int
+     * @var mixed
      */
     protected $identifier = null;
 
@@ -39,6 +41,13 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      * @var array
      */
     protected $settings = [];
+
+    /**
+     * Adapter filter configuration
+     *
+     * @var array
+     */
+    protected $filters = [];
 
     /**
      * Adapt source data
@@ -134,6 +143,11 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         if (isset($configuration['settings']) && is_array($configuration['settings'])) {
             $this->settings = $configuration['settings'];
         }
+
+        // Set filters
+        if (isset($configuration['filters']) && is_array($configuration['filters'])) {
+            $this->filters = $configuration['filters'];
+        }
     }
 
     /**
@@ -153,6 +167,26 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     }
 
     /**
+     * Get multiple field data from row
+     *
+     * @param array $columns
+     * @param array $row
+     * @return mixed
+     */
+    protected function getMultipleFieldData(array $columns, array $row)
+    {
+        if (is_array($columns) && count($columns) > 0) {
+            $fieldData = '';
+            foreach ($columns as $index => $column) {
+                $fieldData .= $this->getFieldData($column, $row);
+            }
+            return $fieldData;
+        } else {
+            return $this->getFieldData($column, $row);
+        }
+    }
+
+    /**
      * Convert source data according to mapping
      *
      * @param array $data
@@ -167,21 +201,54 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         foreach ($data as $dataRow) {
-            $id = $this->getFieldData($this->identifier, $dataRow);
-            foreach ($this->languagesMapping as $language => $mapping) {
-                $languageDataRow = [
-                    'id' => $id
-                ];
+            if (is_array($this->identifier)) {
+                $id = $this->getMultipleFieldData($this->identifier, $dataRow);
+            } else {
+                $id = $this->getFieldData($this->identifier, $dataRow);
+            }
 
-                foreach ($mapping as $fieldName => $column) {
-                    $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
+            if ($this->includeRow($dataRow)) {
+                foreach ($this->languagesMapping as $language => $mapping) {
+                    $languageDataRow = [
+                        'id' => $id
+                    ];
+
+                    foreach ($mapping as $fieldName => $column) {
+                        $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
+                    }
+
+                    $adaptData[$language][] = $languageDataRow;
                 }
-
-                $adaptData[$language][] = $languageDataRow;
             }
         }
 
         return $adaptData;
+    }
+
+    /**
+     * Check if row should be excluded a filter
+     *
+     * @param array $dataRow
+     * @return boolean
+     */
+    protected function includeRow(array $dataRow): bool
+    {
+        if (is_array($this->filters) && count($this->filters) > 0) {
+            foreach ($this->filters as $column => $filter) {
+                if (!empty($filter['filter'])) {
+                    $filterObject = GeneralUtility::makeInstance($filter['filter']);
+                    if (!($filterObject instanceof FilterInterface)) {
+                        // @codingStandardsIgnoreStart
+                        throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
+                        // @codingStandardsIgnoreEnd
+                    }
+                    if (!$filterObject->includeRow($column, $dataRow, $filter)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
