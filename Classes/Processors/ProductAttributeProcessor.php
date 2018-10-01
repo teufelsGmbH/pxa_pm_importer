@@ -4,15 +4,20 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
+use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
+use Pixelant\PxaProductManager\Utility\TCAUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
@@ -37,10 +42,16 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected $entity = null;
 
     /**
+     * @var Logger
+     */
+    protected $logger = null;
+
+    /**
      * Initialize
      */
     public function __construct()
     {
+        $this->logger = Logger::getInstance(__CLASS__);
         $this->attributeRepository = GeneralUtility::makeInstance(ObjectManager::class)
             ->get(AttributeRepository::class);
     }
@@ -139,6 +150,10 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                     ? ''
                     : $this->parseDateTime($value);
                 $attributeValues[$this->attribute->getUid()] = $value->format('Y-m-d\TH:i:s\Z');
+                break;
+            case Attribute::ATTRIBUTE_TYPE_IMAGE:
+            case Attribute::ATTRIBUTE_TYPE_FILE:
+                $this->updateAttributeFilesReference($value);
                 break;
             default:
                 // @codingStandardsIgnoreStart
@@ -302,5 +317,134 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         }
 
         return $uids;
+    }
+
+    /**
+     * Update attribute file reference
+     *
+     * @param string $value
+     */
+    protected function updateAttributeFilesReference(string $value): void
+    {
+        $storage = ResourceFactory::getInstance()->getStorageObject((int)($this->configuration['storageUid'] ?? 1));
+        $importFiles = [];
+
+        foreach (GeneralUtility::trimExplode(',', $value, true) as $filePath) {
+            if ($storage->hasFile($filePath)) {
+                /** @var File $file */
+                $file = $storage->getFile($filePath);
+                $importFiles[] = $file->getUid();
+            } else {
+                $this->logger->error(sprintf(
+                    'File "%s" doesn\'t exist for attribute "%s (UID - %d)"',
+                    $filePath,
+                    $this->attribute->getName(),
+                    $this->attribute->getUid()
+                ));
+            }
+        }
+
+        $attributeFiles = [];
+        /** @var FileReference $falReference */
+        foreach ($this->entity->getAttributeFiles()->toArray() as $falReference) {
+            $falAttributeUid = (int)$falReference->getOriginalResource()->getReferenceProperty('pxa_attribute');
+            if ($falAttributeUid === $this->attribute->getUid()) {
+                $attributeFiles[$falReference->getOriginalResource()->getUid()] =
+                    $falReference->getOriginalResource()->getOriginalFile()->getUid();
+            }
+        }
+
+        $missingFiles = array_diff($importFiles, $attributeFiles);
+        if (!empty($missingFiles)) {
+            $this->createNewFileReferences($missingFiles);
+        }
+
+        $deleteFilesReference = [];
+        foreach ($attributeFiles as $fileReferenceUid => $fileUid) {
+            if (!in_array($fileUid, $importFiles, true)) {
+                $deleteFilesReference[] = $fileUid;
+            }
+        }
+        if (!empty($deleteFilesReference)) {
+            $this->removeAttributeFileReference($deleteFilesReference);
+        }
+    }
+
+    /**
+     * Wil create new file reference for product and attribute for missing files
+     *
+     * @param array $fileUids
+     */
+    protected function createNewFileReferences(array $fileUids): void
+    {
+        $newRows = [];
+        foreach ($fileUids as $fileUid) {
+            $newRows[] = [
+                'table_local' => 'sys_file',
+                'uid_local' => $fileUid,
+                'tablenames' => 'tx_pxaproductmanager_domain_model_product',
+                'uid_foreign' => $this->entity->getUid(),
+                'sys_language_uid' => (int)$this->dbRow['sys_language_uid'],
+                'fieldname' => TCAUtility::ATTRIBUTE_FAL_FIELD_NAME,
+                'pxa_attribute' => $this->attribute->getUid(),
+                'pid' => $this->importer->getPid()
+            ];
+        }
+
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable(
+            'sys_file_reference'
+        );
+        $connection->bulkInsert(
+            'sys_file_reference',
+            $newRows,
+            [
+                'table_local',
+                'uid_local',
+                'tablenames',
+                'uid_foreign',
+                'sys_language_uid',
+                'fieldname',
+                'pxa_attribute',
+                'pid'
+            ],
+            [
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT,
+            ]
+        );
+    }
+
+    /**
+     * Mark file reference as deleted
+     *
+     * @param array $fileReferenceUidsToRemove
+     * @return void
+     */
+    protected function removeAttributeFileReference(array $fileReferenceUidsToRemove): void
+    {
+        if (empty($fileReferenceUidsToRemove)) {
+            return;
+        }
+
+        $deleteField = $GLOBALS['TCA']['sys_file_reference']['ctrl']['delete'];
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('sys_file_reference');
+
+        $queryBuilder
+            ->update('sys_file_reference')
+            ->where(
+                $queryBuilder->expr()->in(
+                    'uid',
+                    $queryBuilder->createNamedParameter($fileReferenceUidsToRemove, Connection::PARAM_INT_ARRAY)
+                )
+            )
+            ->set($deleteField, 1)
+            ->execute();
     }
 }
