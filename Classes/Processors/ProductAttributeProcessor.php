@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Processors;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\Product;
@@ -26,6 +27,8 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
  */
 class ProductAttributeProcessor extends AbstractFieldProcessor
 {
+    use EmitSignalTrait;
+
     /**
      * @var Attribute
      */
@@ -330,6 +333,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $importFiles = [];
 
         foreach (GeneralUtility::trimExplode(',', $value, true) as $filePath) {
+            $this->emitSignal('beforeImportFileCheck', [$filePath]);
+
             if ($storage->hasFile($filePath)) {
                 /** @var File $file */
                 $file = $storage->getFile($filePath);
@@ -362,7 +367,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $deleteFilesReference = [];
         foreach ($attributeFiles as $fileReferenceUid => $fileUid) {
             if (!in_array($fileUid, $importFiles, true)) {
-                $deleteFilesReference[] = $fileUid;
+                $deleteFilesReference[] = $fileReferenceUid;
             }
         }
         if (!empty($deleteFilesReference)) {
