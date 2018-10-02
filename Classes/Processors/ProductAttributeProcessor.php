@@ -372,6 +372,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected function createNewFileReferences(array $fileUids): void
     {
         $newRows = [];
+        $time = time();
         foreach ($fileUids as $fileUid) {
             $newRows[] = [
                 'table_local' => 'sys_file',
@@ -381,7 +382,9 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 'sys_language_uid' => (int)$this->dbRow['sys_language_uid'],
                 'fieldname' => TCAUtility::ATTRIBUTE_FAL_FIELD_NAME,
                 'pxa_attribute' => $this->attribute->getUid(),
-                'pid' => $this->importer->getPid()
+                'pid' => $this->importer->getPid(),
+                'crdate' => $time,
+                'tstamp' => $time,
             ];
         }
 
@@ -399,7 +402,9 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 'sys_language_uid',
                 'fieldname',
                 'pxa_attribute',
-                'pid'
+                'pid',
+                'crdate',
+                'tstamp'
             ],
             [
                 \PDO::PARAM_STR,
@@ -410,6 +415,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 \PDO::PARAM_STR,
                 \PDO::PARAM_INT,
                 \PDO::PARAM_INT,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT
             ]
         );
     }
