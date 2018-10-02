@@ -117,7 +117,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
         try {
             $folder = isset($this->configuration['folder'])
                 ? $storage->getFolder($this->configuration['folder'])
-                : $storage->getDefaultFolder();
+                : $storage->getRootLevelFolder();
         } catch (FolderDoesNotExistException $exception) {
             $this->addError($exception->getMessage());
             $this->failedInit = true;
