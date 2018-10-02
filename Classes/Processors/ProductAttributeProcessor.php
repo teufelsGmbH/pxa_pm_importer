@@ -9,6 +9,7 @@ use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
+use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
 use Pixelant\PxaProductManager\Utility\TCAUtility;
@@ -35,6 +36,11 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected $attribute = null;
 
     /**
+     * @var ObjectManager
+     */
+    protected $objectManager = null;
+
+    /**
      * @var AttributeRepository
      */
     protected $attributeRepository = null;
@@ -55,8 +61,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     public function __construct()
     {
         $this->logger = Logger::getInstance(__CLASS__);
-        $this->attributeRepository = GeneralUtility::makeInstance(ObjectManager::class)
-            ->get(AttributeRepository::class);
+        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->attributeRepository = $this->objectManager->get(AttributeRepository::class);
     }
 
     /**
@@ -164,8 +170,10 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             // @codingStandardsIgnoreEnd
         }
 
-        $this->entity->setSerializedAttributesValues(serialize($attributeValues));
-        $this->updateAttributeValue($attributeValues[$this->attribute->getUid()]);
+        if (isset($attributeValues[$this->attribute->getUid()])) {
+            $this->entity->setSerializedAttributesValues(serialize($attributeValues));
+            $this->updateAttributeValue($attributeValues[$this->attribute->getUid()]);
+        }
     }
 
     /**
@@ -175,76 +183,25 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      */
     protected function updateAttributeValue($value): void
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable(
-            'tx_pxaproductmanager_domain_model_attributevalue'
-        );
+        // Try to find existing attribute value
+        /** @var AttributeValue $attributeValue */
+        foreach ($this->entity->getAttributeValues() as $attributeValue) {
+            if ($attributeValue->getAttribute()->getUid() === $this->attribute->getUid()) {
+                $attributeValue->setValue($value);
 
-        $attributeValueRow = $queryBuilder
-            ->select('uid')
-            ->from('tx_pxaproductmanager_domain_model_attributevalue')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'product',
-                    $queryBuilder->createNamedParameter(
-                        $this->entity->getUid(),
-                        Connection::PARAM_INT
-                    )
-                ),
-                $queryBuilder->expr()->eq(
-                    'attribute',
-                    $queryBuilder->createNamedParameter(
-                        $this->attribute->getUid(),
-                        Connection::PARAM_INT
-                    )
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter(
-                        $this->dbRow['sys_language_uid'],
-                        Connection::PARAM_INT
-                    )
-                )
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetch();
-
-        if (is_array($attributeValueRow)) {
-            // Update value
-            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable(
-                'tx_pxaproductmanager_domain_model_attributevalue'
-            );
-
-            $queryBuilder
-                ->update('tx_pxaproductmanager_domain_model_attributevalue')
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        'uid',
-                        $queryBuilder->createNamedParameter($attributeValueRow['uid'])
-                    )
-                )
-                ->set('value', $value)
-                ->execute();
-        } else {
-            $time = time();
-            // Create attribute value record
-            GeneralUtility::makeInstance(ConnectionPool::class)
-                ->getConnectionForTable('tx_pxaproductmanager_domain_model_attributevalue')
-                ->insert(
-                    'tx_pxaproductmanager_domain_model_attributevalue',
-                    [
-                        'attribute' => $this->attribute->getUid(),
-                        'product' => $this->entity->getUid(),
-                        'tstamp' => $time,
-                        'crdate' => $time,
-                        'pid' => $this->importer->getPid(),
-                        't3_origuid' => 0,
-                        'l10n_parent' => 0,
-                        'sys_language_uid' => intval($this->dbRow['sys_language_uid']),
-                        'value' => $value,
-                    ]
-                );
+                // Stop
+                return;
+            }
         }
+
+        // If not found, create one
+        /** @var AttributeValue $attributeValue */
+        $attributeValue = $this->objectManager->get(AttributeValue::class);
+        $attributeValue->setValue($value);
+        $attributeValue->setAttribute($this->attribute);
+        $attributeValue->setPid($this->importer->getPid());
+
+        $this->entity->addAttributeValue($attributeValue);
     }
 
     /**
@@ -266,6 +223,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
     /**
      * Fetch options uids
+     * Use this query method, since we can fetch it also with hash values
      *
      * @param string $value
      * @return array
