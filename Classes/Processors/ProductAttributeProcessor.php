@@ -135,7 +135,9 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     {
         $attributeValues = unserialize($this->entity->getSerializedAttributesValues()) ?: [];
         $currentValue = $attributeValues[$this->attribute->getUid()] ?? '';
-        if ($currentValue === $value) {
+
+        // If value is same and attribute value record exist
+        if ($currentValue == $value && $this->getAttributeValue() !== null) {
             return;
         }
 
@@ -172,26 +174,22 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
         if (isset($attributeValues[$this->attribute->getUid()])) {
             $this->entity->setSerializedAttributesValues(serialize($attributeValues));
-            $this->updateAttributeValue($attributeValues[$this->attribute->getUid()]);
+            $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
         }
     }
 
     /**
      * Update attribute value record
      *
-     * @param $value
+     * @param string $value
      */
-    protected function updateAttributeValue($value): void
+    protected function updateAttributeValue(string $value): void
     {
         // Try to find existing attribute value
-        /** @var AttributeValue $attributeValue */
-        foreach ($this->entity->getAttributeValues() as $attributeValue) {
-            if ($attributeValue->getAttribute()->getUid() === $this->attribute->getUid()) {
-                $attributeValue->setValue($value);
+        if ($attributeValue = $this->getAttributeValue()) {
+            $attributeValue->setValue($value);
 
-                // Stop
-                return;
-            }
+            return;
         }
 
         // If not found, create one
@@ -200,8 +198,28 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $attributeValue->setValue($value);
         $attributeValue->setAttribute($this->attribute);
         $attributeValue->setPid($this->importer->getPid());
+        if ((int)$this->dbRow['sys_language_uid'] > 0) {
+            $attributeValue->_setProperty('_languageUid', (int)$this->dbRow['sys_language_uid']);
+        }
 
         $this->entity->addAttributeValue($attributeValue);
+    }
+
+    /**
+     * Get attribute value object from current product for current attribute
+     *
+     * @return null|AttributeValue
+     */
+    protected function getAttributeValue(): ?AttributeValue
+    {
+        /** @var AttributeValue $attributeValue */
+        foreach ($this->entity->getAttributeValues() as $attributeValue) {
+            if ($attributeValue->getAttribute()->getUid() === $this->attribute->getUid()) {
+                return $attributeValue;
+            }
+        }
+
+        return null;
     }
 
     /**
