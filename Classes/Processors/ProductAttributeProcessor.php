@@ -16,6 +16,7 @@ use Pixelant\PxaProductManager\Utility\TCAUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -137,7 +138,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $currentValue = $attributeValues[$this->attribute->getUid()] ?? '';
 
         // If value is same and attribute value record exist
-        if ($currentValue == $value && $this->getAttributeValue() !== null) {
+        // Fal type doesn't have attribute values
+        if ($currentValue == $value && ($this->attribute->isFalType() || $this->getAttributeValue() !== null)) {
             return;
         }
 
@@ -172,7 +174,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             // @codingStandardsIgnoreEnd
         }
 
-        if (isset($attributeValues[$this->attribute->getUid()])) {
+        // We don't need to save value for fal attribute, since fal reference is already set
+        if (false === $this->attribute->isFalType()) {
             $this->entity->setSerializedAttributesValues(serialize($attributeValues));
             $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
         }
@@ -306,19 +309,29 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected function updateAttributeFilesReference(string $value): void
     {
         $storage = ResourceFactory::getInstance()->getStorageObject((int)($this->configuration['storageUid'] ?? 1));
+        try {
+            $folder = isset($this->configuration['folder'])
+                ? $storage->getFolder($this->configuration['folder'])
+                : $storage->getRootLevelFolder();
+        } catch (FolderDoesNotExistException $exception) {
+            $this->addError($exception->getMessage());
+            return;
+        }
+
         $importFiles = [];
 
         foreach (GeneralUtility::trimExplode(',', $value, true) as $filePath) {
-            $this->emitSignal('beforeImportFileCheck', [$filePath]);
+            $fileIdentifier = $folder->getIdentifier() . $filePath;
+            $this->emitSignal('beforeImportFileCheck' . __METHOD__, [$fileIdentifier]);
 
-            if ($storage->hasFile($filePath)) {
+            if ($storage->hasFile($fileIdentifier)) {
                 /** @var File $file */
-                $file = $storage->getFile($filePath);
+                $file = $storage->getFile($fileIdentifier);
                 $importFiles[] = $file->getUid();
             } else {
                 $this->logger->error(sprintf(
                     'File "%s" doesn\'t exist for attribute "%s (UID - %d)"',
-                    $filePath,
+                    $fileIdentifier,
                     $this->attribute->getName(),
                     $this->attribute->getUid()
                 ));

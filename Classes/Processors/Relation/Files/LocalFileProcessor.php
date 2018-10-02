@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Relation\Files;
 
 use Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor;
+use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use TYPO3\CMS\Core\Resource\Exception\FileDoesNotExistException;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Core\Resource\File;
@@ -19,6 +20,8 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  */
 class LocalFileProcessor extends AbstractRelationFieldProcessor
 {
+    use EmitSignalTrait;
+
     /**
      * Flag if files preparations failed
      *
@@ -121,10 +124,15 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
         } catch (FolderDoesNotExistException $exception) {
             $this->addError($exception->getMessage());
             $this->failedInit = true;
+
+            return;
         }
 
         foreach (GeneralUtility::trimExplode(',', $value, true) as $fileName) {
             $fileIdentifier = $folder->getIdentifier() . $fileName;
+
+            $this->emitSignal('beforeImportFileCheck' . __METHOD__, [$fileIdentifier]);
+
             try {
                 $file = $storage->getFile($fileIdentifier);
                 $this->entities[] = $file;
