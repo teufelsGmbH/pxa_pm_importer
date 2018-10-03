@@ -111,10 +111,26 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         if (isset($configuration['mapping']['id'])) {
             if (is_numeric($configuration['mapping']['id'])) {
                 $this->identifier = (int)$configuration['mapping']['id'];
-            } elseif ($isExcelColumns) {
-                $this->identifier = MainUtility::convertAlphabetColumnToNumber($configuration['mapping']['id']);
-            } else {
+            } elseif (is_string($configuration['mapping']['id'])) {
+                if ($isExcelColumns) {
+                    $this->identifier = MainUtility::convertAlphabetColumnToNumber($configuration['mapping']['id']);
+                } else {
+                    $this->identifier = $configuration['mapping']['id'];
+                }
+            } elseif (is_array($configuration['mapping']['id'])) {
+                if (count($configuration['mapping']['id']) < 1) {
+                    // @codingStandardsIgnoreStart
+                    throw new \UnexpectedValueException('Adapter "id" (identifier) as array should have at least one element.', 1538560400221);
+                    // @codingStandardsIgnoreEnd
+                }
+
                 $this->identifier = $configuration['mapping']['id'];
+            }
+
+            if ($this->identifier === null) {
+                // @codingStandardsIgnoreStart
+                throw new \RuntimeException('Could not set adapter "id" (identifier). String, numeric and array values are only supported.', 1538560523613);
+                // @codingStandardsIgnoreEnd
             }
         } else {
             throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
@@ -173,17 +189,15 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      * @param array $row
      * @return mixed
      */
-    protected function getMultipleFieldData(array $columns, array $row)
+    protected function getMultipleFieldData(array $columns, array $row): string
     {
-        if (is_array($columns) && count($columns) > 0) {
-            $fieldData = '';
-            foreach ($columns as $index => $column) {
-                $fieldData .= $this->getFieldData($column, $row);
-            }
-            return $fieldData;
-        } else {
-            return $this->getFieldData($column, $row);
+        $fieldData = '';
+
+        foreach ($columns as $column) {
+            $fieldData .= $this->getFieldData($column, $row);
         }
+
+        return $fieldData;
     }
 
     /**
