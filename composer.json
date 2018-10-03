@@ -16,7 +16,7 @@
     "typo3/cms-core": "^8.7 || ^9.3",
     "symfony/yaml": "*",
     "phpoffice/phpspreadsheet": "~1.4.0",
-    "pixelant/pxa-product-manager": "^8.11 || ^9.2"
+    "pixelant/pxa-product-manager": "^8.11 || ^9.3"
   },
   "require-dev": {
     "squizlabs/php_codesniffer": "^3.3",

@@ -8,8 +8,13 @@ use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
+use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
+use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ProductAttributeProcessorTest
@@ -27,7 +32,7 @@ class ProductAttributeProcessorTest extends UnitTestCase
         parent::setUp();
         $this->subject = $this->getAccessibleMock(
             ProductAttributeProcessor::class,
-            ['updateAttributeValue', 'getOptions'],
+            ['getOptions'],
             [],
             '',
             false
@@ -95,5 +100,120 @@ class ProductAttributeProcessorTest extends UnitTestCase
         $this->subject->_set('configuration', $configuration);
 
         $this->assertEquals($value, $this->subject->_call('parseDateTime', $value)->format('Y-m-d'));
+    }
+
+    /**
+     * @test
+     */
+    public function getAttributeValueWillReturnAttributeValueUsingEntityAndAttributeIfExist()
+    {
+        $entity = new Product();
+        $attribute = new Attribute();
+        $attribute->_setProperty('uid', 222);
+
+        $attributeValue = new AttributeValue();
+        $attributeValue->setAttribute($attribute);
+
+        $entity->addAttributeValue($attributeValue);
+
+        $this->inject($this->subject, 'entity', $entity);
+        $this->inject($this->subject, 'attribute', $attribute);
+
+        $this->assertSame($attributeValue, $this->subject->_call('getAttributeValue'));
+    }
+
+    /**
+     * @test
+     */
+    public function getAttributeValueWillReturnNullUsingEntityAndAttributeIfDoesNotExist()
+    {
+        $entity = new Product();
+        $attribute = new Attribute();
+        $attribute->_setProperty('uid', 22);
+        $attributeNonInProcessor = new Attribute();
+        $attributeNonInProcessor->_setProperty('uid', 33);
+
+        $attributeValue = new AttributeValue();
+        $attributeValue->setAttribute($attribute);
+
+        $entity->addAttributeValue($attributeValue);
+
+        $this->inject($this->subject, 'entity', $entity);
+        $this->inject($this->subject, 'attribute', $attributeNonInProcessor);
+
+        $this->assertNull($this->subject->_call('getAttributeValue'));
+    }
+
+    /**
+     * @test
+     */
+    public function updateAttributeValueWillUpdateValueOfAttribute()
+    {
+        $attributeValue = new AttributeValue();
+        $attributeValue->setValue('old value');
+
+        $subject = $this->getAccessibleMock(
+            ProductAttributeProcessor::class,
+            ['getAttributeValue'],
+            [],
+            '',
+            false
+        );
+
+        $subject
+            ->expects($this->once())
+            ->method('getAttributeValue')
+            ->willReturn($attributeValue);
+
+        $newValue = 'Super new value';
+
+        $subject->_call('updateAttributeValue', $newValue);
+
+        $this->assertEquals($newValue, $attributeValue->getValue());
+    }
+
+    /**
+     * @test
+     */
+    public function updateAttributeValueWillAttachNewAttributeWithUpdatedValueIfNotExist()
+    {
+        $subject = $this->getAccessibleMock(
+            ProductAttributeProcessor::class,
+            ['getAttributeValue'],
+            [],
+            '',
+            false
+        );
+        $attributeValue = new AttributeValue();
+        $attribute = new Attribute();
+        $dbRow = ['sys_language_uid' => 0];
+
+        $objectManager = $this->createPartialMock(ObjectManager::class, ['get']);
+        $objectManager
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn($attributeValue);
+
+
+        $entity = new Product();
+
+        $subject
+            ->expects($this->once())
+            ->method('getAttributeValue');
+
+        $this->inject($subject, 'entity', $entity);
+        $this->inject($subject, 'objectManager', $objectManager);
+        $this->inject($subject, 'attribute', $attribute);
+        $this->inject($subject, 'dbRow', $dbRow);
+        $this->inject($subject, 'importer', $this->createMock(ImporterInterface::class));
+
+        $newValue = 'Super new value';
+
+        $subject->_call('updateAttributeValue', $newValue);
+
+        $attributeValues = $subject->_get('entity')->getAttributeValues();
+        $this->assertCount(1, $attributeValues);
+        $attributeValues->rewind();
+        $this->assertSame($attributeValue, $attributeValues->current());
     }
 }

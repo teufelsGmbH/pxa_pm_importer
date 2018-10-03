@@ -4,15 +4,23 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
+use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
+use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
+use Pixelant\PxaProductManager\Utility\TCAUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
+use TYPO3\CMS\Core\Resource\File;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
@@ -21,10 +29,17 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
  */
 class ProductAttributeProcessor extends AbstractFieldProcessor
 {
+    use EmitSignalTrait;
+
     /**
      * @var Attribute
      */
     protected $attribute = null;
+
+    /**
+     * @var ObjectManager
+     */
+    protected $objectManager = null;
 
     /**
      * @var AttributeRepository
@@ -37,12 +52,18 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected $entity = null;
 
     /**
+     * @var Logger
+     */
+    protected $logger = null;
+
+    /**
      * Initialize
      */
     public function __construct()
     {
-        $this->attributeRepository = GeneralUtility::makeInstance(ObjectManager::class)
-            ->get(AttributeRepository::class);
+        $this->logger = Logger::getInstance(__CLASS__);
+        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->attributeRepository = $this->objectManager->get(AttributeRepository::class);
     }
 
     /**
@@ -58,7 +79,20 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             // @codingStandardsIgnoreEnd
         }
 
-        $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);
+        if (isset($this->configuration['treatAttributeUidAsImportUid'])
+            && (bool)$this->configuration['treatAttributeUidAsImportUid'] === true
+        ) {
+            $record = $this->getRecordByImportIdentifier(
+                $this->configuration['attributeUid'],
+                'tx_pxaproductmanager_domain_model_attribute'
+            );
+
+            if ($record !== null) {
+                $this->attribute = MainUtility::convertRecordArrayToModel($record, Attribute::class);
+            }
+        } else {
+            $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);
+        }
 
         if ($this->attribute === null) {
             // @codingStandardsIgnoreStart
@@ -102,7 +136,10 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     {
         $attributeValues = unserialize($this->entity->getSerializedAttributesValues()) ?: [];
         $currentValue = $attributeValues[$this->attribute->getUid()] ?? '';
-        if ($currentValue === $value) {
+
+        // If value is same and attribute value record exist
+        // Fal type doesn't have attribute values
+        if ($currentValue == $value && ($this->attribute->isFalType() || $this->getAttributeValue() !== null)) {
             return;
         }
 
@@ -127,93 +164,65 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                     : $this->parseDateTime($value);
                 $attributeValues[$this->attribute->getUid()] = $value->format('Y-m-d\TH:i:s\Z');
                 break;
+            case Attribute::ATTRIBUTE_TYPE_IMAGE:
+            case Attribute::ATTRIBUTE_TYPE_FILE:
+                $this->updateAttributeFilesReference($value);
+                break;
             default:
                 // @codingStandardsIgnoreStart
                 throw new \UnexpectedValueException('Attribute import with type "' . $this->attribute->getType() . '" is not supported', 1536566015842);
             // @codingStandardsIgnoreEnd
         }
 
-        $this->entity->setSerializedAttributesValues(serialize($attributeValues));
-        $this->updateAttributeValue($attributeValues[$this->attribute->getUid()]);
+        // We don't need to save value for fal attribute, since fal reference is already set
+        if (false === $this->attribute->isFalType()) {
+            $this->entity->setSerializedAttributesValues(serialize($attributeValues));
+            $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
+        }
     }
 
     /**
      * Update attribute value record
      *
-     * @param $value
+     * @param string $value
      */
-    protected function updateAttributeValue($value): void
+    protected function updateAttributeValue(string $value): void
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable(
-            'tx_pxaproductmanager_domain_model_attributevalue'
-        );
+        // Try to find existing attribute value
+        if ($attributeValue = $this->getAttributeValue()) {
+            $attributeValue->setValue($value);
 
-        $attributeValueRow = $queryBuilder
-            ->select('uid')
-            ->from('tx_pxaproductmanager_domain_model_attributevalue')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'product',
-                    $queryBuilder->createNamedParameter(
-                        $this->entity->getUid(),
-                        Connection::PARAM_INT
-                    )
-                ),
-                $queryBuilder->expr()->eq(
-                    'attribute',
-                    $queryBuilder->createNamedParameter(
-                        $this->attribute->getUid(),
-                        Connection::PARAM_INT
-                    )
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter(
-                        $this->dbRow['sys_language_uid'],
-                        Connection::PARAM_INT
-                    )
-                )
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetch();
-
-        if (is_array($attributeValueRow)) {
-            // Update value
-            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable(
-                'tx_pxaproductmanager_domain_model_attributevalue'
-            );
-
-            $queryBuilder
-                ->update('tx_pxaproductmanager_domain_model_attributevalue')
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        'uid',
-                        $queryBuilder->createNamedParameter($attributeValueRow['uid'])
-                    )
-                )
-                ->set('value', $value)
-                ->execute();
-        } else {
-            $time = time();
-            // Create attribute value record
-            GeneralUtility::makeInstance(ConnectionPool::class)
-                ->getConnectionForTable('tx_pxaproductmanager_domain_model_attributevalue')
-                ->insert(
-                    'tx_pxaproductmanager_domain_model_attributevalue',
-                    [
-                        'attribute' => $this->attribute->getUid(),
-                        'product' => $this->entity->getUid(),
-                        'tstamp' => $time,
-                        'crdate' => $time,
-                        'pid' => $this->importer->getPid(),
-                        't3_origuid' => 0,
-                        'l10n_parent' => 0,
-                        'sys_language_uid' => intval($this->dbRow['sys_language_uid']),
-                        'value' => $value,
-                    ]
-                );
+            return;
         }
+
+        // If not found, create one
+        /** @var AttributeValue $attributeValue */
+        $attributeValue = $this->objectManager->get(AttributeValue::class);
+        $attributeValue->setValue($value);
+        $attributeValue->setAttribute($this->attribute);
+        $attributeValue->setPid($this->importer->getPid());
+        if ((int)$this->dbRow['sys_language_uid'] > 0) {
+            $attributeValue->_setProperty('_languageUid', (int)$this->dbRow['sys_language_uid']);
+        }
+
+        $this->entity->addAttributeValue($attributeValue);
+    }
+
+    /**
+     * Get attribute value object from current product for current attribute
+     *
+     * @return null|AttributeValue
+     */
+    protected function getAttributeValue(): ?AttributeValue
+    {
+        /** @var AttributeValue $attributeValue */
+        foreach ($this->entity->getAttributeValues() as $attributeValue) {
+            if ($attributeValue->getAttribute()->getUid() === $this->attribute->getUid()) {
+                return $attributeValue;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -235,6 +244,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
     /**
      * Fetch options uids
+     * Use this query method, since we can fetch it also with hash values
      *
      * @param string $value
      * @return array
@@ -289,5 +299,153 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         }
 
         return $uids;
+    }
+
+    /**
+     * Update attribute file reference
+     *
+     * @param string $value
+     */
+    protected function updateAttributeFilesReference(string $value): void
+    {
+        $storage = ResourceFactory::getInstance()->getStorageObject((int)($this->configuration['storageUid'] ?? 1));
+        try {
+            $folder = isset($this->configuration['folder'])
+                ? $storage->getFolder($this->configuration['folder'])
+                : $storage->getRootLevelFolder();
+        } catch (FolderDoesNotExistException $exception) {
+            $this->addError($exception->getMessage());
+            return;
+        }
+
+        $importFiles = [];
+
+        foreach (GeneralUtility::trimExplode(',', $value, true) as $filePath) {
+            $fileIdentifier = $folder->getIdentifier() . $filePath;
+            $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
+
+            if ($storage->hasFile($fileIdentifier)) {
+                /** @var File $file */
+                $file = $storage->getFile($fileIdentifier);
+                $importFiles[] = $file->getUid();
+            } else {
+                $this->logger->error(sprintf(
+                    'File "%s" doesn\'t exist for attribute "%s (UID - %d)"',
+                    $fileIdentifier,
+                    $this->attribute->getName(),
+                    $this->attribute->getUid()
+                ));
+            }
+        }
+
+        $attributeFiles = [];
+        /** @var FileReference $falReference */
+        foreach ($this->entity->getAttributeFiles()->toArray() as $falReference) {
+            $falAttributeUid = (int)$falReference->getOriginalResource()->getReferenceProperty('pxa_attribute');
+            if ($falAttributeUid === $this->attribute->getUid()) {
+                $attributeFiles[$falReference->getOriginalResource()->getUid()] =
+                    $falReference->getOriginalResource()->getOriginalFile()->getUid();
+            }
+        }
+
+        $missingFiles = array_diff($importFiles, $attributeFiles);
+        if (!empty($missingFiles)) {
+            $this->createNewFileReferences($missingFiles);
+        }
+
+        $deleteFilesReference = [];
+        foreach ($attributeFiles as $fileReferenceUid => $fileUid) {
+            if (!in_array($fileUid, $importFiles, true)) {
+                $deleteFilesReference[] = $fileReferenceUid;
+            }
+        }
+        if (!empty($deleteFilesReference)) {
+            $this->removeAttributeFileReference($deleteFilesReference);
+        }
+    }
+
+    /**
+     * Will create new file reference for product and attribute for missing files
+     *
+     * @param array $fileUids
+     */
+    protected function createNewFileReferences(array $fileUids): void
+    {
+        $newRows = [];
+        $time = time();
+        foreach ($fileUids as $fileUid) {
+            $newRows[] = [
+                'table_local' => 'sys_file',
+                'uid_local' => $fileUid,
+                'tablenames' => 'tx_pxaproductmanager_domain_model_product',
+                'uid_foreign' => $this->entity->getUid(),
+                'sys_language_uid' => (int)$this->dbRow['sys_language_uid'],
+                'fieldname' => TCAUtility::ATTRIBUTE_FAL_FIELD_NAME,
+                'pxa_attribute' => $this->attribute->getUid(),
+                'pid' => $this->importer->getPid(),
+                'crdate' => $time,
+                'tstamp' => $time,
+            ];
+        }
+
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable(
+            'sys_file_reference'
+        );
+        $connection->bulkInsert(
+            'sys_file_reference',
+            $newRows,
+            [
+                'table_local',
+                'uid_local',
+                'tablenames',
+                'uid_foreign',
+                'sys_language_uid',
+                'fieldname',
+                'pxa_attribute',
+                'pid',
+                'crdate',
+                'tstamp'
+            ],
+            [
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_STR,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT,
+                \PDO::PARAM_INT
+            ]
+        );
+    }
+
+    /**
+     * Mark file reference as deleted
+     *
+     * @param array $fileReferenceUidsToRemove
+     * @return void
+     */
+    protected function removeAttributeFileReference(array $fileReferenceUidsToRemove): void
+    {
+        if (empty($fileReferenceUidsToRemove)) {
+            return;
+        }
+
+        $deleteField = $GLOBALS['TCA']['sys_file_reference']['ctrl']['delete'];
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('sys_file_reference');
+
+        $queryBuilder
+            ->update('sys_file_reference')
+            ->where(
+                $queryBuilder->expr()->in(
+                    'uid',
+                    $queryBuilder->createNamedParameter($fileReferenceUidsToRemove, Connection::PARAM_INT_ARRAY)
+                )
+            )
+            ->set($deleteField, 1)
+            ->execute();
     }
 }

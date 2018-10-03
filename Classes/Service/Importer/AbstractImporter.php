@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
+use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
@@ -410,7 +411,7 @@ abstract class AbstractImporter implements ImporterInterface
     {
         if (!isset($this->mapping[$field])) {
             // @codingStandardsIgnoreStart
-            throw new \RuntimeException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
+            throw new MissingPropertyMappingException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
             // @codingStandardsIgnoreEnd
         }
 
