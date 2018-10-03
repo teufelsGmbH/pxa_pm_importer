@@ -109,7 +109,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
             : false;
 
         if (isset($configuration['mapping']['id'])) {
-            if (is_numeric($configuration['mapping']['id'])) {
+            if (is_numeric($configuration['mapping']['id']) && !is_float($configuration['mapping']['id'])) {
                 $this->identifier = (int)$configuration['mapping']['id'];
             } elseif (is_string($configuration['mapping']['id'])) {
                 if ($isExcelColumns) {

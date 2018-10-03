@@ -215,6 +215,40 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     /**
      * @test
      */
+    public function initializeWithEmptyArrayIdConfigurationThrowsException()
+    {
+        $identifiers = [];
+        $configuration = [
+            'mapping' => [
+                'id' => $identifiers,
+                'languages' => [0 => []]
+            ]
+        ];
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionCode(1538560400221);
+        $this->subject->_call('initialize', $configuration);
+    }
+
+    /**
+     * @test
+     */
+    public function initializeWithTypeNonSupportedIdConfigurationThrowsException()
+    {
+        $identifier = 9.5;
+        $configuration = [
+            'mapping' => [
+                'id' => $identifier,
+                'languages' => [0 => []]
+            ]
+        ];
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionCode(1538560523613);
+        $this->subject->_call('initialize', $configuration);
+    }
+    
+    /**
+     * @test
+     */
     public function initializeWithSettingsWillSetSettings()
     {
         $settings = [
@@ -283,7 +317,6 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     public function getMultipleFieldWithNonExistingColumnDataWillThrowException()
     {
         $row = [0 => 'test', 1 => 'data', 2 => 'multiple'];
-        $expect = 'testdatamultiple';
 
         $this->expectException(InvalidAdapterFieldMapping::class);
         $this->expectExceptionCode(1536051927592);
@@ -787,4 +820,6 @@ class AbstractDefaultAdapterTest extends UnitTestCase
         $this->subject->_call('initialize', $configuration);
         $this->assertEquals($expect, $this->subject->_call('adaptData', $data));
     }
+
+
 }
