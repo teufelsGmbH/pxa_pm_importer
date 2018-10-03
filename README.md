@@ -175,6 +175,56 @@ mapping:
     anotherSettingValue: 123321
 ```
 
+**Use multiple columns to gerenate identifier**:
+
+Following configuration would set identifier to '1100101023se1' if column ITEMID is '1100101023' and DATAAREAID is 'se1', useful when no sigle field in source can be used as a unique identifier.
+
+```yaml
+# Adapter settings
+settings:
+  dummy: 123
+mapping:
+  # combine these columns for record identifier
+  id:
+    0: 'ITEMID'
+    1: 'DATAAREAID'
+  languages:
+    0:
+      title: 'ITEMNAME'
+```
+
+**Use adapter filters to filter rows**:
+
+Sample usage:
+I have a single API source with all products I need to import, but they are one row per language and they should be stored in different PID:s. I also need to filter out rows where PROJCATEGORYID doesn't equal 'BE Online' and CAP_CustUniqueItem equals '1'.
+
+```yaml
+# Adapter settings
+settings:
+  dummy: 123
+mapping:
+  # combine these columns for record identifier
+  id:
+    0: 'ITEMID'
+    1: 'DATAAREAID'
+  languages:
+    0:
+      title: 'ITEMNAME'
+filters:
+  # only include rows when column "PROJCATEGORYID" has string value "BE Online"
+  PROJCATEGORYID:
+    filter: 'Pixelant\PxaPmImporter\Adapter\Filters\StringEqualsFilter'
+    value: 'BE Online'
+  # AND only include rows when column "DATAAREAID" has string value "SE1"
+  DATAAREAID:
+    filter: 'Pixelant\PxaPmImporter\Adapter\Filters\StringEqualsFilter'
+    value: 'SE1'
+  # AND only include rows when column "CAP_CustUniqueItem" has string value "0"
+  CAP_CustUniqueItem:
+    filter: 'Pixelant\PxaPmImporter\Adapter\Filters\StringEqualsFilter'
+    value: '0'
+```
+
 ##### Processors
 
 Processor purpose is to transform data(field value) in a way that it can be set to model property.

@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Adapter;
 
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
+use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class AbstractDefaultAdapter
@@ -22,7 +24,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     /**
      * Identifier column
      *
-     * @var int
+     * @var mixed
      */
     protected $identifier = null;
 
@@ -39,6 +41,13 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      * @var array
      */
     protected $settings = [];
+
+    /**
+     * Adapter filter configuration
+     *
+     * @var array
+     */
+    protected $filters = [];
 
     /**
      * Adapt source data
@@ -100,12 +109,28 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
             : false;
 
         if (isset($configuration['mapping']['id'])) {
-            if (is_numeric($configuration['mapping']['id'])) {
+            if (is_numeric($configuration['mapping']['id']) && !is_float($configuration['mapping']['id'])) {
                 $this->identifier = (int)$configuration['mapping']['id'];
-            } elseif ($isExcelColumns) {
-                $this->identifier = MainUtility::convertAlphabetColumnToNumber($configuration['mapping']['id']);
-            } else {
+            } elseif (is_string($configuration['mapping']['id'])) {
+                if ($isExcelColumns) {
+                    $this->identifier = MainUtility::convertAlphabetColumnToNumber($configuration['mapping']['id']);
+                } else {
+                    $this->identifier = $configuration['mapping']['id'];
+                }
+            } elseif (is_array($configuration['mapping']['id'])) {
+                if (count($configuration['mapping']['id']) < 1) {
+                    // @codingStandardsIgnoreStart
+                    throw new \UnexpectedValueException('Adapter "id" (identifier) as array should have at least one element.', 1538560400221);
+                    // @codingStandardsIgnoreEnd
+                }
+
                 $this->identifier = $configuration['mapping']['id'];
+            }
+
+            if ($this->identifier === null) {
+                // @codingStandardsIgnoreStart
+                throw new \RuntimeException('Could not set adapter "id" (identifier). String, numeric and array values are only supported.', 1538560523613);
+                // @codingStandardsIgnoreEnd
             }
         } else {
             throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
@@ -134,6 +159,11 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         if (isset($configuration['settings']) && is_array($configuration['settings'])) {
             $this->settings = $configuration['settings'];
         }
+
+        // Set filters
+        if (isset($configuration['filters']) && is_array($configuration['filters'])) {
+            $this->filters = $configuration['filters'];
+        }
     }
 
     /**
@@ -153,6 +183,24 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     }
 
     /**
+     * Get multiple field data from row
+     *
+     * @param array $columns
+     * @param array $row
+     * @return mixed
+     */
+    protected function getMultipleFieldData(array $columns, array $row): string
+    {
+        $fieldData = '';
+
+        foreach ($columns as $column) {
+            $fieldData .= $this->getFieldData($column, $row);
+        }
+
+        return $fieldData;
+    }
+
+    /**
      * Convert source data according to mapping
      *
      * @param array $data
@@ -167,21 +215,54 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         foreach ($data as $dataRow) {
-            $id = $this->getFieldData($this->identifier, $dataRow);
-            foreach ($this->languagesMapping as $language => $mapping) {
-                $languageDataRow = [
-                    'id' => $id
-                ];
+            if (is_array($this->identifier)) {
+                $id = $this->getMultipleFieldData($this->identifier, $dataRow);
+            } else {
+                $id = $this->getFieldData($this->identifier, $dataRow);
+            }
 
-                foreach ($mapping as $fieldName => $column) {
-                    $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
+            if ($this->includeRow($dataRow)) {
+                foreach ($this->languagesMapping as $language => $mapping) {
+                    $languageDataRow = [
+                        'id' => $id
+                    ];
+
+                    foreach ($mapping as $fieldName => $column) {
+                        $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
+                    }
+
+                    $adaptData[$language][] = $languageDataRow;
                 }
-
-                $adaptData[$language][] = $languageDataRow;
             }
         }
 
         return $adaptData;
+    }
+
+    /**
+     * Check if row should be excluded by filter
+     *
+     * @param array $dataRow
+     * @return boolean
+     */
+    protected function includeRow(array $dataRow): bool
+    {
+        if (is_array($this->filters) && count($this->filters) > 0) {
+            foreach ($this->filters as $column => $filter) {
+                if (!empty($filter['filter'])) {
+                    $filterObject = GeneralUtility::makeInstance($filter['filter']);
+                    if (!($filterObject instanceof FilterInterface)) {
+                        // @codingStandardsIgnoreStart
+                        throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
+                        // @codingStandardsIgnoreEnd
+                    }
+                    if (!$filterObject->includeRow($column, $dataRow, $filter)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
