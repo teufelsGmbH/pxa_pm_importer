@@ -131,7 +131,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
         foreach (GeneralUtility::trimExplode(',', $value, true) as $fileName) {
             $fileIdentifier = $folder->getIdentifier() . $fileName;
 
-            $this->emitSignal('beforeImportFileGet', [$fileIdentifier]);
+            $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
 
             try {
                 $file = $storage->getFile($fileIdentifier);

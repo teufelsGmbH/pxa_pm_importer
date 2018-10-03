@@ -322,7 +322,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
         foreach (GeneralUtility::trimExplode(',', $value, true) as $filePath) {
             $fileIdentifier = $folder->getIdentifier() . $filePath;
-            $this->emitSignal('beforeImportFileGet', [$fileIdentifier]);
+            $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
 
             if ($storage->hasFile($fileIdentifier)) {
                 /** @var File $file */
@@ -365,7 +365,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Wil create new file reference for product and attribute for missing files
+     * Will create new file reference for product and attribute for missing files
      *
      * @param array $fileUids
      */
