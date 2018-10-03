@@ -27,7 +27,6 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
     protected function setUp()
     {
         parent::setUp();
-        $this->importDataSet(__DIR__ . '/../Fixtures/tx_pxaproductmanager_domain_model_attributevalue.xml');
         $this->importDataSet(__DIR__ . '/../Fixtures/tx_pxaproductmanager_domain_model_option.xml');
 
         $this->subject = $this->getAccessibleMock(
@@ -43,71 +42,6 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
     {
         parent::tearDown();
         unset($this->subject);
-    }
-
-    /**
-     * @test
-     */
-    public function updateAttributeValueWillUpdateValueOfAttribute()
-    {
-        $newValue = 'Super new value';
-        $productUid = 11;
-        $attributeUid = 22;
-
-        $productEntity = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $productEntity->_setProperty('uid', $productUid);
-        $attributeEntity = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $attributeEntity->_setProperty('uid', $attributeUid);
-
-        $this->subject->_set('entity', $productEntity);
-        $this->subject->_set('attribute', $attributeEntity);
-        $this->subject->_set('dbRow', ['sys_language_uid' => 0]);
-
-        $this->subject->_call('updateAttributeValue', $newValue);
-
-        $updated = $this->getAttributeRecordForProductAndAttribute($productUid, $attributeUid);
-        $this->assertEquals($updated['value'], $newValue);
-    }
-
-    /**
-     * @test
-     */
-    public function updateAttributeValueWillCreateNewAttributeValueRecordIfDoesNotExist()
-    {
-        $newValue = 'New value of new record';
-        $productUid = 999;
-        $attributeUid = 22;
-        $pid = 1122;
-
-        $productEntity = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $productEntity->_setProperty('uid', $productUid);
-        $attributeEntity = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $attributeEntity->_setProperty('uid', $attributeUid);
-
-        $importer = new class
-        {
-            public function getPid()
-            {
-                return 1122;
-            }
-        };
-
-        $this->subject->_set('entity', $productEntity);
-        $this->subject->_set('attribute', $attributeEntity);
-        $this->subject->_set('importer', $importer);
-        $this->subject->_set('dbRow', ['sys_language_uid' => 0]);
-
-        // Before it should not exist
-        $this->assertFalse($this->getAttributeRecordForProductAndAttribute($productUid, $attributeUid));
-
-        $this->subject->_call('updateAttributeValue', $newValue);
-
-        $newRecord = $this->getAttributeRecordForProductAndAttribute($productUid, $attributeUid);
-
-        $this->assertEquals($newRecord['value'], $newValue);
-        $this->assertEquals($newRecord['product'], $productUid);
-        $this->assertEquals($newRecord['attribute'], $attributeUid);
-        $this->assertEquals($newRecord['pid'], $pid);
     }
 
     /**

@@ -97,7 +97,7 @@ class Logger
      * Get instance
      *
      * @param string $className
-     * @param bool $dontReplaceClassNameSpace By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension
+     * @param bool $dontReplaceClassNameSpace @codingStandardsIgnoreStart By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension @codingStandardsIgnoreEnd
      * @return Logger
      */
     public static function getInstance(string $clasName, bool $dontReplaceClassNameSpace = false): Logger
