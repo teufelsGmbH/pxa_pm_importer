@@ -363,11 +363,19 @@ abstract class AbstractImporter implements ImporterInterface
         array $importRow
     ): bool {
         foreach ($importRow as $field => $value) {
-            if ($field === $this->identifier) {
-                // it was already set when create new record
-                continue;
+            try {
+                $mapping = $this->getFieldMapping($field);
+            } catch (MissingPropertyMappingException $exception) {
+                // If missing mapping for identifier just skip it.
+                // If mapping for identifier exist it'll process.
+                if ($field === $this->identifier) {
+                    continue;
+                } else {
+                    // If no mapping found and it's not identifier throw exception
+                    throw $exception;
+                }
             }
-            $mapping = $this->getFieldMapping($field);
+
             $property = $mapping['property'];
 
             // If processor is set, it should set value for model property
