@@ -13,9 +13,9 @@ use Pixelant\PxaPmImporter\Exception\InvalidAdapterFilterValue;
 class StringEqualsFilter implements FilterInterface
 {
     /**
-     * Adapt raw data from source
+     * Check if row should be included
      *
-     * @param $column Column identifier
+     * @param mixed $column Column identifier
      * @param array $rowData Raw data from source
      * @param array $configuration Filter configuration
      * @return bool

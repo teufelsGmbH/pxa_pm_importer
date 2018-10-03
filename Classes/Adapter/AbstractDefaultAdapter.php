@@ -240,7 +240,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     }
 
     /**
-     * Check if row should be excluded a filter
+     * Check if row should be excluded by filter
      *
      * @param array $dataRow
      * @return boolean

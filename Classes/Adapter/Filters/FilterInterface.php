@@ -10,9 +10,9 @@ namespace Pixelant\PxaPmImporter\Adapter\Filters;
 interface FilterInterface
 {
     /**
-     * Adapt raw data from source
+     * Check if row in data adapter should be included
      *
-     * @param $column Column identifier
+     * @param mixed $column Column identifier
      * @param array $rowData Raw data from source
      * @param array $configuration Filter configuration
      * @return bool
