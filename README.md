@@ -30,6 +30,12 @@ First you need to create import configuration:
     - *Configuration file provided by extensions importers* - list of configuration files registered by other import extensions.
     - *Local file* - fileadmin configuration file.
 
+#### Log
+Every import execution is saved in separate log file.
+By default all log files are saved in `typo3temp/var/logs`, file prefix is `pm_importer_YYYY_mm_dd_hours:minutes:seconds.log`
+You can change log folder and file prefix in extension manager settings.
+
+
 #### Backend module
 After import configuration is created you can run it from **Backend module "PM importer"**.
 
