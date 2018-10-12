@@ -35,6 +35,9 @@
 			<trans-unit id="be.failed_execution">
 			    <source>Failed while trying to execute import with message "%s".</source>
 			</trans-unit>
+			<trans-unit id="be.importing">
+			    <source>Importing...</source>
+			</trans-unit>
 			<!--BE module:END-->
 		</body>
 	</file>
