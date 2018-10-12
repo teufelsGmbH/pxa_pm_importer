@@ -9,6 +9,7 @@ use Pixelant\PxaPmImporter\Exception\InvalidConfigurationException;
 use Pixelant\PxaPmImporter\Service\ImportManager;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
@@ -58,6 +59,17 @@ class ImportModuleController extends ActionController
     {
         /** @var BackendTemplateView $view */
         parent::initializeView($view);
+    }
+
+    /**
+     * Initialize index action stuff
+     */
+    public function initializeIndexAction()
+    {
+        $this->getPageRenderer()->loadRequireJsModule(
+            'TYPO3/CMS/PxaPmImporter/Backend/ImportModule',
+            'function(ImportModule) { ImportModule.init(); }'
+        );
     }
 
     /**
@@ -144,5 +156,15 @@ class ImportModuleController extends ActionController
     protected function translate(string $key, array $arguments = null): string
     {
         return LocalizationUtility::translate($key, 'PxaPmImporter', $arguments) ?? '';
+    }
+
+    /**
+     * Page renderer
+     *
+     * @return PageRenderer
+     */
+    protected function getPageRenderer(): PageRenderer
+    {
+        return GeneralUtility::makeInstance(PageRenderer::class);
     }
 }
