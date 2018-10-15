@@ -181,6 +181,34 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
+    public function getImportIdFromRowReturnImportIdRespectCamelCase()
+    {
+        $this->subject->_set('identifier', 'id');
+        $row = [
+            'id' => 'sku123loweCamelCase',
+            'name' => 'test'
+        ];
+
+        $this->assertEquals('sku123loweCamelCase', $this->subject->_call('getImportIdFromRow', $row));
+    }
+
+    /**
+     * @test
+     */
+    public function getImportIdFromRowReturnTrimmedImportId()
+    {
+        $this->subject->_set('identifier', 'id');
+        $row = [
+            'id' => '   sku123loweCamelCase ',
+            'name' => 'test'
+        ];
+
+        $this->assertEquals('sku123loweCamelCase', $this->subject->_call('getImportIdFromRow', $row));
+    }
+
+    /**
+     * @test
+     */
     public function getFieldMappingForMissingFieldThrowsException()
     {
         $mapping = [
