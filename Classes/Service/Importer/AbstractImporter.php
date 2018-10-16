@@ -269,7 +269,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function getImportIdFromRow(array $row): string
     {
-        $id = strtolower(trim((string)($row[$this->identifier] ?? '')));
+        $id = trim((string)($row[$this->identifier] ?? ''));
 
         if (empty($id)) {
             throw new \RuntimeException('Each row in import data should have import identifier', 1536058556481);
