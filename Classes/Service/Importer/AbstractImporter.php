@@ -105,6 +105,11 @@ abstract class AbstractImporter implements ImporterInterface
     protected $import = null;
 
     /**
+     * @var SourceInterface
+     */
+    protected $source = null;
+
+    /**
      * Array of import processor that should be run in postImport
      *
      * @var FieldProcessorInterface[]
@@ -144,8 +149,9 @@ abstract class AbstractImporter implements ImporterInterface
      */
     public function start(SourceInterface $source, Import $import, array $configuration = []): void
     {
+        $this->source = $source;
         $this->import = $import;
-        $this->preImportPreparations($source, $configuration);
+        $this->preImportPreparations($configuration);
         $this->initImporterRelated();
 
         $this->runImport();
@@ -162,12 +168,11 @@ abstract class AbstractImporter implements ImporterInterface
     /**
      * Setup stuff for import
      *
-     * @param SourceInterface $source
      * @param array $configuration
      */
-    protected function preImportPreparations(SourceInterface $source, array $configuration = []): void
+    protected function preImportPreparations(array $configuration = []): void
     {
-        $this->initializeAdapter($source, $configuration);
+        $this->initializeAdapter($configuration);
         $this->determinateIdentifierField($configuration);
         $this->setMapping($configuration);
         $this->setSettings($configuration);
@@ -201,10 +206,9 @@ abstract class AbstractImporter implements ImporterInterface
     /**
      * Initialize adapter
      *
-     * @param SourceInterface $source
      * @param array $configuration
      */
-    protected function initializeAdapter(SourceInterface $source, array $configuration): void
+    protected function initializeAdapter(array $configuration): void
     {
         if (isset($configuration['adapter']) && !empty($configuration['adapter']['className'])) {
             $adapter = GeneralUtility::makeInstance($configuration['adapter']['className']);
@@ -220,7 +224,7 @@ abstract class AbstractImporter implements ImporterInterface
             $adapterConfiguration = $configuration['adapter'];
             unset($adapterConfiguration['className']);
 
-            $this->adapter->adapt($source->getSourceData(), $adapterConfiguration);
+            $this->adapter->initialize($adapterConfiguration);
         } else {
             throw new \RuntimeException('Could not resolve data adapter from import configuration', 1536047558452);
         }
@@ -621,14 +625,16 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function runImport(): void
     {
-        $languages = $this->adapter->getLanguages();
+        $languages = $this->adapter->getImportLanguages();
 
         foreach ($languages as $language) {
-            $data = $this->adapter->getLanguageData($language);
-            $this->checkForDuplicatedIdentifiers($data);
-
             // One row per record
-            foreach ($data as $row) {
+            foreach ($this->source as $rawRow) {
+                if (!$this->adapter->includeRow($rawRow)) {
+                    // Skip
+                    continue;
+                }
+                $row = $this->adapter->adaptRow($rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
                 $idHash = $this->getImportIdHash($id);
                 $isNew = false;
