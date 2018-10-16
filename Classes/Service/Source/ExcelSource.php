@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Service\Source;
 
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Pixelant\PxaPmImporter\Exception\InvalidSourceFileException;
 
@@ -91,9 +92,9 @@ class ExcelSource extends AbstractFileSource
     public function current(): array
     {
         $row = [];
-        for ($col = 0; $col <= $this->highestDataColumn; ++$col) {
+        for ($col = 1; $col <= $this->highestDataColumn; $col++) {
             $row[] = trim(
-                $this->worksheet->getCellByColumnAndRow($col, $this->currentRow)->getValue()
+                $this->worksheet->getCellByColumnAndRow($col, $this->currentRow)->getValue() ?? ''
             );
         }
 
@@ -137,7 +138,7 @@ class ExcelSource extends AbstractFileSource
             $this->worksheet->garbageCollect();
 
             // Identify the range that we need to extract from the worksheet
-            $this->highestDataColumn = $this->worksheet->getHighestDataColumn();
+            $this->highestDataColumn = Coordinate::columnIndexFromString($this->worksheet->getHighestDataColumn());
             $this->highestDataRow = $this->worksheet->getHighestDataRow();
         } else {
             throw new InvalidSourceFileException('Could not read data from source file "' . $this->filePath . '"');
