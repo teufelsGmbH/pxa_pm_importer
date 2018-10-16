@@ -88,15 +88,19 @@ class CsvSource extends AbstractFileSource
 
     /**
      * Current CSV line as array
-     * @return mixed|void
+     *
+     * @return array
      */
     public function current(): array
     {
         $current = $this->fileStream->current();
 
-        str_getcsv($current, $this->delimiter);
+        return str_getcsv($current, $this->delimiter);
     }
 
+    /**
+     * Next file line
+     */
     public function next(): void
     {
         $this->fileStream->next();
