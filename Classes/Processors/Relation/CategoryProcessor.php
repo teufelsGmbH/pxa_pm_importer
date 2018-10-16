@@ -23,8 +23,6 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
      */
     protected function initEntities($value): void
     {
-        $value = strtolower($value);
-
         $this->entities = []; // Reset, important for PostponeProcessorException
         $value = GeneralUtility::trimExplode(',', $value, true);
 
