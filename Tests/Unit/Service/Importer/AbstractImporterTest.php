@@ -9,7 +9,6 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\AbstractImporter;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
 
@@ -81,9 +80,8 @@ class AbstractImporterTest extends UnitTestCase
      */
     public function initializeAdapterThrowsExceptionInCaseOfInvalidConfiguration()
     {
-        $source = $this->createMock(SourceInterface::class);
         $this->expectException(\RuntimeException::class);
-        $this->subject->_call('initializeAdapter', $source, []);
+        $this->subject->_call('initializeAdapter', []);
     }
 
     /**
