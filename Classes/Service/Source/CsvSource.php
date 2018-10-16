@@ -26,58 +26,21 @@ class CsvSource extends AbstractFileSource
     protected $skipRows = 0;
 
     /**
-     * Source data from file
+     * Source csv file stream
      *
-     * @var array
+     * @var \SplFileObject
      */
-    protected $sourceData = null;
+    protected $fileStream = null;
 
     /**
-     * Get data from CSV file as array
+     * Initialize
      *
-     * @return array
+     * @param array $configuration
      */
-    public function getSourceData(): array
+    public function initialize(array $configuration): void
     {
-        // If was set for previous importer
-        if ($this->sourceData !== null) {
-            return $this->sourceData;
-        }
+        parent::initialize($configuration);
 
-        if ($this->isSourceFilePathValid()) {
-            $fileStream = (new \SplFileObject($this->getAbsoluteFilePath()));
-            $sourceData = [];
-
-            // Read
-            while (!$fileStream->eof()) {
-                $row = $fileStream->fgetcsv($this->delimiter);
-
-                // Skip empty or ignored lines
-                if ($this->isLineEmpty($row) || (($fileStream->key() + 1) <= $this->skipRows)) {
-                    continue;
-                }
-
-                $sourceData[] = $row;
-            }
-
-            $this->emitSignal('sourceDataBeforeSet', [&$sourceData]);
-
-            $this->sourceData = $sourceData;
-            unset($sourceData);
-
-            return $this->sourceData;
-        }
-
-        throw new InvalidSourceFileException('Could not read data from source file "' . $this->filePath . '"');
-    }
-
-    /**
-     * Read CSV settings
-     *
-     * @param array $sourceSettings
-     */
-    protected function readSourceSettings(array $sourceSettings): void
-    {
         if (!empty($sourceSettings['delimiter'])) {
             $this->delimiter = $sourceSettings['delimiter'];
         }
@@ -85,17 +48,57 @@ class CsvSource extends AbstractFileSource
             $this->skipRows = (int)$sourceSettings['skipRows'];
         }
 
-        $this->filePath = $sourceSettings['filePath'] ?? '';
+        if ($this->isSourceFilePathValid()) {
+            $this->fileStream = (new \SplFileObject($this->getAbsoluteFilePath()));
+        } else {
+            throw new InvalidSourceFileException('Could not read data from source file "' . $this->filePath . '"');
+        }
     }
 
     /**
-     * Check if line for CSV is empty
+     * Rewind CSV source
+     */
+    public function rewind(): void
+    {
+        $this->fileStream->rewind();
+        if ($this->skipRows > 0) {
+            $this->fileStream->seek($this->skipRows);
+        }
+    }
+
+    /**
+     * Is end of file
      *
-     * @param array $data
      * @return bool
      */
-    protected function isLineEmpty(array $data): bool
+    public function valid(): bool
     {
-        return ([null] === $data || implode('', $data) === '');
+        return $this->fileStream->valid();
+    }
+
+    /**
+     * Current key
+     *
+     * @return int|mixed
+     */
+    public function key()
+    {
+        return $this->fileStream->key();
+    }
+
+    /**
+     * Current CSV line as array
+     * @return mixed|void
+     */
+    public function current(): array
+    {
+        $current = $this->fileStream->current();
+
+        str_getcsv($current, $this->delimiter);
+    }
+
+    public function next(): void
+    {
+        $this->fileStream->next();
     }
 }
