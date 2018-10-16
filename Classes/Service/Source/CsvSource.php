@@ -41,11 +41,11 @@ class CsvSource extends AbstractFileSource
     {
         parent::initialize($configuration);
 
-        if (!empty($sourceSettings['delimiter'])) {
-            $this->delimiter = $sourceSettings['delimiter'];
+        if (!empty($configuration['delimiter'])) {
+            $this->delimiter = $configuration['delimiter'];
         }
-        if (!empty($sourceSettings['skipRows'])) {
-            $this->skipRows = (int)$sourceSettings['skipRows'];
+        if (!empty($configuration['skipRows'])) {
+            $this->skipRows = (int)$configuration['skipRows'];
         }
 
         if ($this->isSourceFilePathValid()) {
