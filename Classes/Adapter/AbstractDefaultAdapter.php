@@ -15,13 +15,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 abstract class AbstractDefaultAdapter implements AdapterInterface
 {
     /**
-     * Adapted data for all languages
-     *
-     * @var array
-     */
-    protected $data = [];
-
-    /**
      * Identifier column
      *
      * @var mixed
