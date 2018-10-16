@@ -14,13 +14,16 @@ abstract class AbstractSource implements SourceInterface
      * Source data
      * @var array
      */
-    protected $data = [];
+    protected $data = null;
 
     /**
      * Rewind data
      */
     public function rewind(): void
     {
+        if ($this->data === null) {
+            $this->setData();
+        }
         reset($this->data);
     }
 
