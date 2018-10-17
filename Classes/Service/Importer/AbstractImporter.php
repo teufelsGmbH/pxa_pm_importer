@@ -63,6 +63,13 @@ abstract class AbstractImporter implements ImporterInterface
     protected $pid = 0;
 
     /**
+     * Update after reached batch size
+     *
+     * @var int
+     */
+    protected $batchSize = 50;
+
+    /**
      * Mapping rules
      *
      * @var array
@@ -666,6 +673,7 @@ abstract class AbstractImporter implements ImporterInterface
     protected function runImport(): void
     {
         $languages = $this->adapter->getImportLanguages();
+        $batchCount = 0;
 
         foreach ($languages as $language) {
             // Reset duplicated identifiers for each language
@@ -771,11 +779,13 @@ abstract class AbstractImporter implements ImporterInterface
                     ));
 
                     $this->repository->update($model);
+
+                    // If reach batch size - persist
+                    if ((++$batchCount % $this->batchSize) === 0) {
+                        $this->persistenceManager->persistAll();
+                    }
                 }
             }
-
-            // Persist after each language import. Next language might require data for localization.
-            $this->persistenceManager->persistAll();
 
             // Execute postponed processors and persist again
             $this->executePostponedProcessors();
