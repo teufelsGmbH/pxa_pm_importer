@@ -50,7 +50,9 @@ class CsvSource extends AbstractFileSource
 
         if ($this->isSourceFilePathValid()) {
             $this->fileStream = (new \SplFileObject($this->getAbsoluteFilePath()));
-            $this->fileStream->setFlags(\SplFileObject::READ_CSV);
+            // @codingStandardsIgnoreStart
+            $this->fileStream->setFlags(\SplFileObject::READ_CSV | \SplFileObject::READ_AHEAD | \SplFileObject::SKIP_EMPTY | \SplFileObject::DROP_NEW_LINE);
+            // @codingStandardsIgnoreEnd
             $this->fileStream->setCsvControl($this->delimiter);
         } else {
             throw new InvalidSourceFileException('Could not read data from source file "' . $this->filePath . '"');
