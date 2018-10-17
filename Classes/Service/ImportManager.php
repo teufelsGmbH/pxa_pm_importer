@@ -10,6 +10,7 @@ use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 
@@ -64,19 +65,25 @@ class ImportManager
             }
 
             $this->logger->info(sprintf(
-                'Start import for import configuration "%s" with UID - %d',
+                'Start import for import configuration "%s" with UID - %d, at %s',
                 $import->getName(),
-                $import->getUid()
+                $import->getUid(),
+                date('G-i-s')
             ));
+
+            $startTime = time();
             $importer->preImport($source, $import, $singleImporterConfiguration);
             $importer->start($source, $import, $singleImporterConfiguration);
             $importer->postImport($import);
 
             $this->logger->info(sprintf(
-                'End import for import configuration "%s" with UID - %d',
+                'End import for import configuration "%s" with UID - %d, at %s',
                 $import->getName(),
-                $import->getUid()
+                $import->getUid(),
+                date('G-i-s')
             ));
+            $this->logger->info('Memory usage "' . MainUtility::getMemoryUsage() . '"');
+            $this->logger->info('Import duration - ' . $this->getDurationTime($startTime));
         }
 
         $this->emitSignal('afterImportExecute', [$import]);
@@ -104,6 +111,22 @@ class ImportManager
     public function getLogFilePath(): string
     {
         return $this->logger->getLogFilePath();
+    }
+
+    /**
+     * Get duration time
+     *
+     * @param int $startTime
+     * @return string
+     */
+    protected function getDurationTime(int $startTime): string
+    {
+        $init = $startTime - time();
+        $hours = floor($init / 3600);
+        $minutes = floor(($init / 60) % 60);
+        $seconds = $init % 60;
+
+        return sprintf('%s:%s:%s', $hours, $minutes, $seconds);
     }
 
     /**
