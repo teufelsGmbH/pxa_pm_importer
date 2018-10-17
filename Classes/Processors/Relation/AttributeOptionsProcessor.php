@@ -35,7 +35,7 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
-            if (true === (bool)$this->configuration['treatIdentifierAsUid']) {
+            if (true === (bool)($this->configuration['treatIdentifierAsUid'] ?? false)) {
                 $record = BackendUtility::getRecord('tx_pxaproductmanager_domain_model_option', (int)$identifier);
             } else {
                 $record = $this->getRecordByImportIdentifier($identifier, 'tx_pxaproductmanager_domain_model_option'); // Default language record
