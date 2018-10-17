@@ -411,7 +411,7 @@ abstract class AbstractImporter implements ImporterInterface
 
                 try {
                     $processingResult = $this->executeProcessor($processor, $value);
-                    if (false === $processingResult) {
+                    if ($processor->isPropertyRequired() && $processingResult === false) {
                         return false;
                     }
                 } catch (PostponeProcessorException $exception) {
@@ -462,8 +462,9 @@ abstract class AbstractImporter implements ImporterInterface
             return true;
         } else {
             $this->logger->error(sprintf(
-                'Property "%s" validation failed for import ID "%s(hash:%s)", with messages: %s',
+                'Property "%s" validation failed for value "%s" and import ID "%s(hash:%s)", with messages: %s',
                 $processor->getProcessingProperty(),
+                $value,
                 $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
                 $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD],
                 $processor->getValidationErrorsString()

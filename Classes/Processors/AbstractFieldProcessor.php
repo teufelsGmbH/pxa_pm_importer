@@ -103,7 +103,7 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      */
     public function isValid($value): bool
     {
-        if ($this->isRequired() && empty($value)) {
+        if ($this->isPropertyRequired() && empty($value)) {
             $this->addError('Property "' . $this->property . '" is required');
 
             return false;
@@ -165,7 +165,7 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      *
      * @return bool
      */
-    protected function isRequired(): bool
+    public function isPropertyRequired(): bool
     {
         return $this->isRuleInValidationList('required');
     }
