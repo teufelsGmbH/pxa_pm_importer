@@ -9,6 +9,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\AbstractImporter;
+use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
 
@@ -346,26 +347,47 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function checkForDuplicatedIdentifiersThrowsExceptionIfDuplicationsFound()
+    public function isDuplicatedIdentifierReturnFalseIfIdentifierNotMet()
     {
-        $this->subject->_set('identifier', 'id');
-        $data = [
-            [
-                'id' => 'test',
-                'name' => 'bla'
-            ],
-            [
-                'id' => 'duplicated',
-                'name' => '321123'
-            ],
-            [
-                'id' => 'duplicated',
-                'name' => 'test123'
-            ]
-        ];
+        $mockedCache = $this->createPartialMock(VariableFrontend::class, ['has', 'get', 'set']);
+        $this->inject($this->subject, 'runTimeCache', $mockedCache);
 
-        $this->expectException(\RuntimeException::class);
-        $this->subject->_call('checkForDuplicatedIdentifiers', $data);
+        $mockedCache
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $mockedCache
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn(['uniqueId', 'anotherId']);
+
+        $id = 'notMetId';
+
+        $this->assertFalse($this->subject->_call('isDuplicatedIdentifier', $id));
+    }
+
+    /**
+     * @test
+     */
+    public function isDuplicatedIdentifierReturnTrueIfIdentifierMet()
+    {
+        $mockedCache = $this->createPartialMock(VariableFrontend::class, ['has', 'get', 'set']);
+        $this->inject($this->subject, 'runTimeCache', $mockedCache);
+
+        $mockedCache
+            ->expects($this->once())
+            ->method('has')
+            ->willReturn(true);
+
+        $mockedCache
+            ->expects($this->once())
+            ->method('get')
+            ->willReturn(['uniqueId', 'anotherId']);
+
+        $id = 'anotherId';
+
+        $this->assertTrue($this->subject->_call('isDuplicatedIdentifier', $id));
     }
 
     /**

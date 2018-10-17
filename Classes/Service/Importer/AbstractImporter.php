@@ -13,6 +13,7 @@ use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -110,6 +111,13 @@ abstract class AbstractImporter implements ImporterInterface
     protected $source = null;
 
     /**
+     * Runtime cache for single request
+     *
+     * @var \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend
+     */
+    protected $runTimeCache = null;
+
+    /**
      * Array of import processor that should be run in postImport
      *
      * @var FieldProcessorInterface[]
@@ -138,6 +146,7 @@ abstract class AbstractImporter implements ImporterInterface
         $this->logger = $logger !== null ? $logger : Logger::getInstance(__CLASS__);
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
+        $this->runTimeCache = GeneralUtility::makeInstance(CacheManager::class)->getCache('cache_runtime');
     }
 
     /**
@@ -606,18 +615,49 @@ abstract class AbstractImporter implements ImporterInterface
     /**
      * Check for duplicated identifiers in data
      *
-     * @param array $data
+     * @param string $identifier
+     * @return bool
      */
-    protected function checkForDuplicatedIdentifiers(array $data): void
+    protected function isDuplicatedIdentifier(string $identifier): bool
     {
-        $identifiers = [];
-        foreach ($data as $row) {
-            $id = $this->getImportIdFromRow($row);
-            if (in_array($id, $identifiers)) {
-                throw new \RuntimeException('Duplicated identifier "' . $id . '" found.', 1536316466353);
-            }
-            $identifiers[] = $id;
+        $cacheIdentifier = $this->getDuplicatedIdentifierCacheIdentifier();
+
+        // Get from cache or initialize
+        $identifiers = $this->runTimeCache->has($cacheIdentifier)
+            ? $this->runTimeCache->get($cacheIdentifier)
+            : [];
+        // Check if is duplicated
+        $isDuplicated = in_array($identifier, $identifiers);
+        if (!$isDuplicated) {
+            // Add to array
+            $identifiers[] = $identifier;
+            // Save to cache
+            $this->runTimeCache->set($cacheIdentifier, $identifiers);
         }
+
+        unset($identifiers);
+
+        return $isDuplicated;
+    }
+
+    /**
+     * Reset runtime cache
+     *
+     * @param string $cacheIdentifier
+     */
+    protected function resetRunTimeCache(string $cacheIdentifier): void
+    {
+        $this->runTimeCache->set($cacheIdentifier, null);
+    }
+
+    /**
+     * Hold cache key for duplicated identifiers
+     *
+     * @return string
+     */
+    protected function getDuplicatedIdentifierCacheIdentifier(): string
+    {
+        return 'pxa_pm_importer_Identifiers';
     }
 
     /**
@@ -628,6 +668,10 @@ abstract class AbstractImporter implements ImporterInterface
         $languages = $this->adapter->getImportLanguages();
 
         foreach ($languages as $language) {
+            // Reset duplicated identifiers for each language
+            $this->resetRunTimeCache(
+                $this->getDuplicatedIdentifierCacheIdentifier()
+            );
             // One row per record
             foreach ($this->source as $rawRow) {
                 if (!$this->adapter->includeRow($rawRow)) {
@@ -636,6 +680,10 @@ abstract class AbstractImporter implements ImporterInterface
                 }
                 $row = $this->adapter->adaptRow($rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
+                if ($this->isDuplicatedIdentifier($id)) {
+                    // @TODO maybe add some options what to do in this case?
+                    $this->logger->error('Duplicated identifier found with value "' . $id . '"');
+                }
                 $idHash = $this->getImportIdHash($id);
                 $isNew = false;
                 $record = $this->getRecordByImportIdHash($idHash, $language);
