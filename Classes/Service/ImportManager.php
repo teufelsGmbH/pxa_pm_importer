@@ -121,12 +121,12 @@ class ImportManager
      */
     protected function getDurationTime(int $startTime): string
     {
-        $init = $startTime - time();
+        $init = time() - $startTime;
         $hours = floor($init / 3600);
         $minutes = floor(($init / 60) % 60);
         $seconds = $init % 60;
 
-        return sprintf('%s:%s:%s', $hours, $minutes, $seconds);
+        return sprintf('%s hours, %s minutes and %s seconds', $hours, $minutes, $seconds);
     }
 
     /**
