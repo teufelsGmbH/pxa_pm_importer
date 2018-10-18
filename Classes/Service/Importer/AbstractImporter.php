@@ -784,6 +784,7 @@ abstract class AbstractImporter implements ImporterInterface
                     // If reach batch size - persist
                     if ((++$batchCount % $this->batchSize) === 0) {
                         $this->persistenceManager->persistAll();
+                        $this->persistenceManager->clearState();
                     }
                 }
             }
