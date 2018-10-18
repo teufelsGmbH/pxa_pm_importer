@@ -69,4 +69,17 @@ class MainUtility
             return $firstValue + array_search(strtoupper($column[1]), $alphabet);
         }
     }
+
+    /**
+     * Get memory usage
+     *
+     * @return string
+     */
+    public static function getMemoryUsage(): string
+    {
+        $size = memory_get_usage(true);
+        $unit = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
+
+        return @round($size / pow(1024, ($i = floor(log($size, 1024)))), 2) . ' ' . $unit[(int)$i];
+    }
 }

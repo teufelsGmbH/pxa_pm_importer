@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Service\Source;
 
-use Pixelant\PxaPmImporter\Domain\Model\Import;
-use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -13,8 +11,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 abstract class AbstractFileSource implements SourceInterface
 {
-    use EmitSignalTrait;
-
     /**
      * Path to source file
      *
@@ -23,12 +19,13 @@ abstract class AbstractFileSource implements SourceInterface
     protected $filePath = '';
 
     /**
+     * Initialize
+     *
      * @param array $configuration
      */
     public function initialize(array $configuration): void
     {
-        $this->emitSignal('beforeReadSourceSettings', [&$configuration]);
-        $this->readSourceSettings($configuration);
+        $this->filePath = $configuration['filePath'] ?? '';
     }
 
     /**
@@ -52,6 +49,4 @@ abstract class AbstractFileSource implements SourceInterface
     {
         return GeneralUtility::getFileAbsFileName($this->filePath);
     }
-
-    abstract protected function readSourceSettings(array $sourceSettings): void;
 }

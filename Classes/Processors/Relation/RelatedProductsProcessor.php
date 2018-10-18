@@ -23,13 +23,11 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor
      */
     protected function initEntities($value): void
     {
-        $value = strtolower($value);
-
         $this->entities = []; // Reset, important for PostponeProcessorException
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
-            if (true === (bool)$this->configuration['treatIdentifierAsUid']) {
+            if (true === (bool)($this->configuration['treatIdentifierAsUid'] ?? false)) {
                 $model = GeneralUtility::makeInstance(ObjectManager::class)
                     ->get(ProductRepository::class)
                     ->findByUid((int)$identifier);

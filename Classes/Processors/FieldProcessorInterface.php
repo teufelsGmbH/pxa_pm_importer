@@ -86,4 +86,12 @@ interface FieldProcessorInterface
      * @return string
      */
     public function getProcessingProperty(): string;
+
+    /**
+     * Determinate if processing property is required
+     * If is required and validation for property failed, import should stop for record
+     *
+     * @return bool
+     */
+    public function isPropertyRequired(): bool;
 }

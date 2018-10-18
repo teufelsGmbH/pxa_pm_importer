@@ -9,7 +9,7 @@ use Pixelant\PxaPmImporter\Domain\Model\Import;
  * Class SourceInterface
  * @package Pixelant\PxaPmImporter\Service\Source
  */
-interface SourceInterface
+interface SourceInterface extends \Iterator
 {
     /**
      * Initialize source
@@ -17,11 +17,4 @@ interface SourceInterface
      * @param array $configuration
      */
     public function initialize(array $configuration): void;
-
-    /**
-     * Get data from source as array
-     *
-     * @return array
-     */
-    public function getSourceData(): array;
 }

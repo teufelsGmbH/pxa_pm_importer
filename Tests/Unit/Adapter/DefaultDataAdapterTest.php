@@ -7,13 +7,14 @@ use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Adapter\AbstractDefaultAdapter;
+use Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter;
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 
 /**
  * Class AbstractDefaultAdapterTest
  * @package Pixelant\PxaPmImporter\Tests\Unit\Adapter
  */
-class AbstractDefaultAdapterTest extends UnitTestCase
+class DefaultDataAdapterTest extends UnitTestCase
 {
     /**
      * @var AbstractDefaultAdapter|MockObject|AccessibleMockObjectInterface
@@ -24,8 +25,8 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     {
         parent::setUp();
         $this->subject = $this->getAccessibleMock(
-            AbstractDefaultAdapter::class,
-            ['transformSourceData']
+            DefaultDataAdapter::class,
+            ['dummy']
         );
     }
 
@@ -36,23 +37,11 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     }
 
     /**
-     * @test
-     */
-    public function getDataReturnData()
-    {
-        $data = ['test' => 'testdata'];
-
-        $this->subject->_set('data', $data);
-
-        $this->assertEquals($data, $this->subject->getData());
-    }
-
-    /**
      * Get languages return language UIDS array from data
      *
      * @test
      */
-    public function getLanguagesReturnLanguagesUids()
+    public function getImportLanguagesReturnLanguagesUids()
     {
         $data = [
             0 => [
@@ -68,40 +57,16 @@ class AbstractDefaultAdapterTest extends UnitTestCase
         $this->subject->_set('languagesMapping', $data);
         $expect = array_keys($data);
 
-        $this->assertEquals($expect, $this->subject->getLanguages());
+        $this->assertEquals($expect, $this->subject->getImportLanguages());
     }
 
     /**
      * @test
      */
-    public function getLanguageDataReturnDataForLanguage()
-    {
-        $data = [
-            0 => [
-                'test' => 'test'
-            ],
-            1 => [
-                'test' => 'test'
-            ],
-            2 => [
-                'test' => 'test',
-                'blabla' => 'testdata'
-            ]
-        ];
-        $expect = ['test' => 'test', 'blabla' => 'testdata'];
-
-        $this->subject->_set('data', $data);
-
-        $this->assertEquals($expect, $this->subject->getLanguageData(2));
-    }
-
-    /**
-     * @test
-     */
-    public function getLanguageDataForNonExistingLanguageThrowsException()
+    public function adaptRowForNonExistingLanguageThrowsException()
     {
         $this->expectException(\UnexpectedValueException::class);
-        $this->subject->getLanguageData(111);
+        $this->subject->adaptRow([], 111);
     }
 
     /**
@@ -111,7 +76,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1536050678725);
-        $this->subject->_call('initialize', []);
+        $this->subject->initialize([]);
     }
 
     /**
@@ -121,7 +86,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1536050717594);
-        $this->subject->_call('initialize', ['mapping' => ['noId' => false]]);
+        $this->subject->initialize(['mapping' => ['noId' => false]]);
     }
 
     /**
@@ -137,7 +102,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
                 'id' => '1'
             ]
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
     }
 
     /**
@@ -151,7 +116,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
                 'languages' => [0 => []]
             ]
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
 
         $this->assertEquals(12, $this->subject->_get('identifier'));
         $this->assertTrue(is_int($this->subject->_get('identifier')));
@@ -169,7 +134,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
                 'languages' => [0 => []]
             ]
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
 
         $this->assertEquals(77, $this->subject->_get('identifier'));
         $this->assertTrue(is_int($this->subject->_get('identifier')));
@@ -186,7 +151,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
                 'languages' => [0 => []]
             ]
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
 
         $this->assertEquals('ITEMID', $this->subject->_get('identifier'));
         $this->assertTrue(is_string($this->subject->_get('identifier')));
@@ -207,7 +172,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
                 'languages' => [0 => []]
             ]
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
         $this->assertEquals($identifiers, $this->subject->_get('identifier'));
         $this->assertTrue(is_array($this->subject->_get('identifier')));
     }
@@ -226,7 +191,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
         ];
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1538560400221);
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
     }
 
     /**
@@ -243,9 +208,9 @@ class AbstractDefaultAdapterTest extends UnitTestCase
         ];
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1538560523613);
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
     }
-    
+
     /**
      * @test
      */
@@ -261,7 +226,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ],
             'settings' => $settings
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
 
         $this->assertEquals($settings, $this->subject->_get('settings'));
     }
@@ -284,7 +249,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ],
             'filters' => $filters
         ];
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
 
         $this->assertEquals($filters, $this->subject->_get('filters'));
     }
@@ -308,7 +273,7 @@ class AbstractDefaultAdapterTest extends UnitTestCase
         $row = [0 => 'test', 1 => 'data', 2 => 'multiple'];
         $expect = 'testdatamultiple';
 
-        $this->assertEquals($expect, $this->subject->_call('getMultipleFieldData', [0,1,2], $row));
+        $this->assertEquals($expect, $this->subject->_call('getMultipleFieldData', [0, 1, 2], $row));
     }
 
     /**
@@ -320,13 +285,14 @@ class AbstractDefaultAdapterTest extends UnitTestCase
 
         $this->expectException(InvalidAdapterFieldMapping::class);
         $this->expectExceptionCode(1536051927592);
-        $this->subject->_call('getMultipleFieldData', [0,1,4], $row);
+        $this->subject->_call('getMultipleFieldData', [0, 1, 4], $row);
     }
 
     /**
      * @test
+     * @dataProvider adaptRowDataProvider
      */
-    public function adaptSourceDataWillSetDataAccordingToMapping()
+    public function adaptRowWillAdaptDataAccordingToMapping($row, $expect, $language)
     {
         $configuration = [
             'mapping' => [
@@ -344,58 +310,15 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ]
         ];
 
-        $data = [
-            [
-                0 => 'English title 1',
-                1 => 'English desc 1',
-                2 => 'Ukrainian title 1',
-                3 => 'Ukrainian desc 1',
-                4 => 'id1'
-            ],
-            [
-                0 => 'English title 2',
-                1 => 'English desc 2',
-                2 => 'Ukrainian title 2',
-                3 => 'Ukrainian desc 2',
-                4 => 'id2'
-            ],
-        ];
-
-        $expect = [
-            0 => [
-                [
-                    'title' => 'English title 1',
-                    'description' => 'English desc 1',
-                    'id' => 'id1'
-                ],
-                [
-                    'title' => 'English title 2',
-                    'description' => 'English desc 2',
-                    'id' => 'id2'
-                ]
-            ],
-            1 => [
-                [
-                    'title' => 'Ukrainian title 1',
-                    'description' => 'Ukrainian desc 1',
-                    'id' => 'id1'
-                ],
-                [
-                    'title' => 'Ukrainian title 2',
-                    'description' => 'Ukrainian desc 2',
-                    'id' => 'id2'
-                ]
-            ],
-        ];
-
-        $this->subject->_call('initialize', $configuration);
-        $this->assertEquals($expect, $this->subject->_call('adaptData', $data));
+        $this->subject->initialize($configuration);
+        $this->assertEquals($expect, $this->subject->adaptRow($row, $language));
     }
 
     /**
      * @test
+     * @dataProvider includeRowDataProvider
      */
-    public function adaptSourceDataWillSetDataAccordingToMappingAndFilter()
+    public function includeRowIncludeRowThatMuchFilter($row, $expect)
     {
         $configuration = [
             'mapping' => [
@@ -419,86 +342,15 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ]
         ];
 
-        $data = [
-            [
-                0 => 'English title 1',
-                1 => 'English desc 1',
-                2 => 'Ukrainian title 1',
-                3 => 'Ukrainian desc 1',
-                4 => 'id1',
-                5 => 'se'
-            ],
-            [
-                0 => 'English title 2',
-                1 => 'English desc 2',
-                2 => 'Ukrainian title 2',
-                3 => 'Ukrainian desc 2',
-                4 => 'id2',
-                5 => 'se'
-            ],
-            [
-                0 => 'English title 3',
-                1 => 'English desc 3',
-                2 => 'Ukrainian title 3',
-                3 => 'Ukrainian desc 3',
-                4 => 'id3',
-                5 => 'ua'
-            ],
-            [
-                0 => 'English title 4',
-                1 => 'English desc 4',
-                2 => 'Ukrainian title 4',
-                3 => 'Ukrainian desc 4',
-                4 => 'id4',
-                5 => 'se'
-            ]
-        ];
-
-        $expect = [
-            0 => [
-                [
-                    'title' => 'English title 1',
-                    'description' => 'English desc 1',
-                    'id' => 'id1'
-                ],
-                [
-                    'title' => 'English title 2',
-                    'description' => 'English desc 2',
-                    'id' => 'id2'
-                ],
-                [
-                    'title' => 'English title 4',
-                    'description' => 'English desc 4',
-                    'id' => 'id4'
-                ]
-            ],
-            1 => [
-                [
-                    'title' => 'Ukrainian title 1',
-                    'description' => 'Ukrainian desc 1',
-                    'id' => 'id1'
-                ],
-                [
-                    'title' => 'Ukrainian title 2',
-                    'description' => 'Ukrainian desc 2',
-                    'id' => 'id2'
-                ],
-                [
-                    'title' => 'Ukrainian title 4',
-                    'description' => 'Ukrainian desc 4',
-                    'id' => 'id4'
-                ]
-            ],
-        ];
-
-        $this->subject->_call('initialize', $configuration);
-        $this->assertEquals($expect, $this->subject->_call('adaptData', $data));
+        $this->subject->initialize($configuration);
+        $this->assertEquals($expect, $this->subject->includeRow($row));
     }
 
     /**
      * @test
+     * @dataProvider includeRowMultipleFilterDataProvider
      */
-    public function adaptSourceDataWillSetDataAccordingToMappingAndMultipleFilters()
+    public function includeRowIncludeRowThatMuchMultipleFilters($row, $expect)
     {
         $configuration = [
             'mapping' => [
@@ -530,97 +382,14 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ]
         ];
 
-        $data = [
-            [
-                'ITEMID' => 'ID1',
-                'UA_TITLE' => 'UA Title 1',
-                'SE_TITLE' => 'SE Title 1',
-                'UA_DESC' => 'UA Description 1',
-                'SE_DESC' => 'SE Description 1',
-                'AREA' => 'A',
-                'REGION_AREA' => 'A'
-            ],
-            [
-                'ITEMID' => 'ID2',
-                'UA_TITLE' => 'UA Title 2',
-                'SE_TITLE' => 'SE Title 2',
-                'UA_DESC' => 'UA Description 2',
-                'SE_DESC' => 'SE Description 2',
-                'AREA' => 'A',
-                'REGION_AREA' => 'B'
-            ],
-            [
-                'ITEMID' => 'ID3',
-                'UA_TITLE' => 'UA Title 3',
-                'SE_TITLE' => 'SE Title 3',
-                'UA_DESC' => 'UA Description 3',
-                'SE_DESC' => 'SE Description 3',
-                'AREA' => 'B',
-                'REGION_AREA' => 'B'
-            ],
-            [
-                'ITEMID' => 'ID4',
-                'UA_TITLE' => 'UA Title 4',
-                'SE_TITLE' => 'SE Title 4',
-                'UA_DESC' => 'UA Description 4',
-                'SE_DESC' => 'SE Description 4',
-                'AREA' => 'B',
-                'REGION_AREA' => 'A'
-            ],
-            [
-                'ITEMID' => 'ID5',
-                'UA_TITLE' => 'UA Title 5',
-                'SE_TITLE' => 'SE Title 5',
-                'UA_DESC' => 'UA Description 5',
-                'SE_DESC' => 'SE Description 5',
-                'AREA' => 'A',
-                'REGION_AREA' => 'A'
-            ],
-        ];
-
-        $expect = [
-            0 => [
-                [
-                    'id' => 'ID1',
-                    'title' => 'SE Title 1',
-                    'description' => 'SE Description 1',
-                    'area' => 'A',
-                    'region' => 'A',
-                ],
-                [
-                    'id' => 'ID5',
-                    'title' => 'SE Title 5',
-                    'description' => 'SE Description 5',
-                    'area' => 'A',
-                    'region' => 'A',
-                ]
-            ],
-            1 => [
-                [
-                    'id' => 'ID1',
-                    'title' => 'UA Title 1',
-                    'description' => 'UA Description 1',
-                    'area' => 'A',
-                    'region' => 'A',
-                ],
-                [
-                    'id' => 'ID5',
-                    'title' => 'UA Title 5',
-                    'description' => 'UA Description 5',
-                    'area' => 'A',
-                    'region' => 'A',
-                ]
-            ],
-        ];
-
-        $this->subject->_call('initialize', $configuration);
-        $this->assertEquals($expect, $this->subject->_call('adaptData', $data));
+        $this->subject->initialize($configuration);
+        $this->assertEquals($expect, $this->subject->includeRow($row));
     }
 
     /**
      * @test
      */
-    public function adaptSourceDataWillThrowExceptionOnInvalidClass()
+    public function includeRowWillThrowExceptionOnInvalidClass()
     {
         $configuration = [
             'mapping' => [
@@ -648,36 +417,25 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ]
         ];
 
-        $data = [
-            [
-                'ITEMID' => 'ID1',
-                'UA_TITLE' => 'UA Title 1',
-                'SE_TITLE' => 'SE Title 1',
-                'UA_DESC' => 'UA Description 1',
-                'SE_DESC' => 'SE Description 1',
-                'AREA' => 'A',
-                'REGION' => 'A'
-            ],
-            [
-                'ITEMID' => 'ID2',
-                'UA_TITLE' => 'UA Title 2',
-                'SE_TITLE' => 'SE Title 2',
-                'UA_DESC' => 'UA Description 2',
-                'SE_DESC' => 'SE Description 2',
-                'AREA' => 'A',
-                'REGION' => 'B'
-            ]
+        $row = [
+            'ITEMID' => 'ID1',
+            'UA_TITLE' => 'UA Title 1',
+            'SE_TITLE' => 'SE Title 1',
+            'UA_DESC' => 'UA Description 1',
+            'SE_DESC' => 'SE Description 1',
+            'AREA' => 'A',
+            'REGION' => 'A'
         ];
 
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
         $this->expectException(\Error::class);
-        $this->subject->_call('adaptData', $data);
+        $this->subject->includeRow($row);
     }
 
     /**
      * @test
      */
-    public function adaptSourceDataWillThrowExceptionOnNonFilterInterface()
+    public function includeRowWillThrowExceptionOnNonFilterInterface()
     {
         $configuration = [
             'mapping' => [
@@ -705,37 +463,27 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ]
         ];
 
-        $data = [
-            [
-                'ITEMID' => 'ID1',
-                'UA_TITLE' => 'UA Title 1',
-                'SE_TITLE' => 'SE Title 1',
-                'UA_DESC' => 'UA Description 1',
-                'SE_DESC' => 'SE Description 1',
-                'AREA' => 'A',
-                'REGION' => 'A'
-            ],
-            [
-                'ITEMID' => 'ID2',
-                'UA_TITLE' => 'UA Title 2',
-                'SE_TITLE' => 'SE Title 2',
-                'UA_DESC' => 'UA Description 2',
-                'SE_DESC' => 'SE Description 2',
-                'AREA' => 'A',
-                'REGION' => 'B'
-            ]
+        $row = [
+            'ITEMID' => 'ID1',
+            'UA_TITLE' => 'UA Title 1',
+            'SE_TITLE' => 'SE Title 1',
+            'UA_DESC' => 'UA Description 1',
+            'SE_DESC' => 'SE Description 1',
+            'AREA' => 'A',
+            'REGION' => 'A'
         ];
 
-        $this->subject->_call('initialize', $configuration);
+        $this->subject->initialize($configuration);
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1538142318);
-        $this->subject->_call('adaptData', $data);
+        $this->subject->includeRow($row);
     }
 
     /**
      * @test
+     * @dataProvider adaptRowMultipleColumnIdDataProvider
      */
-    public function adaptSourceDataWithMultipleColumnIdWillReturnCorrectData()
+    public function adaptRowWithMultipleColumnIdWillReturnCorrectData($row, $expect, $language)
     {
         $configuration = [
             'mapping' => [
@@ -761,65 +509,228 @@ class AbstractDefaultAdapterTest extends UnitTestCase
             ]
         ];
 
-        $data = [
-            [
-                'ITEMID' => 'ID1',
-                'UA_TITLE' => 'UA Title 1',
-                'SE_TITLE' => 'SE Title 1',
-                'UA_DESC' => 'UA Description 1',
-                'SE_DESC' => 'SE Description 1',
-                'AREA' => 'A',
-                'REGION' => 'A'
-            ],
-            [
-                'ITEMID' => 'ID2',
-                'UA_TITLE' => 'UA Title 2',
-                'SE_TITLE' => 'SE Title 2',
-                'UA_DESC' => 'UA Description 2',
-                'SE_DESC' => 'SE Description 2',
-                'AREA' => 'A',
-                'REGION' => 'B'
-            ]
-        ];
 
-        $expect = [
-            0 => [
-                [
+        $this->subject->initialize($configuration);
+        $this->assertEquals($expect, $this->subject->adaptRow($row, $language));
+    }
+
+    /**
+     * @return array
+     */
+    public function adaptRowMultipleColumnIdDataProvider()
+    {
+        $row1 = [
+            'ITEMID' => 'ID1',
+            'UA_TITLE' => 'UA Title 1',
+            'SE_TITLE' => 'SE Title 1',
+            'UA_DESC' => 'UA Description 1',
+            'SE_DESC' => 'SE Description 1',
+            'AREA' => 'A',
+            'REGION' => 'A'
+        ];
+        $row2 = [
+            'ITEMID' => 'ID2',
+            'UA_TITLE' => 'UA Title 2',
+            'SE_TITLE' => 'SE Title 2',
+            'UA_DESC' => 'UA Description 2',
+            'SE_DESC' => 'SE Description 2',
+            'AREA' => 'A',
+            'REGION' => 'B'
+        ];
+        return [
+            [
+                'row' => $row1,
+                'expect' => [
                     'id' => 'ID1AA',
                     'title' => 'SE Title 1',
                     'description' => 'SE Description 1',
                     'area' => 'A',
                     'region' => 'A',
                 ],
-                [
-                    'id' => 'ID2AB',
-                    'title' => 'SE Title 2',
-                    'description' => 'SE Description 2',
-                    'area' => 'A',
-                    'region' => 'B',
-                ]
+                'language' => 0
             ],
-            1 => [
-                [
+            [
+                'row' => $row1,
+                'expect' => [
                     'id' => 'ID1AA',
                     'title' => 'UA Title 1',
                     'description' => 'UA Description 1',
                     'area' => 'A',
                     'region' => 'A',
                 ],
-                [
+                'language' => 1
+            ],
+            [
+                'row' => $row2,
+                'expect' => [
+                    'id' => 'ID2AB',
+                    'title' => 'SE Title 2',
+                    'description' => 'SE Description 2',
+                    'area' => 'A',
+                    'region' => 'B',
+                ],
+                'language' => 0
+            ],
+            [
+                'row' => $row2,
+                'expect' => [
                     'id' => 'ID2AB',
                     'title' => 'UA Title 2',
                     'description' => 'UA Description 2',
                     'area' => 'A',
                     'region' => 'B',
-                ]
-            ],
+                ],
+                'language' => 1
+            ]
         ];
-
-        $this->subject->_call('initialize', $configuration);
-        $this->assertEquals($expect, $this->subject->_call('adaptData', $data));
     }
 
+    /**
+     * @return array
+     */
+    public function includeRowMultipleFilterDataProvider()
+    {
+        return [
+            [
+                [
+                    'ITEMID' => 'ID1',
+                    'UA_TITLE' => 'UA Title 1',
+                    'SE_TITLE' => 'SE Title 1',
+                    'UA_DESC' => 'UA Description 1',
+                    'SE_DESC' => 'SE Description 1',
+                    'AREA' => 'A',
+                    'REGION_AREA' => 'A'
+                ],
+                true
+            ],
+            [
+                [
+                    'ITEMID' => 'ID2',
+                    'UA_TITLE' => 'UA Title 2',
+                    'SE_TITLE' => 'SE Title 2',
+                    'UA_DESC' => 'UA Description 2',
+                    'SE_DESC' => 'SE Description 2',
+                    'AREA' => 'A',
+                    'REGION_AREA' => 'B'
+                ],
+                false
+            ],
+            [
+                [
+                    'ITEMID' => 'ID3',
+                    'UA_TITLE' => 'UA Title 3',
+                    'SE_TITLE' => 'SE Title 3',
+                    'UA_DESC' => 'UA Description 3',
+                    'SE_DESC' => 'SE Description 3',
+                    'AREA' => 'B',
+                    'REGION_AREA' => 'B'
+                ],
+                false
+            ],
+            [
+                ['ITEMID' => 'ID4',
+                    'UA_TITLE' => 'UA Title 4',
+                    'SE_TITLE' => 'SE Title 4',
+                    'UA_DESC' => 'UA Description 4',
+                    'SE_DESC' => 'SE Description 4',
+                    'AREA' => 'B',
+                    'REGION_AREA' => 'A'
+                ],
+                false
+            ],
+            [
+                [
+                    'ITEMID' => 'ID5',
+                    'UA_TITLE' => 'UA Title 5',
+                    'SE_TITLE' => 'SE Title 5',
+                    'UA_DESC' => 'UA Description 5',
+                    'SE_DESC' => 'SE Description 5',
+                    'AREA' => 'A',
+                    'REGION_AREA' => 'A'
+                ],
+                true
+            ]
+        ];
+    }
 
+    /**
+     * @return array
+     */
+    public function includeRowDataProvider()
+    {
+        return [
+            [
+                'row' => [
+                    0 => 'English title 1',
+                    1 => 'English desc 1',
+                    2 => 'Ukrainian title 1',
+                    3 => 'Ukrainian desc 1',
+                    4 => 'id1',
+                    5 => 'se'
+                ],
+                'expect' => true
+            ],
+            [
+                'row' => [
+                    0 => 'English title 4',
+                    1 => 'English desc 4',
+                    2 => 'Ukrainian title 4',
+                    3 => 'Ukrainian desc 4',
+                    4 => 'id4',
+                    5 => 'se'
+                ],
+                'expect' => true
+            ],
+            [
+                'row' => [
+                    0 => 'English title 3',
+                    1 => 'English desc 3',
+                    2 => 'Ukrainian title 3',
+                    3 => 'Ukrainian desc 3',
+                    4 => 'id3',
+                    5 => 'ua'
+                ],
+                'expect' => false
+            ]
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function adaptRowDataProvider()
+    {
+        return [
+            [
+                'row' => [
+                    0 => 'English title 1',
+                    1 => 'English desc 1',
+                    2 => 'Ukrainian title 1',
+                    3 => 'Ukrainian desc 1',
+                    4 => 'id1'
+                ],
+                'expect' => [
+                    'title' => 'English title 1',
+                    'description' => 'English desc 1',
+                    'id' => 'id1'
+                ],
+                'language' => 0
+            ],
+            [
+                'row' => [
+                    0 => 'English title 2',
+                    1 => 'English desc 2',
+                    2 => 'Ukrainian title 2',
+                    3 => 'Ukrainian desc 2',
+                    4 => 'id2'
+                ],
+                'expect' => [
+                    'title' => 'Ukrainian title 2',
+                    'description' => 'Ukrainian desc 2',
+                    'id' => 'id2'
+                ],
+                'language' => 1
+            ],
+        ];
+    }
 }

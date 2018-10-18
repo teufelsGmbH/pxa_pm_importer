@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Service\Source;
 
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Pixelant\PxaPmImporter\Exception\InvalidSourceFileException;
 
@@ -28,69 +29,119 @@ class ExcelSource extends AbstractFileSource
     protected $sheet = -1;
 
     /**
-     * Source raw data
+     * Excel sheet
      *
-     * @var array
+     * @var \PhpOffice\PhpSpreadsheet\Worksheet\Worksheet
      */
-    protected $sourceData = null;
+    protected $worksheet = null;
 
     /**
-     * Read excel data
+     * Highest column for sheet
+     *
+     * @var int
+     */
+    protected $highestDataColumn = 0;
+
+    /**
+     * Highest row for sheet
+     *
+     * @var int
+     */
+    protected $highestDataRow = 0;
+
+    /**
+     * Current sheet row
+     *
+     * @var int
+     */
+    protected $currentRow = 1;
+
+    /**
+     * Rewind
+     */
+    public function rewind(): void
+    {
+        $this->currentRow = 1 + $this->skipRows;
+    }
+
+    /**
+     * Check if reach end of sheet
+     *
+     * @return bool
+     */
+    public function valid(): bool
+    {
+        return $this->currentRow <= $this->highestDataRow;
+    }
+
+    /**
+     * Current row number
+     *
+     * @return int|mixed
+     */
+    public function key(): int
+    {
+        return $this->currentRow;
+    }
+
+    /**
+     * Current sheet row as array
      *
      * @return array
      */
-    public function getSourceData(): array
+    public function current(): array
     {
-        // If was set for previous importer
-        if ($this->sourceData !== null) {
-            return $this->sourceData;
+        $row = [];
+        for ($col = 1; $col <= $this->highestDataColumn; $col++) {
+            $row[] = trim(
+                $this->worksheet->getCellByColumnAndRow($col, $this->currentRow)->getValue() ?? ''
+            );
+        }
+
+        return $row;
+    }
+
+    /**
+     * Next sheet row
+     */
+    public function next(): void
+    {
+        ++$this->currentRow;
+    }
+
+    /**
+     * Initialize
+     *
+     * @param array $configuration
+     */
+    public function initialize(array $configuration): void
+    {
+        parent::initialize($configuration);
+
+        if (isset($configuration['sheet'])) {
+            $this->sheet = (int)$configuration['sheet'];
+        }
+        if (!empty($configuration['skipRows'])) {
+            $this->skipRows = (int)$configuration['skipRows'];
         }
 
         if ($this->isSourceFilePathValid()) {
             $spreadsheet = IOFactory::load($this->getAbsoluteFilePath());
+
             if ($this->sheet >= 0) {
-                $worksheet = $spreadsheet->getSheet($this->sheet);
+                $this->worksheet = $spreadsheet->getSheet($this->sheet);
             } else {
-                $worksheet = $spreadsheet->getActiveSheet();
+                $this->worksheet = $spreadsheet->getActiveSheet();
             }
 
             // Garbage collect...
-            $worksheet->garbageCollect();
+            $this->worksheet->garbageCollect();
 
             // Identify the range that we need to extract from the worksheet
-            $maxCol = $worksheet->getHighestDataColumn();
-            $maxRow = $worksheet->getHighestDataRow();
-
-            $sourceData = $worksheet->rangeToArray('A1:' . $maxCol . $maxRow, '');
-            if ($this->skipRows > 0) {
-                $sourceData = array_slice($sourceData, $this->skipRows);
-            }
-
-            $this->emitSignal('sourceDataBeforeSet', [&$sourceData]);
-
-            $this->sourceData = $sourceData;
-            unset($sourceData);
-
-            return $this->sourceData;
+            $this->highestDataColumn = Coordinate::columnIndexFromString($this->worksheet->getHighestDataColumn());
+            $this->highestDataRow = $this->worksheet->getHighestDataRow();
+        } else {
+            throw new InvalidSourceFileException('Could not read data from source file "' . $this->filePath . '"');
         }
-
-        throw new InvalidSourceFileException('Could not read data from source file "' . $this->filePath . '"');
-    }
-
-    /**
-     * Read settings
-     *
-     * @param array $sourceSettings
-     */
-    protected function readSourceSettings(array $sourceSettings): void
-    {
-        if (isset($sourceSettings['sheet'])) {
-            $this->sheet = (int)$sourceSettings['sheet'];
-        }
-        if (!empty($sourceSettings['skipRows'])) {
-            $this->skipRows = (int)$sourceSettings['skipRows'];
-        }
-
-        $this->filePath = $sourceSettings['filePath'] ?? '';
     }
 }

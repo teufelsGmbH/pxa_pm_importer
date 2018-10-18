@@ -10,13 +10,33 @@ namespace Pixelant\PxaPmImporter\Adapter;
 class DefaultDataAdapter extends AbstractDefaultAdapter
 {
     /**
-     * Just return
+     * Convert source data according to mapping
      *
-     * @param array $data
+     * @param array $row
+     * @param int $languageUid
      * @return array
      */
-    protected function transformSourceData(array $data): array
+    public function adaptRow(array $row, int $languageUid): array
     {
-        return $data;
+        if (!isset($this->languagesMapping[$languageUid])) {
+            // @codingStandardsIgnoreStart
+            throw new \UnexpectedValueException('Mapping missing for language "' . $languageUid . '" in data adapter', 1536051135215);
+            // @codingStandardsIgnoreEnd
+        }
+        $mapping = $this->languagesMapping[$languageUid];
+        if (is_array($this->identifier)) {
+            $id = $this->getMultipleFieldData($this->identifier, $row);
+        } else {
+            $id = $this->getFieldData($this->identifier, $row);
+        }
+
+        $adaptedRow = [
+            'id' => $id
+        ];
+        foreach ($mapping as $fieldName => $column) {
+            $adaptedRow[$fieldName] = $this->getFieldData($column, $row);
+        }
+
+        return $adaptedRow;
     }
 }

@@ -15,13 +15,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 abstract class AbstractDefaultAdapter implements AdapterInterface
 {
     /**
-     * Adapted data for all lanugages
-     *
-     * @var array
-     */
-    protected $data = [];
-
-    /**
      * Identifier column
      *
      * @var mixed
@@ -50,56 +43,11 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     protected $filters = [];
 
     /**
-     * Adapt source data
-     *
-     * @param array $data
-     * @param array $configuration
-     */
-    public function adapt(array $data, array $configuration): void
-    {
-        $this->initialize($configuration);
-        $this->data = $this->adaptData(
-            $this->transformSourceData($data)
-        );
-    }
-
-    /**
-     * @return array
-     */
-    public function getData(): array
-    {
-        return $this->data;
-    }
-
-    /**
-     * @return array
-     */
-    public function getLanguages(): array
-    {
-        return array_keys($this->languagesMapping);
-    }
-
-    /**
-     * @param int $languageUid
-     * @return array
-     */
-    public function getLanguageData(int $languageUid): array
-    {
-        if (isset($this->data[$languageUid])) {
-            return $this->data[$languageUid];
-        }
-
-        // @codingStandardsIgnoreStart
-        throw new \UnexpectedValueException('Language with uid "' . $languageUid . '" doesn\'t have data in data adapter', 1536051135215);
-        // @codingStandardsIgnoreEnd
-    }
-
-    /**
      * Initialize default settings
      *
      * @param array $configuration
      */
-    protected function initialize(array $configuration): void
+    public function initialize(array $configuration): void
     {
         if (empty($configuration['mapping'])) {
             throw new \RuntimeException('Adapter mapping configuration is invalid.', 1536050678725);
@@ -167,6 +115,40 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     }
 
     /**
+     * Check if row should be excluded by filter
+     *
+     * @param array $dataRow
+     * @return boolean
+     */
+    public function includeRow(array $dataRow): bool
+    {
+        if (is_array($this->filters) && count($this->filters) > 0) {
+            foreach ($this->filters as $column => $filter) {
+                if (!empty($filter['filter'])) {
+                    $filterObject = GeneralUtility::makeInstance($filter['filter']);
+                    if (!($filterObject instanceof FilterInterface)) {
+                        // @codingStandardsIgnoreStart
+                        throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
+                        // @codingStandardsIgnoreEnd
+                    }
+                    if (!$filterObject->includeRow($column, $dataRow, $filter)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @return array
+     */
+    public function getImportLanguages(): array
+    {
+        return array_keys($this->languagesMapping);
+    }
+
+    /**
      * Get single field data from row
      *
      * @param $column
@@ -199,77 +181,4 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
 
         return $fieldData;
     }
-
-    /**
-     * Convert source data according to mapping
-     *
-     * @param array $data
-     * @return array
-     */
-    protected function adaptData(array $data): array
-    {
-        $adaptData = [];
-        // Prepare arrays with languages
-        foreach (array_keys($this->languagesMapping) as $languageUid) {
-            $adaptData[$languageUid] = [];
-        }
-
-        foreach ($data as $dataRow) {
-            if (is_array($this->identifier)) {
-                $id = $this->getMultipleFieldData($this->identifier, $dataRow);
-            } else {
-                $id = $this->getFieldData($this->identifier, $dataRow);
-            }
-
-            if ($this->includeRow($dataRow)) {
-                foreach ($this->languagesMapping as $language => $mapping) {
-                    $languageDataRow = [
-                        'id' => $id
-                    ];
-
-                    foreach ($mapping as $fieldName => $column) {
-                        $languageDataRow[$fieldName] = $this->getFieldData($column, $dataRow);
-                    }
-
-                    $adaptData[$language][] = $languageDataRow;
-                }
-            }
-        }
-
-        return $adaptData;
-    }
-
-    /**
-     * Check if row should be excluded by filter
-     *
-     * @param array $dataRow
-     * @return boolean
-     */
-    protected function includeRow(array $dataRow): bool
-    {
-        if (is_array($this->filters) && count($this->filters) > 0) {
-            foreach ($this->filters as $column => $filter) {
-                if (!empty($filter['filter'])) {
-                    $filterObject = GeneralUtility::makeInstance($filter['filter']);
-                    if (!($filterObject instanceof FilterInterface)) {
-                        // @codingStandardsIgnoreStart
-                        throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
-                        // @codingStandardsIgnoreEnd
-                    }
-                    if (!$filterObject->includeRow($column, $dataRow, $filter)) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Do final source raw data processing before adapting
-     *
-     * @param array $data
-     * @return array
-     */
-    abstract protected function transformSourceData(array $data): array;
 }

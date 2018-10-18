@@ -10,37 +10,38 @@ namespace Pixelant\PxaPmImporter\Adapter;
 interface AdapterInterface
 {
     /**
-     * Adapt raw data from source
+     * Initialize adapter
      *
-     * @param array $data Raw data from source
-     * @param array $configuration Adapter configuration
-     * @return array
+     * @param array $configuration
      */
-    public function adapt(array $data, array $configuration): void;
+    public function initialize(array $configuration): void;
 
     /**
-     * Get full adapted data for all languages
+     * Adapt single row
+     * Expect to return array with field name to value
      *
+     * ['name' => 'product 1', 'sku' => 123]
+     *
+     * @param array $row Row from source
+     * @param int $languageUid Current import language
      * @return array
      */
-    public function getData(): array;
+    public function adaptRow(array $row, int $languageUid): array;
 
     /**
-     * Language layer data
-     * [
-     *  'fieldName' => 'value',
-     *  'field2' => 'value2'
-     * ]
+     * Check if row should be included in import
      *
-     * @param int $languageUid
-     * @return array
+     * @param array $row
+     * @return bool
      */
-    public function getLanguageData(int $languageUid): array;
+    public function includeRow(array $row): bool;
 
     /**
-     * Array with UIDs of languages
+     * Array with UIDs of import languages
+     * Importer will iterate through each language
+     * and run import source data with language uid
      *
      * @return array
      */
-    public function getLanguages(): array;
+    public function getImportLanguages(): array;
 }
