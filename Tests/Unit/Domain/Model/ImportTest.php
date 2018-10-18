@@ -75,26 +75,6 @@ class ImportTest extends UnitTestCase
     /**
      * @test
      */
-    public function defaultLastExecutionIsNull()
-    {
-        $this->assertNull($this->subject->getLastExecution());
-    }
-
-    /**
-     * @test
-     */
-    public function lastExecutionCanBeSet()
-    {
-        $value = new \DateTime();
-
-        $this->subject->setLastExecution($value);
-
-        $this->assertSame($value, $this->subject->getLastExecution());
-    }
-
-    /**
-     * @test
-     */
     public function gettingConfigurationServiceTryToInitializeServiceFirstIfNull()
     {
         $this->subject->_setProperty('configurationService', null);

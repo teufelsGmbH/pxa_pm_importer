@@ -34,17 +34,6 @@ return [
                 ],
             ],
         ],
-        'last_execution' => [
-            'exclude' => true,
-            'l10n_mode' => 'mergeIfNotBlank',
-            'label' => 'LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_db.xlf:tx_pxapmimporter_domain_model_import.last_execution',
-            'config' => [
-                'type' => 'input',
-                'size' => 13,
-                'eval' => 'datetime',
-                'default' => 0,
-            ],
-        ],
         'name' => [
             'exclude' => true,
             'label' => 'LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_db.xlf:tx_pxapmimporter_domain_model_import.name',

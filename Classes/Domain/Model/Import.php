@@ -40,11 +40,6 @@ class Import extends AbstractEntity
     protected $localConfiguration = false;
 
     /**
-     * @var \DateTime|null
-     */
-    protected $lastExecution = null;
-
-    /**
      * @var \DateTime
      */
     protected $crdate = null;
@@ -84,22 +79,6 @@ class Import extends AbstractEntity
     public function setConfigurationPath(string $configurationPath): void
     {
         $this->configurationPath = $configurationPath;
-    }
-
-    /**
-     * @return \DateTime|null
-     */
-    public function getLastExecution(): ?\DateTime
-    {
-        return $this->lastExecution;
-    }
-
-    /**
-     * @param \DateTime|null $lastExecution
-     */
-    public function setLastExecution(\DateTime $lastExecution): void
-    {
-        $this->lastExecution = $lastExecution;
     }
 
     /**

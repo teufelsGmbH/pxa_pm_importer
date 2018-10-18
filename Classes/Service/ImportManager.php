@@ -87,10 +87,6 @@ class ImportManager
         }
 
         $this->emitSignal('afterImportExecute', [$import]);
-
-        // Set last execution time
-        $import->setLastExecution(new \DateTime());
-        $this->importRepository->update($import);
     }
 
     /**
