@@ -581,12 +581,11 @@ abstract class AbstractImporter implements ImporterInterface
     {
         // Tears down
         $processor->tearDown();
-        $processorData = [
+
+        $this->postponedProcessors[] = [
             'value' => $value,
             'processorInstance' => $processor
         ];
-
-        $this->postponedProcessors[] = $processorData;
     }
 
     /**

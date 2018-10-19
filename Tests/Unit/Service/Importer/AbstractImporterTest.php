@@ -347,52 +347,6 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function isDuplicatedIdentifierReturnFalseIfIdentifierNotMet()
-    {
-        $mockedCache = $this->createPartialMock(VariableFrontend::class, ['has', 'get', 'set']);
-        $this->inject($this->subject, 'runTimeCache', $mockedCache);
-
-        $mockedCache
-            ->expects($this->once())
-            ->method('has')
-            ->willReturn(true);
-
-        $mockedCache
-            ->expects($this->once())
-            ->method('get')
-            ->willReturn(['uniqueId', 'anotherId']);
-
-        $id = 'notMetId';
-
-        $this->assertFalse($this->subject->_call('isDuplicatedIdentifier', $id));
-    }
-
-    /**
-     * @test
-     */
-    public function isDuplicatedIdentifierReturnTrueIfIdentifierMet()
-    {
-        $mockedCache = $this->createPartialMock(VariableFrontend::class, ['has', 'get', 'set']);
-        $this->inject($this->subject, 'runTimeCache', $mockedCache);
-
-        $mockedCache
-            ->expects($this->once())
-            ->method('has')
-            ->willReturn(true);
-
-        $mockedCache
-            ->expects($this->once())
-            ->method('get')
-            ->willReturn(['uniqueId', 'anotherId']);
-
-        $id = 'anotherId';
-
-        $this->assertTrue($this->subject->_call('isDuplicatedIdentifier', $id));
-    }
-
-    /**
-     * @test
-     */
     public function setSettingWillSetSettingsFromConfigurationArray()
     {
         $settings = [
