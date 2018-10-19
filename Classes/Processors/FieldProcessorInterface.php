@@ -94,4 +94,11 @@ interface FieldProcessorInterface
      * @return bool
      */
     public function isPropertyRequired(): bool;
+
+    /**
+     * Tear down
+     *
+     * This is method called to reset object data
+     */
+    public function tearDown(): void;
 }

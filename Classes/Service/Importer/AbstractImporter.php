@@ -13,7 +13,6 @@ use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
@@ -118,13 +117,6 @@ abstract class AbstractImporter implements ImporterInterface
     protected $source = null;
 
     /**
-     * Runtime cache for single request
-     *
-     * @var \TYPO3\CMS\Core\Cache\Frontend\VariableFrontend
-     */
-    protected $runTimeCache = null;
-
-    /**
      * Array of import processor that should be run in postImport
      *
      * @var FieldProcessorInterface[]
@@ -153,7 +145,6 @@ abstract class AbstractImporter implements ImporterInterface
         $this->logger = $logger !== null ? $logger : Logger::getInstance(__CLASS__);
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
-        $this->runTimeCache = GeneralUtility::makeInstance(CacheManager::class)->getCache('cache_runtime');
     }
 
     /**
@@ -588,10 +579,14 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
     {
-        $this->postponedProcessors[] = [
+        // Tears down
+        $processor->tearDown();
+        $processorData = [
             'value' => $value,
             'processorInstance' => $processor
         ];
+
+        $this->postponedProcessors[] = $processorData;
     }
 
     /**
@@ -599,16 +594,39 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function executePostponedProcessors(): void
     {
+        $batchCount = 0;
         foreach ($this->postponedProcessors as $postponedProcessor) {
             $value = $postponedProcessor['value'];
             /** @var FieldProcessorInterface $processor */
             $processor = $postponedProcessor['processorInstance'];
+
+            $entityUid = (int)$processor->getProcessingDbRow()['uid'];
+            if ($entityUid === 0) {
+                // @codingStandardsIgnoreStart
+                throw new \UnexpectedValueException('Entity uid is not valid. Impossible to execute postponed processor', 1539935615795);// @codingStandardsIgnoreEnd
+            }
+
+            $record = BackendUtility::getRecord($this->dbTable, $entityUid);
+            $model = $this->mapRow($record);
+
+            // Re-init processor
+            $processor->init(
+                $model,
+                $record,
+                $processor->getProcessingProperty(),
+                $this,
+                $processor->getConfiguration()
+            );
 
             try {
                 $this->executeProcessor($processor, $value);
                 // Update again if something changed
                 if ($processor->getProcessingEntity()->_isDirty()) {
                     $this->repository->update($processor->getProcessingEntity());
+
+                    if ((++$batchCount % $this->batchSize) === 0) {
+                        $this->persistAndClear();
+                    }
                 }
             } catch (PostponeProcessorException $exception) {
                 $this->logger->error(
@@ -616,56 +634,8 @@ abstract class AbstractImporter implements ImporterInterface
                 );
             }
         }
-        unset($this->postponedProcessors);
         $this->postponedProcessors = [];
-    }
-
-    /**
-     * Check for duplicated identifiers in data
-     *
-     * @param string $identifier
-     * @return bool
-     */
-    protected function isDuplicatedIdentifier(string $identifier): bool
-    {
-        $cacheIdentifier = $this->getDuplicatedIdentifierCacheIdentifier();
-
-        // Get from cache or initialize
-        $identifiers = $this->runTimeCache->has($cacheIdentifier)
-            ? $this->runTimeCache->get($cacheIdentifier)
-            : [];
-        // Check if is duplicated
-        $isDuplicated = in_array($identifier, $identifiers);
-        if (!$isDuplicated) {
-            // Add to array
-            $identifiers[] = $identifier;
-            // Save to cache
-            $this->runTimeCache->set($cacheIdentifier, $identifiers);
-        }
-
-        unset($identifiers);
-
-        return $isDuplicated;
-    }
-
-    /**
-     * Reset runtime cache
-     *
-     * @param string $cacheIdentifier
-     */
-    protected function resetRunTimeCache(string $cacheIdentifier): void
-    {
-        $this->runTimeCache->set($cacheIdentifier, null);
-    }
-
-    /**
-     * Hold cache key for duplicated identifiers
-     *
-     * @return string
-     */
-    protected function getDuplicatedIdentifierCacheIdentifier(): string
-    {
-        return 'pxa_pm_importer_Identifiers';
+        $this->persistAndClear();
     }
 
     /**
@@ -678,9 +648,7 @@ abstract class AbstractImporter implements ImporterInterface
 
         foreach ($languages as $language) {
             // Reset duplicated identifiers for each language
-            $this->resetRunTimeCache(
-                $this->getDuplicatedIdentifierCacheIdentifier()
-            );
+            $identifiers = [];
             // One row per record
             foreach ($this->source as $rawRow) {
                 if (!$this->adapter->includeRow($rawRow)) {
@@ -689,11 +657,16 @@ abstract class AbstractImporter implements ImporterInterface
                 }
                 $row = $this->adapter->adaptRow($rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
-                if ($this->isDuplicatedIdentifier($id)) {
+                $idHash = $this->getImportIdHash($id);
+
+                // Check if is unique for import
+                if (in_array($idHash, $identifiers)) {
                     // @TODO maybe add some options what to do in this case?
                     $this->logger->error('Duplicated identifier found with value "' . $id . '"');
+                } else {
+                    $identifiers[] = $idHash;
                 }
-                $idHash = $this->getImportIdHash($id);
+
                 $isNew = false;
                 $record = $this->getRecordByImportIdHash($idHash, $language);
 
@@ -784,6 +757,12 @@ abstract class AbstractImporter implements ImporterInterface
                     // If reach batch size - persist
                     if ((++$batchCount % $this->batchSize) === 0) {
                         $this->persistAndClear();
+
+                        $this->logger->info(sprintf(
+                            'Memory usage after %d updates - %s',
+                            $batchCount,
+                            MainUtility::getMemoryUsage()
+                        ));
                     }
                 }
             }
@@ -791,7 +770,6 @@ abstract class AbstractImporter implements ImporterInterface
             $this->persistAndClear();
             // Execute postponed processors and persist again
             $this->executePostponedProcessors();
-            $this->persistenceManager->persistAll();
         }
     }
 

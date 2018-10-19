@@ -171,6 +171,17 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     }
 
     /**
+     * Tear down
+     */
+    public function tearDown(): void
+    {
+        $this->entity = null;
+        $this->validationErrors = [];
+        $this->dbRow = ['uid' => $this->dbRow['uid']]; // Leave only UID for later re-init of processor
+        $this->importer = null;
+    }
+
+    /**
      * Check if validation rule is in list
      *
      * @param string $rule
