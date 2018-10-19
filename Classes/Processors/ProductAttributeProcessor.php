@@ -198,8 +198,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
         // If not found, create one
         $time = time();
-        $buldInsert = GeneralUtility::makeInstance(BulkInsertHelper::class);
-        $buldInsert->addRow(
+        $bulkInsertHelper = $this->getBulkInsertHelper();
+        $bulkInsertHelper->addRow(
             'tx_pxaproductmanager_domain_model_attributevalue',
             [
                 'attribute' => $this->attribute->getUid(),
@@ -454,5 +454,13 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             )
             ->set($deleteField, 1)
             ->execute();
+    }
+
+    /**
+     * @return BulkInsertHelper
+     */
+    protected function getBulkInsertHelper(): BulkInsertHelper
+    {
+        return GeneralUtility::makeInstance(BulkInsertHelper::class);
     }
 }
