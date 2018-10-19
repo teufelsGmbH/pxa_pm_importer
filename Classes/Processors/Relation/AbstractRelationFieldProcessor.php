@@ -45,6 +45,15 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     }
 
     /**
+     * Tears down
+     */
+    public function tearDown(): void
+    {
+        parent::tearDown();
+        $this->entities = [];
+    }
+
+    /**
      * Add update object storage with import items, remove that items are not in a list
      *
      * @param ObjectStorage $storage

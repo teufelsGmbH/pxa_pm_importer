@@ -12,9 +12,6 @@
 			<trans-unit id="tx_pxapmimporter_domain_model_import.configuration_path">
 				<source>Configuration file provided by extensions importers</source>
 			</trans-unit>
-			<trans-unit id="tx_pxapmimporter_domain_model_import.last_execution">
-			    <source>Last execution</source>
-			</trans-unit>
 			<trans-unit id="tx_pxapmimporter_domain_model_import.configuration_path.select">
 			    <source>Select...</source>
 			</trans-unit>
