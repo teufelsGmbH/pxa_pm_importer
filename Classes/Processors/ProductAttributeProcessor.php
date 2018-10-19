@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
+use Pixelant\PxaPmImporter\Processors\Helpers\BulkInsertHelper;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
@@ -196,16 +197,22 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         }
 
         // If not found, create one
-        /** @var AttributeValue $attributeValue */
-        $attributeValue = $this->objectManager->get(AttributeValue::class);
-        $attributeValue->setValue($value);
-        $attributeValue->setAttribute($this->attribute);
-        $attributeValue->setPid($this->importer->getPid());
-        if ((int)$this->dbRow['sys_language_uid'] > 0) {
-            $attributeValue->_setProperty('_languageUid', (int)$this->dbRow['sys_language_uid']);
-        }
-
-        $this->entity->addAttributeValue($attributeValue);
+        $time = time();
+        $bulkInsertHelper = $this->getBulkInsertHelper();
+        $bulkInsertHelper->addRow(
+            'tx_pxaproductmanager_domain_model_attributevalue',
+            [
+                'attribute' => $this->attribute->getUid(),
+                'product' => intval($this->dbRow['uid']),
+                'value' => $value,
+                'tstamp' => $time,
+                'crdate' => $time,
+                'pid' => $this->importer->getPid(),
+                't3_origuid' => 0,
+                'l10n_parent' => 0,
+                'sys_language_uid' => intval($this->dbRow['sys_language_uid'])
+            ]
+        );
     }
 
     /**
@@ -447,5 +454,13 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             )
             ->set($deleteField, 1)
             ->execute();
+    }
+
+    /**
+     * @return BulkInsertHelper
+     */
+    protected function getBulkInsertHelper(): BulkInsertHelper
+    {
+        return GeneralUtility::makeInstance(BulkInsertHelper::class);
     }
 }

@@ -7,6 +7,7 @@ use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
+use Pixelant\PxaPmImporter\Processors\Helpers\BulkInsertHelper;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
@@ -154,7 +155,7 @@ class ProductAttributeProcessorTest extends UnitTestCase
 
         $subject = $this->getAccessibleMock(
             ProductAttributeProcessor::class,
-            ['getAttributeValue'],
+            ['getAttributeValue', 'getBulkInsertHelper'],
             [],
             '',
             false
@@ -164,6 +165,10 @@ class ProductAttributeProcessorTest extends UnitTestCase
             ->expects($this->once())
             ->method('getAttributeValue')
             ->willReturn($attributeValue);
+
+        $subject
+            ->expects($this->never())
+            ->method('getBulkInsertHelper');
 
         $newValue = 'Super new value';
 
@@ -179,41 +184,40 @@ class ProductAttributeProcessorTest extends UnitTestCase
     {
         $subject = $this->getAccessibleMock(
             ProductAttributeProcessor::class,
-            ['getAttributeValue'],
+            ['getAttributeValue', 'getBulkInsertHelper'],
             [],
             '',
             false
         );
-        $attributeValue = new AttributeValue();
+
         $attribute = new Attribute();
-        $dbRow = ['sys_language_uid' => 0];
-
-        $objectManager = $this->createPartialMock(ObjectManager::class, ['get']);
-        $objectManager
-            ->expects($this->once())
-            ->method('get')
-            ->willReturn($attributeValue);
-
+        $dbRow = ['uid' => 1, 'sys_language_uid' => 0];
 
         $entity = new Product();
 
+        $mockedBulkInsert = $this->createPartialMock(BulkInsertHelper::class, ['addRow']);
+        $mockedBulkInsert
+            ->expects($this->once())
+            ->method('addRow');
+
         $subject
             ->expects($this->once())
-            ->method('getAttributeValue');
+            ->method('getAttributeValue')
+            ->willReturn(null);
+
+        $subject
+            ->expects($this->once())
+            ->method('getBulkInsertHelper')
+            ->willReturn($mockedBulkInsert);
+
+
 
         $this->inject($subject, 'entity', $entity);
-        $this->inject($subject, 'objectManager', $objectManager);
         $this->inject($subject, 'attribute', $attribute);
         $this->inject($subject, 'dbRow', $dbRow);
         $this->inject($subject, 'importer', $this->createMock(ImporterInterface::class));
 
-        $newValue = 'Super new value';
 
-        $subject->_call('updateAttributeValue', $newValue);
-
-        $attributeValues = $subject->_get('entity')->getAttributeValues();
-        $this->assertCount(1, $attributeValues);
-        $attributeValues->rewind();
-        $this->assertSame($attributeValue, $attributeValues->current());
+        $subject->_call('updateAttributeValue', 'New value');
     }
 }
