@@ -168,6 +168,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:
                 $this->updateAttributeFilesReference($value);
+                $attributeValues[$this->attribute->getUid()] = (string)$value;
                 break;
             default:
                 // @codingStandardsIgnoreStart
@@ -175,9 +176,9 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             // @codingStandardsIgnoreEnd
         }
 
+        $this->entity->setSerializedAttributesValues(serialize($attributeValues));
         // We don't need to save value for fal attribute, since fal reference is already set
         if (false === $this->attribute->isFalType()) {
-            $this->entity->setSerializedAttributesValues(serialize($attributeValues));
             $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
         }
     }
