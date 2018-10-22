@@ -108,6 +108,17 @@ class BulkInsertHelper implements SingletonInterface
     }
 
     /**
+     * Check if data is set for given table
+     *
+     * @param string $table
+     * @return bool
+     */
+    public function hasTableData(string $table): bool
+    {
+        return isset($this->insertRows[$table]);
+    }
+
+    /**
      * Flush data for single table
      *
      * @param string $table

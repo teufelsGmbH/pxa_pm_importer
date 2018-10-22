@@ -62,7 +62,7 @@ class ProductsImporter extends AbstractImporter
 
         // Persist attribute values after each product
         $bulkInsert = GeneralUtility::makeInstance(BulkInsertHelper::class);
-        if ($result) {
+        if ($result && $bulkInsert->hasTableData('tx_pxaproductmanager_domain_model_attributevalue')) {
             $bulkInsert->setTypes(
                 'tx_pxaproductmanager_domain_model_attributevalue',
                 [
