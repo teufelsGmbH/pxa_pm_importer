@@ -153,4 +153,30 @@ class BulkInsertHelperTest extends UnitTestCase
         $this->assertEmpty($this->readAttribute($subject, 'insertRows'));
         $this->assertEmpty($this->readAttribute($subject, 'insertFields'));
     }
+
+    /**
+     * @test
+     */
+    public function hasTableDataReturnFalseIfNoData()
+    {
+        $subject = new BulkInsertHelper();
+        $tableName = 'sys_test';
+        
+        $this->assertFalse($subject->hasTableData($tableName));
+    }
+
+    /**
+     * @test
+     */
+    public function hasTableDataReturnTrueIfDataFound()
+    {
+        $subject = new BulkInsertHelper();
+        $tableName = 'sys_test';
+
+        $row = ['field1' => 123, 'field2' => 'test'];
+
+        $subject->addRow($tableName, $row);
+
+        $this->assertTrue($subject->hasTableData($tableName));
+    }
 }

@@ -86,7 +86,10 @@ importers:
     identifierField: 'id'
     # Import storage
     pid: 136
-
+    
+    # Shall we create an independent language layer record if parent record doesn't exist
+    allowCreateLocalizationIfDefaultNotFound: false
+    
     # Mapping fields, data adapter should return array with associative array
     mapping:
       title:
@@ -163,6 +166,10 @@ mapping:
 identifierField: 'id'
 # Import storage
 pid: 136
+
+# Shall we create an independent language layer record if parent record doesn't exist
+allowCreateLocalizationIfDefaultNotFound: false
+
 # Mapping fields, data adapter should return array with associative array
 # Importer settings
 settings:

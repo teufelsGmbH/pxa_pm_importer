@@ -39,6 +39,9 @@ importers:
     # Storage
     pid: 136
 
+    # Shall we create an independent language layer record if parent record doesn't exist
+    allowCreateLocalizationIfDefaultNotFound: false
+
     # Mapping fields, data adapter should return array with associative array
     mapping:
       name:

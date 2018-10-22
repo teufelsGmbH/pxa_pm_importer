@@ -33,6 +33,13 @@ abstract class AbstractImporter implements ImporterInterface
     use EmitSignalTrait;
 
     /**
+     * Localization statutes
+     */
+    const LOCALIZATION_FAILED = -1;
+    const LOCALIZATION_SUCCESS = 1;
+    const LOCALIZATION_DEFAULT_NOT_FOUND = 0;
+
+    /**
      * @var AdapterInterface
      */
     protected $adapter = null;
@@ -53,6 +60,14 @@ abstract class AbstractImporter implements ImporterInterface
      * @var string
      */
     protected $identifier = 'id';
+
+    /**
+     * This flag allow/disallow create record with language uid > 0
+     * in case parent record was not found
+     *
+     * @var bool
+     */
+    protected $allowCreateLocalizationIfDefaultNotFound = false;
 
     /**
      * Storage
@@ -184,7 +199,10 @@ abstract class AbstractImporter implements ImporterInterface
         $this->setMapping($configuration);
         $this->setSettings($configuration);
         $this->pid = (int)($configuration['pid'] ?? 0);
-
+        if (isset($configuration['allowCreateLocalizationIfDefaultNotFound'])) {
+            $this->allowCreateLocalizationIfDefaultNotFound =
+                (bool)$configuration['allowCreateLocalizationIfDefaultNotFound'];
+        }
         if (BackendUtility::getRecord('pages', $this->pid, 'uid') === null) {
             throw new \RuntimeException('Storage with UID "' . $this->pid . '" doesn\'t exist', 1536310162347);
         }
@@ -533,7 +551,7 @@ abstract class AbstractImporter implements ImporterInterface
                     $this->logger->error($error);
                 }
 
-                return -1;
+                return self::LOCALIZATION_FAILED;
             }
             $this->logger->info(sprintf(
                 'Successfully localized record UID "%s" for language "%s"',
@@ -541,7 +559,7 @@ abstract class AbstractImporter implements ImporterInterface
                 $language
             ));
             // Assuming we are success
-            return 1;
+            return self::LOCALIZATION_SUCCESS;
         }
 
         $this->logger->info(sprintf(
@@ -550,7 +568,7 @@ abstract class AbstractImporter implements ImporterInterface
             $language
         ));
 
-        return 0;
+        return self::LOCALIZATION_DEFAULT_NOT_FOUND;
     }
 
     /**
@@ -672,16 +690,21 @@ abstract class AbstractImporter implements ImporterInterface
                 // Try to create localization if doesn't exist
                 if ($record === null && $language > 0) {
                     // Try to localize
-                    $localizeStatus = $this->handleLocalization($idHash, $language);
-                    // Failed, skip record
-                    if ($localizeStatus === -1) {
-                        $this->logger->error('Could not localize record with import id "' . $id . '"');
-                        continue;
-                    }
-                    // If localization was created, fetch it,
-                    // otherwise it'll create independent record
-                    if ($localizeStatus === 1) {
-                        $record = $this->getRecordByImportIdHash($idHash, $language);
+                    switch ($this->handleLocalization($idHash, $language)) {
+                        case self::LOCALIZATION_FAILED:
+                            // Failed, skip record
+                            $this->logger->error('Could not localize record with import id "' . $id . '"');
+                            continue;
+                        case self::LOCALIZATION_SUCCESS:
+                            // If localization was created, fetch it.
+                            $record = $this->getRecordByImportIdHash($idHash, $language);
+                            break;
+                        case self::LOCALIZATION_DEFAULT_NOT_FOUND:
+                            if (false === $this->allowCreateLocalizationIfDefaultNotFound) {
+                                // Skip if creation without default record is not allowed
+                                continue;
+                            }
+                            break;
                     }
                 }
 
