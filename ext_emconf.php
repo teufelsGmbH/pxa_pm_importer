@@ -8,10 +8,10 @@ $EM_CONF[$_EXTKEY] = [
     'author_email' => 'andriy.oprysko@resultify.se',
     'state' => 'beta',
     'clearCacheOnLoad' => true,
-    'version' => '1.4.2',
+    'version' => '1.4.3',
     'constraints' => [
         'depends' => [
-            'typo3' => '8.7-9.4.99',
+            'typo3' => '8.7-9.5.99',
             'pxa_product_manager' => ''
         ],
         'conflicts' => [],
