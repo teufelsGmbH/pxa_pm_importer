@@ -12,11 +12,13 @@ class DefaultDataAdapter extends AbstractDefaultAdapter
     /**
      * Convert source data according to mapping
      *
+     * @param mixed $key
      * @param array $row
      * @param int $languageUid
      * @return array
+     * @throws \Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping
      */
-    public function adaptRow(array $row, int $languageUid): array
+    public function adaptRow($key, array $row, int $languageUid): array
     {
         if (!isset($this->languagesMapping[$languageUid])) {
             // @codingStandardsIgnoreStart
