@@ -66,7 +66,7 @@ class DefaultDataAdapterTest extends UnitTestCase
     public function adaptRowForNonExistingLanguageThrowsException()
     {
         $this->expectException(\UnexpectedValueException::class);
-        $this->subject->adaptRow([], 111);
+        $this->subject->adaptRow(0, [], 111);
     }
 
     /**
@@ -311,7 +311,7 @@ class DefaultDataAdapterTest extends UnitTestCase
         ];
 
         $this->subject->initialize($configuration);
-        $this->assertEquals($expect, $this->subject->adaptRow($row, $language));
+        $this->assertEquals($expect, $this->subject->adaptRow(0, $row, $language));
     }
 
     /**
@@ -511,7 +511,7 @@ class DefaultDataAdapterTest extends UnitTestCase
 
 
         $this->subject->initialize($configuration);
-        $this->assertEquals($expect, $this->subject->adaptRow($row, $language));
+        $this->assertEquals($expect, $this->subject->adaptRow(0, $row, $language));
     }
 
     /**

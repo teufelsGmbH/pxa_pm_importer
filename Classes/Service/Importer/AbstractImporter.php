@@ -667,12 +667,12 @@ abstract class AbstractImporter implements ImporterInterface
             // Reset duplicated identifiers for each language
             $identifiers = [];
             // One row per record
-            foreach ($this->source as $rawRow) {
+            foreach ($this->source as $key => $rawRow) {
                 if (!$this->adapter->includeRow($rawRow)) {
                     // Skip
                     continue;
                 }
-                $row = $this->adapter->adaptRow($rawRow, $language);
+                $row = $this->adapter->adaptRow($key, $rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
                 $idHash = $this->getImportIdHash($id);
 
