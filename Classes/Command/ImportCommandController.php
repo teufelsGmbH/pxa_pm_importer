@@ -38,11 +38,50 @@ class ImportCommandController extends CommandController
     /**
      * Import main task
      *
-     * @param int $importUid Import configuration uid
+     * @param string $importUids Import configuration uids list
      * @param string $email Notify about import errors
      * @param string $senderEmail Sender email
      */
-    public function importCommand(int $importUid, string $email = '', string $senderEmail = ''): void
+    public function importCommand(string $importUids, string $email = '', string $senderEmail = ''): void
+    {
+        foreach (GeneralUtility::intExplode(',', $importUids, true) as $importUid) {
+            $this->import($importUid, $email, $senderEmail);
+        }
+    }
+
+    /**
+     * Send email
+     *
+     * @param string $receiver
+     * @param string $sender
+     * @param array $body
+     */
+    private function sendEmail(string $receiver, string $sender, array $body): void
+    {
+        $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
+        $mailMessage
+            ->setTo([$receiver])
+            ->setSubject($this->translate('be.mail.error_subject'))
+            ->setBody(
+                implode('<br />', $body),
+                'text/html'
+            );
+        if ($sender !== '') {
+            $mailMessage->setFrom($sender);
+        }
+
+        $mailMessage->send();
+    }
+
+    /**
+     * Run single import
+     *
+     * @param int $importUid
+     * @param string $email
+     * @param string $senderEmail
+     * @throws \Exception
+     */
+    private function import(int $importUid, string $email, string $senderEmail): void
     {
         try {
             $importManager = GeneralUtility::makeInstance(
@@ -103,29 +142,5 @@ class ImportCommandController extends CommandController
 
             throw $exception;
         }
-    }
-
-    /**
-     * Send email
-     *
-     * @param string $receiver
-     * @param string $sender
-     * @param array $body
-     */
-    protected function sendEmail(string $receiver, string $sender, array $body): void
-    {
-        $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
-        $mailMessage
-            ->setTo([$receiver])
-            ->setSubject($this->translate('be.mail.error_subject'))
-            ->setBody(
-                implode('<br />', $body),
-                'text/html'
-            );
-        if ($sender !== '') {
-            $mailMessage->setFrom($sender);
-        }
-
-        $mailMessage->send();
     }
 }
