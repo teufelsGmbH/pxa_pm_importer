@@ -13,9 +13,10 @@ interface FilterInterface
      * Check if row in data adapter should be included
      *
      * @param mixed $column Column identifier
+     * @param mixed $key Row data key
      * @param array $rowData Raw data from source
      * @param array $configuration Filter configuration
      * @return bool
      */
-    public function includeRow($column, array $rowData, array $configuration): bool;
+    public function includeRow($column, $key, array $rowData, array $configuration): bool;
 }
