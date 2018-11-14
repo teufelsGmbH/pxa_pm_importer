@@ -8,6 +8,7 @@ return [
         'cruser_id' => 'cruser_id',
         'versioningWS' => false,
         'delete' => 'deleted',
+        'sortby' => 'sorting',
         'enablecolumns' => [
             'disabled' => 'hidden'
         ],
