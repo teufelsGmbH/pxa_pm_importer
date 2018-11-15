@@ -668,7 +668,7 @@ abstract class AbstractImporter implements ImporterInterface
             $identifiers = [];
             // One row per record
             foreach ($this->source as $key => $rawRow) {
-                if (!$this->adapter->includeRow($rawRow)) {
+                if (!$this->adapter->includeRow($key, $rawRow)) {
                     // Skip
                     continue;
                 }

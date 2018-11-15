@@ -51,6 +51,7 @@ class StringEqualsFilterTest extends UnitTestCase
 
         $this->assertTrue($this->subject->includeRow(
             $column,
+            'dummy_key',
             $this->rowData,
             $configuration
         ));
@@ -68,6 +69,7 @@ class StringEqualsFilterTest extends UnitTestCase
 
         $this->assertTrue($this->subject->includeRow(
             $column,
+            'dummy_key',
             $this->rowData,
             $configuration
         ));
@@ -85,6 +87,7 @@ class StringEqualsFilterTest extends UnitTestCase
 
         $this->assertTrue($this->subject->includeRow(
             $column,
+            'dummy_key',
             $this->rowData,
             $configuration
         ));
@@ -102,6 +105,7 @@ class StringEqualsFilterTest extends UnitTestCase
 
         $this->assertTrue($this->subject->includeRow(
             $column,
+            'dummy_key',
             $this->rowData,
             $configuration
         ));
@@ -119,6 +123,7 @@ class StringEqualsFilterTest extends UnitTestCase
 
         $this->assertFalse($this->subject->includeRow(
             $column,
+            'dummy_key',
             $this->rowData,
             $configuration
         ));
@@ -135,7 +140,7 @@ class StringEqualsFilterTest extends UnitTestCase
         ];
 
         $this->expectException(InvalidAdapterFilterColumn::class);
-        $this->subject->includeRow($column, $this->rowData, $configuration);
+        $this->subject->includeRow($column, 'dummy_key', $this->rowData, $configuration);
     }
 
     /**
@@ -147,6 +152,6 @@ class StringEqualsFilterTest extends UnitTestCase
         $configuration = [];
 
         $this->expectException(InvalidAdapterFilterValue::class);
-        $this->subject->includeRow($column, $this->rowData, $configuration);
+        $this->subject->includeRow($column, 'dummy_key', $this->rowData, $configuration);
     }
 }

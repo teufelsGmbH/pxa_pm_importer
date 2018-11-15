@@ -117,10 +117,11 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     /**
      * Check if row should be excluded by filter
      *
+     * @param mixed $key Row key
      * @param array $dataRow
      * @return boolean
      */
-    public function includeRow(array $dataRow): bool
+    public function includeRow($key, array $dataRow): bool
     {
         if (is_array($this->filters) && count($this->filters) > 0) {
             foreach ($this->filters as $column => $filter) {
@@ -131,7 +132,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
                         throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
                         // @codingStandardsIgnoreEnd
                     }
-                    if (!$filterObject->includeRow($column, $dataRow, $filter)) {
+                    if (!$filterObject->includeRow($column, $key, $dataRow, $filter)) {
                         return false;
                     }
                 }

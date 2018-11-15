@@ -343,7 +343,7 @@ class DefaultDataAdapterTest extends UnitTestCase
         ];
 
         $this->subject->initialize($configuration);
-        $this->assertEquals($expect, $this->subject->includeRow($row));
+        $this->assertEquals($expect, $this->subject->includeRow('dummy_key', $row));
     }
 
     /**
@@ -383,7 +383,7 @@ class DefaultDataAdapterTest extends UnitTestCase
         ];
 
         $this->subject->initialize($configuration);
-        $this->assertEquals($expect, $this->subject->includeRow($row));
+        $this->assertEquals($expect, $this->subject->includeRow('dummy_key', $row));
     }
 
     /**
@@ -429,7 +429,7 @@ class DefaultDataAdapterTest extends UnitTestCase
 
         $this->subject->initialize($configuration);
         $this->expectException(\Error::class);
-        $this->subject->includeRow($row);
+        $this->subject->includeRow('dummy_key', $row);
     }
 
     /**
@@ -476,7 +476,7 @@ class DefaultDataAdapterTest extends UnitTestCase
         $this->subject->initialize($configuration);
         $this->expectException(\UnexpectedValueException::class);
         $this->expectExceptionCode(1538142318);
-        $this->subject->includeRow($row);
+        $this->subject->includeRow('dummy_key', $row);
     }
 
     /**

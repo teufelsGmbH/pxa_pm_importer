@@ -32,10 +32,11 @@ interface AdapterInterface
     /**
      * Check if row should be included in import
      *
+     * @param mixed $key Row key
      * @param array $row
      * @return bool
      */
-    public function includeRow(array $row): bool;
+    public function includeRow($key, array $row): bool;
 
     /**
      * Array with UIDs of import languages
