@@ -1,7 +1,8 @@
 define(['jquery'], function ($) {
 	var ImportModule = {
 		selectors: {
-			'importSubmit': '#pxa-pm-import-submit'
+			'importSubmit': '#pxa-pm-import-submit',
+			'parentWrapper': '.pxa-pm-importer'
 		}
 	};
 
@@ -18,6 +19,8 @@ define(['jquery'], function ($) {
 	ImportModule.submitButtonInit = function () {
 		$(this.getElementSelector('importSubmit')).on('click', function () {
 			$(this).button('loading');
+			var parentWrapper = $(this).closest(ImportModule.getElementSelector('parentWrapper'));
+			parentWrapper.addClass('loading');
 		})
 	};
 
