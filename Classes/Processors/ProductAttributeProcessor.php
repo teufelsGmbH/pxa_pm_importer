@@ -160,10 +160,9 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 $attributeValues[$this->attribute->getUid()] = (string)$value;
                 break;
             case Attribute::ATTRIBUTE_TYPE_DATETIME:
-                $value = empty($value)
+                $attributeValues[$this->attribute->getUid()] = empty($value)
                     ? ''
-                    : $this->parseDateTime($value);
-                $attributeValues[$this->attribute->getUid()] = $value->format('Y-m-d\TH:i:s\Z');
+                    : $this->parseDateTime($value)->format('Y-m-d\TH:i:s\Z');
                 break;
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:

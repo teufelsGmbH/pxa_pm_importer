@@ -8,6 +8,7 @@ use Pixelant\PxaPmImporter\Processors\Helpers\BulkInsertHelper;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\ProductRepository;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
@@ -78,6 +79,16 @@ class ProductsImporter extends AbstractImporter
                 ]
             );
             $bulkInsert->persistBulkInsert('tx_pxaproductmanager_domain_model_attributevalue');
+
+            // Update product attribute_values field
+            GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getConnectionForTable($this->dbTable)
+                ->update(
+                    $this->dbTable,
+                    ['attribute_values' => 1],
+                    ['uid' => (int)$record['uid']],
+                    [\PDO::PARAM_INT]
+                );
         } else {
             $bulkInsert->flushTable('tx_pxaproductmanager_domain_model_attributevalue');
         }

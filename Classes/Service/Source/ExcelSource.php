@@ -94,7 +94,7 @@ class ExcelSource extends AbstractFileSource
         $row = [];
         for ($col = 1; $col <= $this->highestDataColumn; $col++) {
             $row[] = trim(
-                $this->worksheet->getCellByColumnAndRow($col, $this->currentRow)->getValue() ?? ''
+                (string)($this->worksheet->getCellByColumnAndRow($col, $this->currentRow)->getValue() ?? '')
             );
         }
 
