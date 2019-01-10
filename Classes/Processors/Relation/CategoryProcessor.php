@@ -20,10 +20,11 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
      * Set categories
      *
      * @param mixed $value
+     * @return array
      */
-    protected function initEntities($value): void
+    protected function initEntities($value): array
     {
-        $this->entities = []; // Reset, important for PostponeProcessorException
+        $entities = [];
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
@@ -38,12 +39,14 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
             }
 
             if (isset($model) && is_object($model)) {
-                $this->entities[] = $model;
+                $entities[] = $model;
             } else {
                 // @codingStandardsIgnoreStart
                 throw new PostponeProcessorException('Category with id "' . $identifier . '" not found.', 1536148407513);
                 // @codingStandardsIgnoreEnd
             }
         }
+
+        return $entities;
     }
 }

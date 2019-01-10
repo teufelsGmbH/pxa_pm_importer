@@ -28,10 +28,11 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
      * Set options
      *
      * @param mixed $value
+     * @return array
      */
-    public function initEntities($value): void
+    public function initEntities($value): array
     {
-        $this->entities = []; // Reset
+        $entities = [];
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
@@ -76,12 +77,14 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
             }
 
             if (isset($model) && is_object($model)) {
-                $this->entities[] = $model;
+                $entities[] = $model;
             } else {
                 $this->failedCreateOptions = true;
                 $this->addError('Failed to create option with value "' . $identifier . '"');
             }
         }
+
+        return $entities;
     }
 
     /**
