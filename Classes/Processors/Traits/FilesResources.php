@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Traits;
 
+use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\Folder;
@@ -94,9 +95,10 @@ trait FilesResources
      *
      * @param Folder $folder
      * @param string $list
+     * @param Logger|null $logger
      * @return File[]
      */
-    protected function collectFilesFromList(Folder $folder, string $list): array
+    protected function collectFilesFromList(Folder $folder, string $list, Logger $logger = null): array
     {
         $storage = $this->getStorage();
 
@@ -111,8 +113,8 @@ trait FilesResources
 
             if ($storage->hasFile($fileIdentifier)) {
                 $files[] = $storage->getFile($fileIdentifier);
-            } else {
-                $this->logger->error(sprintf(
+            } elseif ($logger !== null) {
+                $logger->error(sprintf(
                     'File "%s" doesn\'t exist',
                     $fileIdentifier
                 ));

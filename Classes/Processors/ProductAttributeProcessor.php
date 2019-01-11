@@ -236,7 +236,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      * @param string $value
      * @return \DateTime|null
      */
-    protected function parseDateTime(string $value)
+    protected function parseDateTime(string $value): ?\DateTime
     {
         if (!empty($this->configuration['dateFormat'])) {
             $date = \DateTime::createFromFormat($this->configuration['dateFormat'], $value);
@@ -318,7 +318,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         }
 
         $attributeFiles = [];
-        foreach ($this->collectFilesFromList($folder, $value) as $file) {
+        foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
             $attributeFiles[] = $this->createFileReference(
                 $file,
                 $this->entity->getUid(),

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Traits;
 
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
+use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -27,25 +27,39 @@ trait InitRelationEntities
     protected function initEntitiesForTable(
         string $value,
         string $table,
-        string $model,
-        \Closure $createNewRecord = null
+        string $model
     ): array {
         $entities = [];
         $value = GeneralUtility::trimExplode(',', $value, true);
 
         foreach ($value as $identifier) {
-            $record = $this->treatIdentifierAsUid()
-                ? BackendUtility::getRecord($table, $identifier)
-                : $this->getRecordByImportIdentifier($identifier, $table);
+            // If identifier is UID from DB
+            if ($this->treatIdentifierAsUid()) {
+                $record = BackendUtility::getRecord($table, $identifier);
+            } else {
+                // If not uid find by import hash
+                $record = $this->getRecordByImportIdentifier($identifier, $table);
+                // If nothing found try to create?
+                if ($record === null && method_exists($this, 'createNewEntity')) {
+                    $this->createNewEntity($identifier);
+                    $record = $this->getRecordByImportIdentifier($identifier, $table);
+                }
+            }
+
             if ($record !== null) {
                 $model = MainUtility::convertRecordArrayToModel($record, $model);
             }
+
             if (isset($model) && is_object($model)) {
                 $entities[] = $model;
             } else {
-                // @codingStandardsIgnoreStart
-                throw new PostponeProcessorException('Product with id "' . $identifier . '" not found.', 1536148407513);
-                // @codingStandardsIgnoreEnd
+                $failedInitEntityException = new FailedInitEntityException(
+                    'Could not find entity record for identifier "' . $identifier . '".',
+                    1547189793000
+                );
+                $failedInitEntityException->setIdentifier($identifier);
+
+                throw $failedInitEntityException;
             }
         }
 

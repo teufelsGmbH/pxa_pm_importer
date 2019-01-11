@@ -35,7 +35,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
             return [];
         }
 
-        foreach ($this->collectFilesFromList($folder, $value) as $file) {
+        foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
             $entities[] = $this->createFileReference(
                 $file,
                 $this->entity->getUid(),

@@ -23,6 +23,13 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     protected $entities = [];
 
     /**
+     * Flag if init entities failed and validion result should be false
+     *
+     * @var bool
+     */
+    protected $failedInit = false;
+
+    /**
      * Call init entities method
      *
      * @param mixed $value
@@ -45,6 +52,21 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
                 );
             }
         }
+    }
+
+    /**
+     * Validation
+     *
+     * @param $value
+     * @return bool
+     */
+    public function isValid($value): bool
+    {
+        if ($this->failedInit) {
+            return false;
+        }
+
+        return parent::isValid($value);
     }
 
     /**
