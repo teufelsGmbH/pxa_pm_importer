@@ -18,13 +18,13 @@ trait UpdateRelationProperty
     /**
      * Add update object storage with import items, remove that items are not in a list
      *
-     * @param AbstractEntity $entity
+     * @param AbstractEntity $processingEntity
      * @param string $property
      * @param ObjectStorage $storage
      * @param AbstractEntity[] $importEntities
      */
     protected function updateObjectStorage(
-        AbstractEntity $entity,
+        AbstractEntity $processingEntity,
         string $property,
         ObjectStorage $storage,
         array $importEntities
@@ -36,7 +36,7 @@ trait UpdateRelationProperty
                 $newStorage->attach($entity);
             }
 
-            ObjectAccess::setProperty($entity, $property, $newStorage);
+            ObjectAccess::setProperty($processingEntity, $property, $newStorage);
         }
     }
 
@@ -49,22 +49,37 @@ trait UpdateRelationProperty
      */
     protected function doesStorageDiff(ObjectStorage $objectStorage, array $entities): bool
     {
-        $diff = array_diff(
-            array_map(
-                function ($item) {
-                    return $this->getEntityUidForCompare($item);
-                },
-                $objectStorage->toArray()
-            ),
-            array_map(
-                function ($item) {
-                    return $this->getEntityUidForCompare($item);
-                },
-                $entities
-            )
+        $storageUids = array_map(
+            function ($item) {
+                return $this->getEntityUidForCompare($item);
+            },
+            $objectStorage->toArray()
+        );
+        $entitiesUids = array_map(
+            function ($item) {
+                return $this->getEntityUidForCompare($item);
+            },
+            $entities
         );
 
-        return !empty($diff);
+        // If different count then differs
+        if (count($storageUids) !== count($entitiesUids)) {
+            return true;
+        }
+
+        // Since it has only integer uids, sort it and compare
+        sort($storageUids, SORT_NUMERIC);
+        sort($entitiesUids, SORT_NUMERIC);
+
+        // If at least one entity has different UID storage need to be updated
+        foreach ($storageUids as $key => $uid) {
+            if ($uid !== $entitiesUids[$key]) {
+                return true;
+            }
+        }
+
+        // Storage and import array has same entities
+        return false;
     }
 
     /**

@@ -21,13 +21,13 @@ trait InitRelationEntities
      *
      * @param string $value
      * @param string $table
-     * @param string $model
+     * @param string $domainModelClassName
      * @return AbstractEntity[]
      */
     protected function initEntitiesForTable(
         string $value,
         string $table,
-        string $model
+        string $domainModelClassName
     ): array {
         $entities = [];
         $value = GeneralUtility::trimExplode(',', $value, true);
@@ -47,7 +47,7 @@ trait InitRelationEntities
             }
 
             if ($record !== null) {
-                $model = MainUtility::convertRecordArrayToModel($record, $model);
+                $model = MainUtility::convertRecordArrayToModel($record, $domainModelClassName);
             }
 
             if (isset($model) && is_object($model)) {
