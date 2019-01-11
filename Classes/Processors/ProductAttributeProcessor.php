@@ -8,9 +8,9 @@ use Pixelant\PxaPmImporter\Processors\Helpers\BulkInsertHelper;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
 use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
-use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
+use Pixelant\PxaProductManager\Domain\Model\AttributeFalFile;
 use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
@@ -19,10 +19,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
-use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
@@ -31,7 +28,6 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
  */
 class ProductAttributeProcessor extends AbstractFieldProcessor
 {
-    use EmitSignalTrait;
     use UpdateRelationProperty;
     use FilesResources;
 
@@ -317,24 +313,58 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             return;
         }
 
-        $attributeFiles = [];
-        foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
-            $attributeFiles[] = $this->createFileReference(
-                $file,
-                $this->entity->getUid(),
-                $this->importer->getPid()
-            );
+        /**
+         * First collect all existing attribute files
+         * in order to be able to reuse existing file reference
+         */
+        // File uid => to File reference
+        $existingAttributeFiles = [];
+
+        /** @var AttributeFalFile $attributeFile */
+        foreach ($this->entity->getAttributeFiles() as $attributeFile) {
+            if ($attributeFile->getAttribute() === $this->attribute->getUid()) {
+                $existingAttributeFiles[$this->getEntityUidForCompare($attributeFile)] = $attributeFile;
+            }
         }
 
-        /** @var FileReference $falReference */
+        /**
+         * Go thought all import files and create new file reference if files doesn't exist
+         * in "$existingAttributeFiles", this means it need to be attached to product as attribute file.
+         * If file already has file reference - use it
+         */
+        $attributeFiles = [];
+        foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
+            // Create new file reference
+            if (!array_key_exists($file->getUid(), $existingAttributeFiles)) {
+                /** @var AttributeFalFile $fileReference */
+                $fileReference = $this->createFileReference(
+                    $file,
+                    $this->entity->getUid(),
+                    $this->importer->getPid(),
+                    AttributeFalFile::class
+                );
+                $fileReference->setAttribute($this->attribute->getUid());
+
+                $attributeFiles[] = $fileReference;
+            } else {
+                // Use existing file reference
+                $attributeFiles[] = $existingAttributeFiles[$file->getUid()];
+            }
+        }
+
+        /**
+         * Now collect all other attributes values. Since all attributes files are attached to one product field,
+         * but distinguish by pxa_attribute, all files should be present on update process for every attribute
+         */
+        /** @var AttributeFalFile $falReference */
         foreach ($this->entity->getAttributeFiles() as $falReference) {
             // Add all other files that doesn't belong to current attribute, so doesn't get removed on update
-            $falAttributeUid = (int)$falReference->getOriginalResource()->getReferenceProperty('pxa_attribute');
-            if ($falAttributeUid !== $this->attribute->getUid()) {
+            if ($falReference->getAttribute() !== $this->attribute->getUid()) {
                 $attributeFiles[] = $falReference;
             }
         }
 
+        // Finally ready to update
         $this->updateRelationProperty(
             $this->entity,
             GeneralUtility::underscoredToLowerCamelCase(TCAUtility::ATTRIBUTE_FAL_FIELD_NAME),

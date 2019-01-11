@@ -6,11 +6,7 @@ namespace Pixelant\PxaPmImporter\Processors\Relation;
 use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Processors\Traits\InitRelationEntities;
-use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Category;
-use Pixelant\PxaProductManager\Domain\Repository\CategoryRepository;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class CategoryProcessor

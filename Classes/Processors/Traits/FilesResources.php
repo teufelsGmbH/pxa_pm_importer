@@ -71,11 +71,17 @@ trait FilesResources
      * @param File $file
      * @param int $uidForeign
      * @param int $pid
+     * @param string $fileReferenceClass
      * @return FileReference
      */
-    protected function createFileReference(File $file, int $uidForeign, int $pid): FileReference
-    {
-        $fileReference = GeneralUtility::makeInstance(FileReference::class);
+    protected function createFileReference(
+        File $file,
+        int $uidForeign,
+        int $pid,
+        string $fileReferenceClass = null
+    ): FileReference {
+        $fileReference = GeneralUtility::makeInstance($fileReferenceClass ?? FileReference::class);
+
         $newFileReferenceObject = $this->resourceFactory->createFileReferenceObject(
             [
                 'uid_local' => $file->getUid(),
