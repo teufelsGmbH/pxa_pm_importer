@@ -24,7 +24,7 @@ importers:
     # Default
     identifierField: 'id'
     # Storage
-    pid: 136
+    pid: 611
 
     # Mapping fields, data adapter should return array with associative array
     mapping:
