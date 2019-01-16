@@ -244,4 +244,90 @@ class UpdateRelationPropertyTest extends UnitTestCase
 
         $this->assertSame($entity->getParent(), $newParentEntity);
     }
+
+    /**
+     * @test
+     */
+    public function doesStorageDiffReturnTrueIfStorageIsDifferentWithSameCount()
+    {
+        $relatedProduct1 = new Product();
+        $relatedProduct1->_setProperty('uid', 22);
+
+        $relatedProduct2 = new Product();
+        $relatedProduct2->_setProperty('uid', 33);
+
+        $objectStorage = new ObjectStorage();
+        $objectStorage->attach($relatedProduct1);
+        $objectStorage->attach($relatedProduct2);
+
+        $relatedProduct3 = new Product();
+        $relatedProduct3->_setProperty('uid', 121);
+
+
+        $import = [
+            $relatedProduct2,
+            $relatedProduct3
+        ];
+
+
+        $mock = $this->getMockForTrait(
+            'Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty'
+        );
+        $this->assertTrue($this->callInaccessibleMethod($mock, 'doesStorageDiff', $objectStorage, $import));
+    }
+
+    /**
+     * @test
+     */
+    public function doesStorageDiffReturnTrueIfStorageIsDifferentWithDifferentCount()
+    {
+        $relatedProduct1 = new Product();
+        $relatedProduct1->_setProperty('uid', 22);
+
+        $relatedProduct2 = new Product();
+        $relatedProduct2->_setProperty('uid', 33);
+
+        $objectStorage = new ObjectStorage();
+        $objectStorage->attach($relatedProduct1);
+        $objectStorage->attach($relatedProduct2);
+
+
+        $import = [
+            $relatedProduct2
+        ];
+
+
+        $mock = $this->getMockForTrait(
+            'Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty'
+        );
+        $this->assertTrue($this->callInaccessibleMethod($mock, 'doesStorageDiff', $objectStorage, $import));
+    }
+
+    /**
+     * @test
+     */
+    public function doesStorageDiffReturnFalseIfStorageIsSame()
+    {
+        $relatedProduct1 = new Product();
+        $relatedProduct1->_setProperty('uid', 22);
+
+        $relatedProduct2 = new Product();
+        $relatedProduct2->_setProperty('uid', 33);
+
+        $objectStorage = new ObjectStorage();
+        $objectStorage->attach($relatedProduct1);
+        $objectStorage->attach($relatedProduct2);
+
+
+        $import = [
+            $relatedProduct2,
+            $relatedProduct1
+        ];
+
+
+        $mock = $this->getMockForTrait(
+            'Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty'
+        );
+        $this->assertFalse($this->callInaccessibleMethod($mock, 'doesStorageDiff', $objectStorage, $import));
+    }
 }
