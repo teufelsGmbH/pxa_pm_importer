@@ -4,13 +4,9 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Relation\Files;
 
 use Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor;
-use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
-use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Resource\ResourceFactory;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
-use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
@@ -19,152 +15,50 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  */
 class LocalFileProcessor extends AbstractRelationFieldProcessor
 {
-    use EmitSignalTrait;
+    use FilesResources;
 
     /**
-     * Flag if files preparations failed
-     *
-     * @var bool
-     */
-    protected $failedInit = false;
-
-    /**
-     * @var File[]
-     */
-    protected $entities = [];
-
-    /**
-     * @var ResourceFactory
-     */
-    protected $resourceFactory = null;
-
-    /**
-     * Initialize
-     */
-    public function __construct()
-    {
-        $this->resourceFactory = ResourceFactory::getInstance();
-    }
-
-    /**
-     * Is files valid
-     *
-     * @param $value
-     * @return bool
-     */
-    public function isValid($value): bool
-    {
-        if ($this->failedInit) {
-            return false;
-        }
-        return parent::isValid($value);
-    }
-
-    /**
-     * Set files
-     *
-     * @param $value
-     */
-    public function process($value): void
-    {
-        $currentValue = ObjectAccess::getProperty($this->entity, $this->property);
-        $firstFile = $this->entities[0] ?? false;
-
-        if ($currentValue === null && $firstFile) {
-            ObjectAccess::setProperty($this->entity, $this->property, $this->createFileReference($firstFile));
-            return;
-        }
-
-        if ($currentValue instanceof FileReference
-            && $firstFile
-            && $currentValue->getOriginalResource()->getOriginalFile()->getUid() !== $firstFile->getUid()
-        ) {
-            ObjectAccess::setProperty($this->entity, $this->property, $this->createFileReference($firstFile));
-            return;
-        }
-
-        if ($currentValue instanceof ObjectStorage) {
-            $filesUids = [];
-            foreach ($this->entities as $file) {
-                $filesUids[] = $file->getUid();
-            }
-            $attachedFilesUids = [];
-
-            /** @var FileReference $fileReference */
-            foreach ($currentValue->toArray() as $fileReference) {
-                $originUid = $fileReference->getOriginalResource()->getOriginalFile()->getUid();
-                if (!in_array($originUid, $filesUids)) {
-                    $currentValue->detach($fileReference);
-                } else {
-                    $attachedFilesUids[] = $originUid;
-                }
-            }
-
-            foreach ($this->entities as $file) {
-                if (!in_array($file->getUid(), $attachedFilesUids)) {
-                    $currentValue->attach($this->createFileReference($file));
-                }
-            }
-        }
-    }
-
-    /**
-     * Set all files
+     * Get files from value list and convert to extbase domain file reference
      *
      * @param mixed $value
+     * @return array
      */
-    public function initEntities($value): void
+    protected function initEntities($value): array
     {
-        $storage = $this->resourceFactory->getStorageObject(intval($this->configuration['storageUid'] ?? 1));
+        $entities = [];
+
         try {
-            $folder = isset($this->configuration['folder'])
-                ? $storage->getFolder($this->configuration['folder'])
-                : $storage->getRootLevelFolder();
+            $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {
             $this->addError($exception->getMessage());
-            $this->failedInit = true;
 
-            return;
+            return [];
         }
 
-        foreach (GeneralUtility::trimExplode(',', $value, true) as $fileName) {
-            $fileIdentifier = $folder->getIdentifier() . $fileName;
+        /**
+         * Find all existing file references attached to product
+         * in order to reuse it if it was already imported
+         */
+        $existingFiles = [];
+        /** @var FileReference $file */
+        foreach (ObjectAccess::getProperty($this->entity, $this->property) as $file) {
+            $existingFiles[$this->getEntityUidForCompare($file)] = $file;
+        }
 
-            $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
-
-            if ($storage->hasFile($fileIdentifier)) {
-                $file = $storage->getFile($fileIdentifier);
-                $this->entities[] = $file;
+        foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
+            // Create new file reference
+            if (!array_key_exists($file->getUid(), $existingFiles)) {
+                $entities[] = $this->createFileReference(
+                    $file,
+                    $this->entity->getUid(),
+                    $this->importer->getPid()
+                );
             } else {
-                $this->addError(sprintf(
-                    'File "%s" does not exist.',
-                    $fileIdentifier
-                ));
-                $this->failedInit = true;
+                // Use existing file reference
+                $entities[] = $existingFiles[$file->getUid()];
             }
         }
-    }
 
-    /**
-     * Create new file reference
-     *
-     * @param File $file
-     * @return FileReference
-     */
-    protected function createFileReference(File $file): FileReference
-    {
-        $fileReference = GeneralUtility::makeInstance(FileReference::class);
-        $newFileReferenceObject = $this->resourceFactory->createFileReferenceObject(
-            [
-                'uid_local' => $file->getUid(),
-                'uid_foreign' => $this->entity->getUid(),
-                'uid' => uniqid('NEW_')
-            ]
-        );
-
-        $fileReference->setOriginalResource($newFileReferenceObject);
-        $fileReference->setPid($this->importer->getPid());
-
-        return $fileReference;
+        return $entities;
     }
 }

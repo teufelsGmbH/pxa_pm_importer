@@ -12,7 +12,7 @@ $EM_CONF[$_EXTKEY] = [
     'constraints' => [
         'depends' => [
             'typo3' => '8.7-9.5.99',
-            'pxa_product_manager' => ''
+            'pxa_product_manager' => '9.5.1-9.99.99'
         ],
         'conflicts' => [],
         'suggests' => []

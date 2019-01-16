@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
+use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Database\Connection;
@@ -59,6 +60,19 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      * @var ImporterInterface
      */
     protected $importer = null;
+
+    /**
+     * @var Logger
+     */
+    protected $logger = null;
+
+    /**
+     * Initialize
+     */
+    public function __construct()
+    {
+        $this->logger = Logger::getInstance(__CLASS__);
+    }
 
     /**
      * Init

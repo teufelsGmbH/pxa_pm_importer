@@ -4,22 +4,30 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
 use Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor;
+use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
-use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
-use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
- * This class created to help handle relation like 1:1, 1:n, n:m
+ * Handle relation like 1:1, 1:n, n:m
  * Work with object storage
  *
  * @package Pixelant\PxaPmImporter\Processors\Relation
  */
 abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
 {
+    use UpdateRelationProperty;
+
     /**
      * @var AbstractEntity[]
      */
     protected $entities = [];
+
+    /**
+     * Flag if init entities failed and validion result should be false
+     *
+     * @var bool
+     */
+    protected $failedInit = false;
 
     /**
      * Call init entities method
@@ -32,16 +40,43 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
             $value = (string)$value;
         }
         parent::preProcess($value);
-        
-        $this->initEntities($value);
+
+        $this->entities = $this->initEntities($value);
+
+        /** @var AbstractEntity $entity */
+        foreach ($this->entities as $entity) {
+            if (!is_object($entity) || !($entity instanceof AbstractEntity)) {
+                throw new \UnexpectedValueException(
+                    'All entities should be instance of AbstractEntity',
+                    1547129113393
+                );
+            }
+        }
     }
 
     /**
+     * Validation
+     *
+     * @param $value
+     * @return bool
+     */
+    public function isValid($value): bool
+    {
+        if ($this->failedInit) {
+            return false;
+        }
+
+        return parent::isValid($value);
+    }
+
+    /**
+     * Process update
+     *
      * @param $value
      */
     public function process($value): void
     {
-        $this->updateRelationProperty($this->entities);
+        $this->updateRelationProperty($this->entity, $this->property, $this->entities);
     }
 
     /**
@@ -54,74 +89,10 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Add update object storage with import items, remove that items are not in a list
-     *
-     * @param ObjectStorage $storage
-     * @param AbstractEntity[] $importEntities
-     */
-    protected function updateObjectStorage(ObjectStorage $storage, array $importEntities): void
-    {
-        // Get uids of all from import
-        $importEntitiesUids = [];
-        /** @var AbstractEntity $entity */
-        foreach ($importEntities as $entity) {
-            $importEntitiesUids[] = $entity->getUid();
-        }
-
-        // Collect that already in storage, remove that are not in import value
-        $entitiesInStorageUids = [];
-        /** @var AbstractEntity $storageItem */
-        foreach ($storage->toArray() as $storageItem) {
-            if (!in_array($storageItem->getUid(), $importEntitiesUids)) {
-                $storage->detach($storageItem);
-            } else {
-                $entitiesInStorageUids[] = $storageItem->getUid();
-            }
-        }
-
-        /** @var AbstractEntity $entity */
-        foreach ($importEntities as $entity) {
-            if (!in_array($entity->getUid(), $entitiesInStorageUids)) {
-                $storage->attach($entity);
-            }
-        }
-    }
-
-    /**
-     * Update property value that has relation 1:1 or object storage
-     *
-     * @param array $importEntities
-     */
-    protected function updateRelationProperty(array $importEntities): void
-    {
-        $propertyValue = ObjectAccess::getProperty($this->entity, $this->property);
-        /** @var AbstractEntity $firstEntity */
-        $firstEntity = $importEntities[0] ?? false;
-
-        // If nothing is set
-        // or property isn't object storage and need to be updated
-        // 1:1 Relation
-        if (is_object($firstEntity)
-            && ($propertyValue === null
-                || ($propertyValue instanceof AbstractEntity && $propertyValue->getUid() !== $firstEntity->getUid())
-            )
-        ) {
-            ObjectAccess::setProperty($this->entity, $this->property, $firstEntity);
-            return;
-        }
-
-        // Multiple relation
-        if (is_object($propertyValue) && $propertyValue instanceof ObjectStorage) {
-            $this->updateObjectStorage($propertyValue, $importEntities);
-
-            return;
-        }
-    }
-
-    /**
      * This method should prepare entities for later call in process
      *
      * @param $value
+     * @return AbstractEntity[] Entities
      */
-    abstract protected function initEntities($value): void;
+    abstract protected function initEntities($value): array;
 }

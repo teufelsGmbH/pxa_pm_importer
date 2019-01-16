@@ -776,6 +776,8 @@ abstract class AbstractImporter implements ImporterInterface
 
                     $this->repository->update($model);
 
+                    $this->emitSignal('afterUpdatingImportModel', [$model]);
+
                     // If reach batch size - persist
                     if ((++$batchCount % $this->batchSize) === 0) {
                         $this->persistAndClear();

@@ -37,81 +37,53 @@ class AbstractRelationFieldProcessorTest extends UnitTestCase
     }
 
     /**
-     * Update object storage will populate it with new items and remove ones that are not listed
      * @test
      */
-    public function updateObjectStorage()
+    public function preProcessThrowExceptionIfEntitiesNotValud()
     {
-        $newEntity = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $newEntity->_setProperty('uid', 12);
+        /** @var AbstractRelationFieldProcessor|MockObject $subject */
+        $subject = $this
+            ->getMockBuilder(AbstractRelationFieldProcessor::class)
+            ->setMethods(['initEntities'])
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        $newEntityInStorage = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $newEntityInStorage->_setProperty('uid', 21);
-
-        $entityInStorage = clone  $newEntityInStorage;
-        $removeFromStorageEntity = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $removeFromStorageEntity->_setProperty('uid', 111);
-
-        $objectStorage = new ObjectStorage();
-        $objectStorage->attach($entityInStorage);
-        $objectStorage->attach($removeFromStorageEntity);
-
-        $objectStorageExpect = new ObjectStorage();
-        $objectStorageExpect->attach($newEntityInStorage);
-        $objectStorageExpect->attach($newEntity);
-
-        $subject = $this->getAccessibleMock(AbstractRelationFieldProcessor::class, ['initEntities']);
-
-        $subject->_call('updateObjectStorage', $objectStorage, [$newEntity, $newEntityInStorage]);
-        $this->assertEquals($objectStorageExpect->toArray(), $objectStorage->toArray());
-    }
-
-    /**
-     * @test
-     */
-    public function updateRelationPropertyForObjectStorageCallUpdateObjectStorage()
-    {
-        $objectStorage = new ObjectStorage();
-
-        $entity = $this->createPartialMock(AbstractEntity::class, ['getProperty']);
-        $entity
-            ->expects($this->atLeastOnce())
-            ->method('getProperty')
-            ->willReturn($objectStorage);
-
-        $subject = $this->getAccessibleMock(AbstractRelationFieldProcessor::class, ['initEntities', 'updateObjectStorage']);
-        $subject->_set('property', 'property');
-        $subject->_set('entity', $entity);
         $subject
             ->expects($this->once())
-            ->method('updateObjectStorage');
+            ->method('initEntities')
+            ->willReturn(['test', 123]);
 
-        $subject->_call('updateRelationProperty', []);
+        $this->expectException(\UnexpectedValueException::class);
+
+        $value = '';
+        $subject->preProcess($value);
     }
 
     /**
      * @test
      */
-    public function updateRelationPropertyForSingleEntityWillSetProperty()
+    public function initValueOfFailedInitIsFalse()
     {
-        $newEntity = new Category();
-        $newEntity->_setProperty('uid', 222);
+        /** @var AbstractRelationFieldProcessor|MockObject $subject */
+        $subject = $this
+            ->getMockBuilder(AbstractRelationFieldProcessor::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        $parent = new Category();
-        $parent->_setProperty('uid', 333);
-        $entity = new Category();
-        $entity->_setProperty('uid', 111);
-        $entity->_setProperty('parent', $parent);
+        $this->assertFalse($this->getObjectAttribute($subject, 'failedInit'));
+    }
 
-        $subject = $this->getAccessibleMock(AbstractRelationFieldProcessor::class, ['initEntities', 'updateObjectStorage']);
-        $subject->_set('property', 'parent');
-        $subject->_set('entity', $entity);
-        $subject
-            ->expects($this->never())
-            ->method('updateObjectStorage');
+    /**
+     * @test
+     */
+    public function validationFailsIfFailedInit()
+    {
+        /** @var AbstractRelationFieldProcessor|MockObject $subject */
+        $subject = $this
+            ->getMockBuilder(AbstractRelationFieldProcessor::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-        $subject->_call('updateRelationProperty', [$newEntity]);
-
-        $this->assertSame($entity->getParent(), $newEntity);
+        $this->assertFalse($subject->isValid('test'));
     }
 }

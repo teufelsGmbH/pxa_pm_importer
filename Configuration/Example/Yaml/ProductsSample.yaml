@@ -1,6 +1,6 @@
 source:
   Pixelant\PxaPmImporter\Service\Source\ExcelSource:
-    skipRows: 1
+    skipRows: 3
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/products.xlsx
 importers:
   Pixelant\PxaPmImporter\Service\Importer\ProductsImporter:
@@ -26,6 +26,8 @@ importers:
             engine: 'I'
             turboEngine: 'J'
             release: 'K'
+            attributeFiles: 'S'
+            attributeImages: 'T'
             images: 'L'
             assets: 'M'
             relatedProducts: 'N'
@@ -37,7 +39,7 @@ importers:
     # Default
     identifierField: 'id'
     # Storage
-    pid: 136
+    pid: 611
 
     # Shall we create an independent language layer record if parent record doesn't exist
     allowCreateLocalizationIfDefaultNotFound: false
@@ -58,29 +60,46 @@ importers:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
       brand:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
-        attributeUid: 1
+        # It's possible to specify just UID, set 'treatAttributeUidAsImportUid' to false
+        attributeUid: 'brand'
+        treatAttributeUidAsImportUid: true
       color:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
-        attributeUid: 2
+        attributeUid: 'color'
+        treatAttributeUidAsImportUid: true
       tireSize:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
-        attributeUid: 3
+        attributeUid: 'tire-size'
+        treatAttributeUidAsImportUid: true
       engine:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
-        attributeUid: 4
+        attributeUid: 'engine'
+        treatAttributeUidAsImportUid: true
       turboEngine:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
-        attributeUid: 5
+        attributeUid: 'turbo-engine'
+        treatAttributeUidAsImportUid: true
       release:
         processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
-        attributeUid: 6
+        attributeUid: 'release'
         dateFormat: 'H:i d-m-Y'
+        treatAttributeUidAsImportUid: true
+      attributeFiles:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 'files'
+        treatAttributeUidAsImportUid: true
+        folder: 'import_files'
+      attributeImages:
+        processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+        attributeUid: 'images'
+        treatAttributeUidAsImportUid: true
+        folder: 'import_files'
       images:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
-        folder: 'importers'
+        folder: 'import_files'
       assets:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
-        folder: 'importers'
+        folder: 'import_files'
       relatedProducts:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
       subProducts:
@@ -89,6 +108,6 @@ importers:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
       falLinks:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
-        folder: 'importers'
+        folder: 'import_files'
       metaDescription:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
