@@ -92,7 +92,7 @@ class DefaultDataAdapterTest extends UnitTestCase
     /**
      * @test
      */
-    public function initalizeWithEmptyLanguageConfigurationThrowsException()
+    public function initializeWithEmptyLanguageConfigurationThrowsException()
     {
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionCode(1536050795179);
@@ -289,6 +289,26 @@ class DefaultDataAdapterTest extends UnitTestCase
         $expect = 'data';
 
         $this->assertEquals($expect, $this->subject->_call('getFieldData', 1, $row));
+    }
+
+    /**
+     * @test
+     */
+    public function getFieldDataForArrayColumnMappingCallgetMultipleFieldData()
+    {
+        $row = [0 => 'test', 1 => 'data'];
+        $expect = 'data';
+
+        $subject = $this->getMockBuilder(DefaultDataAdapter::class)
+            ->setMethods(['getMultipleFieldData'])
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $subject
+            ->expects($this->once())
+            ->method('getMultipleFieldData');
+
+        $this->callInaccessibleMethod($subject, 'getFieldData', [0, 1], $row);
     }
 
     /**
