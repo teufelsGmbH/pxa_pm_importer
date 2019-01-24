@@ -72,7 +72,16 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
                     // @codingStandardsIgnoreEnd
                 }
 
-                $this->identifier = $configuration['mapping']['id'];
+                if ($isExcelColumns) {
+                    $this->identifier = array_map(
+                        function ($item) {
+                            return MainUtility::convertAlphabetColumnToNumber($item);
+                        },
+                        $configuration['mapping']['id']
+                    );
+                } else {
+                    $this->identifier = $configuration['mapping']['id'];
+                }
             }
 
             if ($this->identifier === null) {
