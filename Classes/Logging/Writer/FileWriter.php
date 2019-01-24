@@ -12,6 +12,13 @@ use TYPO3\CMS\Core\Log\Writer\WriterInterface;
 class FileWriter extends LogFileWriter
 {
     /**
+     * Import log file, is used for all log file writers
+     * Use one for all in order to get all logs into one file per
+     * @var string
+     */
+    private static $importLogFile = null;
+
+    /**
      * Sets the path to the log file.
      *
      * @param string $relativeLogFile path to the log file, relative to PATH_site
@@ -20,17 +27,21 @@ class FileWriter extends LogFileWriter
      */
     public function setLogFile($relativeLogFile)
     {
-        // Generate log with date
-        $pi = pathinfo($relativeLogFile);
-        $relativeLogFile = sprintf(
-            '%s/%s_%s.%s',
-            $pi['dirname'],
-            $pi['filename'],
-            $this->getLogFileDate(),
-            $pi['extension']
-        );
+        if (self::$importLogFile === null) {
+            // Generate log with date
+            $pi = pathinfo($relativeLogFile);
+            $relativeLogFile = sprintf(
+                '%s/%s_%s.%s',
+                $pi['dirname'],
+                $pi['filename'],
+                $this->getLogFileDate(),
+                $pi['extension']
+            );
 
-        return parent::setLogFile($relativeLogFile);
+            self::$importLogFile = $relativeLogFile;
+        }
+
+        return parent::setLogFile(self::$importLogFile);
     }
 
     /**
