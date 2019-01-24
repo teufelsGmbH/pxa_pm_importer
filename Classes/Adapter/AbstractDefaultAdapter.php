@@ -57,38 +57,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
             : false;
 
         if (isset($configuration['mapping']['id'])) {
-            if (is_numeric($configuration['mapping']['id']) && !is_float($configuration['mapping']['id'])) {
-                $this->identifier = (int)$configuration['mapping']['id'];
-            } elseif (is_string($configuration['mapping']['id'])) {
-                if ($isExcelColumns) {
-                    $this->identifier = MainUtility::convertAlphabetColumnToNumber($configuration['mapping']['id']);
-                } else {
-                    $this->identifier = $configuration['mapping']['id'];
-                }
-            } elseif (is_array($configuration['mapping']['id'])) {
-                if (count($configuration['mapping']['id']) < 1) {
-                    // @codingStandardsIgnoreStart
-                    throw new \UnexpectedValueException('Adapter "id" (identifier) as array should have at least one element.', 1538560400221);
-                    // @codingStandardsIgnoreEnd
-                }
-
-                if ($isExcelColumns) {
-                    $this->identifier = array_map(
-                        function ($item) {
-                            return MainUtility::convertAlphabetColumnToNumber($item);
-                        },
-                        $configuration['mapping']['id']
-                    );
-                } else {
-                    $this->identifier = $configuration['mapping']['id'];
-                }
-            }
-
-            if ($this->identifier === null) {
-                // @codingStandardsIgnoreStart
-                throw new \RuntimeException('Could not set adapter "id" (identifier). String, numeric and array values are only supported.', 1538560523613);
-                // @codingStandardsIgnoreEnd
-            }
+            $this->identifier = $this->getFieldMapping('id', $isExcelColumns, $configuration['mapping']['id']);
         } else {
             throw new \RuntimeException('Adapter mapping require "id" (identifier) mapping to be set.', 1536050717594);
         }
@@ -98,11 +67,12 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
 
             if ($isExcelColumns) {
                 foreach ($this->languagesMapping as $language => $languageMapping) {
-                    foreach ($languageMapping as $field => $column) {
-                        if (!is_numeric($column)) {
-                            $columnNumber = MainUtility::convertAlphabetColumnToNumber($column);
-                            $this->languagesMapping[$language][$field] = $columnNumber;
-                        }
+                    foreach ($languageMapping as $field => $mappingRules) {
+                        $this->languagesMapping[$language][$field] = $this->getFieldMapping(
+                            $field,
+                            $isExcelColumns,
+                            $mappingRules
+                        );
                     }
                 }
             }
@@ -167,6 +137,10 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      */
     protected function getFieldData($column, array $row)
     {
+        if (is_array($column)) {
+            return $this->getMultipleFieldData($column, $row);
+        }
+
         if (array_key_exists($column, $row)) {
             return $row[$column];
         }
@@ -190,5 +164,51 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         return $fieldData;
+    }
+
+    /**
+     * Get mapping for field
+     *
+     * @param string $field
+     * @param bool $isExcelColumns
+     * @param $mappingRules
+     * @return array|float|int|string
+     */
+    protected function getFieldMapping(string $field, bool $isExcelColumns, $mappingRules)
+    {
+        if (is_numeric($mappingRules) && !is_float($mappingRules)) {
+            $mappingResult = (int)$mappingRules;
+        } elseif (is_string($mappingRules)) {
+            if ($isExcelColumns) {
+                $mappingResult = MainUtility::convertAlphabetColumnToNumber($mappingRules);
+            } else {
+                $mappingResult = $mappingRules;
+            }
+        } elseif (is_array($mappingRules)) {
+            if (count($mappingRules) < 1) {
+                // @codingStandardsIgnoreStart
+                throw new \UnexpectedValueException('"' . $field . '" field mapping as array should have at least one element.', 1538560400221);
+                // @codingStandardsIgnoreEnd
+            }
+
+            if ($isExcelColumns) {
+                $mappingResult = array_map(
+                    function ($item) {
+                        return MainUtility::convertAlphabetColumnToNumber($item);
+                    },
+                    $mappingRules
+                );
+            } else {
+                $mappingResult = $mappingRules;
+            }
+        }
+
+        if (!isset($mappingResult)) {
+            // @codingStandardsIgnoreStart
+            throw new \RuntimeException('Could not set maaping for field "' . $field . '". String, numeric and array values are only supported.', 1538560523613);
+            // @codingStandardsIgnoreEnd
+        }
+
+        return $mappingResult;
     }
 }
