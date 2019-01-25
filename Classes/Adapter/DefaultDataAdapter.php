@@ -25,16 +25,12 @@ class DefaultDataAdapter extends AbstractDefaultAdapter
             throw new \UnexpectedValueException('Mapping missing for language "' . $languageUid . '" in data adapter', 1536051135215);
             // @codingStandardsIgnoreEnd
         }
-        $mapping = $this->languagesMapping[$languageUid];
-        if (is_array($this->identifier)) {
-            $id = $this->getMultipleFieldData($this->identifier, $row);
-        } else {
-            $id = $this->getFieldData($this->identifier, $row);
-        }
 
         $adaptedRow = [
-            'id' => $id
+            'id' => $this->getFieldData($this->identifier, $row)
         ];
+
+        $mapping = $this->languagesMapping[$languageUid];
         foreach ($mapping as $fieldName => $column) {
             $adaptedRow[$fieldName] = $this->getFieldData($column, $row);
         }

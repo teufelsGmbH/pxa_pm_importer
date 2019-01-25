@@ -10,18 +10,8 @@ call_user_func(function () {
 
         $logFile = $logFolder . ($extensionManagerConfiguration['log']['basicFileName'] ?? 'pm_importer.log');
 
-        $context = \TYPO3\CMS\Core\Utility\GeneralUtility::getApplicationContext();
-
-        if ($context->isProduction()) {
-            $logLevel = \TYPO3\CMS\Core\Log\LogLevel::ERROR;
-        } elseif ($context->isDevelopment()) {
-            $logLevel = \TYPO3\CMS\Core\Log\LogLevel::DEBUG;
-        } else {
-            $logLevel = \TYPO3\CMS\Core\Log\LogLevel::INFO;
-        }
-
         $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
-            $logLevel => [
+            \TYPO3\CMS\Core\Log\LogLevel::INFO => [
                 \Pixelant\PxaPmImporter\Logging\Writer\FileWriter::class => [
                     'logFile' => $logFile
                 ]

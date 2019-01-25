@@ -33,17 +33,17 @@ class Logger
      * Initialize
      *
      * @param string $className
-     * @param bool $dontReplaceClassNameSpace
      */
-    public function __construct(string $className, bool $dontReplaceClassNameSpace = false)
+    public function __construct(string $className)
     {
-        if (false === $dontReplaceClassNameSpace) {
-            $classParts = GeneralUtility::trimExplode('\\', $className, true);
-            if (count($classParts) > 2) {
-                $classParts[1] = 'PxaPmImporter';
-            }
-            $className = implode('\\', $classParts);
+        $classParts = GeneralUtility::trimExplode('\\', $className, true);
+
+        // Override extension name in order to get our file writer if called outside extension
+        if (count($classParts) >= 2) {
+            $classParts[0] = 'Pixelant';
+            $classParts[1] = 'PxaPmImporter';
         }
+        $className = implode('\\', $classParts);
 
         $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger($className);
     }
@@ -97,11 +97,10 @@ class Logger
      * Get instance
      *
      * @param string $className
-     * @param bool $dontReplaceClassNameSpace @codingStandardsIgnoreStart By default replace extension name in class name, in order to get all log records in one file, if logger is used in another extension @codingStandardsIgnoreEnd
      * @return Logger
      */
-    public static function getInstance(string $clasName, bool $dontReplaceClassNameSpace = false): Logger
+    public static function getInstance(string $className): Logger
     {
-        return GeneralUtility::makeInstance(__CLASS__, $clasName, $dontReplaceClassNameSpace);
+        return GeneralUtility::makeInstance(__CLASS__, $className);
     }
 }
