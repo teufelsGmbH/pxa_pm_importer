@@ -22,6 +22,7 @@
             <div class="form-group">
                 <div class="col-sm-10">
                     <f:form.select name="import"
+                                   id="pxa-import-select"
                                    options="{configurations}"
                                    optionLabelField="name"
                                    prependOptionValue="0"
@@ -29,6 +30,13 @@
                                    class="form-control" />
                 </div>
             </div>
+
+            <div class="form-group">
+                <div class="col-sm-10">
+                    <div id="import-progress-bar"><!--Place holder for progress bar--></div>
+                </div>
+            </div>
+
             <div class="form-group">
                 <div class="col-sm-10">
                     <button id="pxa-pm-import-submit"

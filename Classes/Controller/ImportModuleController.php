@@ -96,7 +96,9 @@ class ImportModuleController extends ActionController
      * @param Import $import
      */
     public function importAction(Import $import = null)
-    {
+    {   sleep(5);
+        $this->redirect('index');
+
         $importManager = GeneralUtility::makeInstance(ImportManager::class, $this->importRepository);
 
         try {
