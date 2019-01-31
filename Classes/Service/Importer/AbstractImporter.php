@@ -337,34 +337,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function getRecordByImportIdHash(string $idHash, int $language = 0): ?array
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($this->dbTable);
-        $queryBuilder
-            ->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-
-        $row = $queryBuilder
-            ->select('*')
-            ->from($this->dbTable)
-            ->where(
-                $queryBuilder->expr()->eq(
-                    self::DB_IMPORT_ID_HASH_FIELD,
-                    $queryBuilder->createNamedParameter($idHash, Connection::PARAM_STR)
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter($language, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    'pid',
-                    $queryBuilder->createNamedParameter($this->pid, Connection::PARAM_INT)
-                )
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetch();
-
-        return is_array($row) ? $row : null;
+        return MainUtility::getRecordByImportIdHash($idHash, $this->dbTable, $this->pid, $language);
     }
 
     /**

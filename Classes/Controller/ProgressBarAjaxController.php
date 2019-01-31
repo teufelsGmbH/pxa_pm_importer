@@ -11,7 +11,7 @@ use Psr\Http\Message\ServerRequestInterface;
  *
  * @package Pixelant\PxaPmImporter\Controller
  */
-class AjaxController
+class ProgressBarAjaxController
 {
     /**
      * Check import loading progress status
@@ -22,8 +22,8 @@ class AjaxController
      */
     public function importProgressStatusAction(ServerRequestInterface $request, ResponseInterface $response)
     {
-        $queryParameters = $request->getParsedBody();
-        $importId = intval($queryParameters['importId']);
+        $importId = intval($request->getParsedBody()['importId'] ?? 0);
+
 
         $response->getBody()->write(json_encode(['progress' => $importId]));
 
