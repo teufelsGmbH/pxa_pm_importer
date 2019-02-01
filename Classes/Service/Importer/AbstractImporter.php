@@ -84,6 +84,27 @@ abstract class AbstractImporter implements ImporterInterface
     protected $batchSize = 50;
 
     /**
+     * Update progress after reached batch size
+     *
+     * @var int
+     */
+    protected $batchProgressSize = 10;
+
+    /**
+     * Amount of items to be imported
+     *
+     * @var int
+     */
+    protected $amountOfImportItems = 0;
+
+    /**
+     * Keep track on already imported amount of items
+     *
+     * @var int
+     */
+    protected $batchProgressCount = 0;
+
+    /**
      * Mapping rules
      *
      * @var array
@@ -598,6 +619,9 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
     {
+        // Increase amount of import items, since postponed processor means + 1 operation
+        $this->amountOfImportItems++;
+
         // Tears down
         $processor->tearDown();
 
@@ -651,6 +675,14 @@ abstract class AbstractImporter implements ImporterInterface
                     'Failed executing postponed processor with message "' . $exception->getMessage() . '"'
                 );
             }
+
+            // If need to update progress status
+            if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
+                $this->importProgressStatus->updateImportProgress(
+                    $this->import,
+                    $this->getImportProgress()
+                );
+            }
         }
         $this->postponedProcessors = [];
         $this->persistAndClear();
@@ -662,6 +694,8 @@ abstract class AbstractImporter implements ImporterInterface
     protected function runImport(): void
     {
         $languages = $this->adapter->getImportLanguages();
+        $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
+
         $batchCount = 0;
 
         foreach ($languages as $language) {
@@ -790,6 +824,14 @@ abstract class AbstractImporter implements ImporterInterface
                         ));
                     }
                 }
+
+                // If need to update progress status
+                if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
+                    $this->importProgressStatus->updateImportProgress(
+                        $this->import,
+                        $this->getImportProgress()
+                    );
+                }
             }
 
             $this->persistAndClear();
@@ -805,6 +847,20 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->persistenceManager->persistAll();
         $this->persistenceManager->clearState();
+    }
+
+    /**
+     * Calculate current progress of import
+     *
+     * @return int
+     */
+    protected function getImportProgress(): int
+    {
+        if ($this->amountOfImportItems > 0) {
+            return intval(floor($this->batchProgressCount / $this->amountOfImportItems)) * 100;
+        }
+
+        return 100;
     }
 
     /**
