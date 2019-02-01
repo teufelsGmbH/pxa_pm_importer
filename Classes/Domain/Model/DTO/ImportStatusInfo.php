@@ -30,7 +30,7 @@ class ImportStatusInfo
     protected $startDate = null;
 
     /**
-     * @var int
+     * @var float
      */
     protected $progress = null;
 
@@ -39,17 +39,17 @@ class ImportStatusInfo
      *
      * @param Import $import
      * @param int $startDate
-     * @param int $progress
+     * @param float $progress
      */
-    public function __construct(Import $import, int $startDate = null, int $progress = null)
+    public function __construct(Import $import, int $startDate = null, float $progress = null)
     {
         $this->import = $import;
         $this->startDate = new \DateTime();
-        if ($this->startDate !== null) {
+        if ($startDate !== null) {
             $this->startDate->setTimestamp($startDate);
         }
 
-        $this->progress = $progress ?? 0;
+        $this->progress = $progress ?? 0.0;
     }
 
     /**
@@ -69,9 +69,9 @@ class ImportStatusInfo
     }
 
     /**
-     * @return int
+     * @return float
      */
-    public function getProgress(): int
+    public function getProgress(): float
     {
         return $this->progress;
     }

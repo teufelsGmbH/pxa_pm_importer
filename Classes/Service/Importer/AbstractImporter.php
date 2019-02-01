@@ -852,13 +852,13 @@ abstract class AbstractImporter implements ImporterInterface
      *
      * @return int
      */
-    protected function getImportProgress(): int
+    protected function getImportProgress(): float
     {
         if ($this->amountOfImportItems > 0) {
-            return intval(floor($this->batchProgressCount / $this->amountOfImportItems)) * 100;
+            return round($this->batchProgressCount / $this->amountOfImportItems * 100, 2);
         }
 
-        return 100;
+        return 100.00;
     }
 
     /**

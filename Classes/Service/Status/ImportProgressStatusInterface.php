@@ -25,10 +25,10 @@ interface ImportProgressStatusInterface extends SingletonInterface
      * Update import progress status
      *
      * @param Import $import
-     * @param int $progress
+     * @param float $progress
      * @return mixed
      */
-    public function updateImportProgress(Import $import, int $progress): void;
+    public function updateImportProgress(Import $import, float $progress): void;
 
     /**
      * Mark import as the one that has started

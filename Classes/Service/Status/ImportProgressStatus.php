@@ -64,9 +64,9 @@ class ImportProgressStatus implements ImportProgressStatusInterface
      * Update import progress status
      *
      * @param Import $import
-     * @param int $progress
+     * @param float $progress
      */
-    public function updateImportProgress(Import $import, int $progress): void
+    public function updateImportProgress(Import $import, float $progress): void
     {
         $runningInfo = $this->getFromRegistry();
         if (isset($runningInfo[$import->getUid()])) {
@@ -85,7 +85,6 @@ class ImportProgressStatus implements ImportProgressStatusInterface
     public function getImportStatus(Import $import): ImportStatusInfo
     {
         $runningInfo = $this->getFromRegistry();
-
         if (isset($runningInfo[$import->getUid()])) {
             $importInfo = $runningInfo[$import->getUid()];
 
@@ -93,7 +92,7 @@ class ImportProgressStatus implements ImportProgressStatusInterface
                 ImportStatusInfo::class,
                 $import,
                 $importInfo['start'],
-                $runningInfo['progress']
+                $importInfo['progress']
             );
         }
 
