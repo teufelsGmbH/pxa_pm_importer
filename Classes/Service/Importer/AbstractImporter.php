@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
+use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
@@ -160,7 +161,7 @@ abstract class AbstractImporter implements ImporterInterface
     /**
      * Array of import processor that should be run in postImport
      *
-     * @var FieldProcessorInterface[]
+     * @var PostponedProcessor[]
      */
     protected $postponedProcessors = [];
 
@@ -622,13 +623,11 @@ abstract class AbstractImporter implements ImporterInterface
         // Increase amount of import items, since postponed processor means + 1 operation
         $this->amountOfImportItems++;
 
-        // Tears down
-        $processor->tearDown();
-
-        $this->postponedProcessors[] = [
-            'value' => $value,
-            'processorInstance' => $processor
-        ];
+        $this->postponedProcessors[] = GeneralUtility::makeInstance(
+            PostponedProcessor::class,
+            $processor,
+            $value
+        );
     }
 
     /**
@@ -638,9 +637,8 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $batchCount = 0;
         foreach ($this->postponedProcessors as $postponedProcessor) {
-            $value = $postponedProcessor['value'];
-            /** @var FieldProcessorInterface $processor */
-            $processor = $postponedProcessor['processorInstance'];
+            $value = $postponedProcessor->getValue();
+            $processor = $postponedProcessor->getProcessor();
 
             $entityUid = (int)$processor->getProcessingDbRow()['uid'];
             if ($entityUid === 0) {
