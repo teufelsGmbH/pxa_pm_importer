@@ -10,12 +10,12 @@ use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Service\Status\ImportProgressStatus;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
@@ -132,6 +132,11 @@ abstract class AbstractImporter implements ImporterInterface
     protected $source = null;
 
     /**
+     * @var ImportProgressStatus
+     */
+    protected $importProgressStatus = null;
+
+    /**
      * Array of import processor that should be run in postImport
      *
      * @var FieldProcessorInterface[]
@@ -160,6 +165,19 @@ abstract class AbstractImporter implements ImporterInterface
         $this->logger = $logger !== null ? $logger : Logger::getInstance(__CLASS__);
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
+        $this->importProgressStatus = $this->objectManager->get(ImportProgressStatus::class);
+    }
+
+    /**
+     * Run pre-import actions
+     *
+     * @param SourceInterface $source
+     * @param Import $import
+     * @param array $configuration
+     */
+    public function preImport(SourceInterface $source, Import $import, array $configuration = []): void
+    {
+        $this->importProgressStatus->startImport($import);
     }
 
     /**
@@ -177,6 +195,16 @@ abstract class AbstractImporter implements ImporterInterface
         $this->initImporterRelated();
 
         $this->runImport();
+    }
+
+    /**
+     * Actions after import is finished
+     *
+     * @param Import $import
+     */
+    public function postImport(Import $import): void
+    {
+        $this->importProgressStatus->endImport($import);
     }
 
     /**
