@@ -11,7 +11,7 @@ use TYPO3\CMS\Core\SingletonInterface;
  * Class ImportStatusInterface
  * @package Pixelant\PxaPmImporter\Service\Status
  */
-interface ImportStatusInterface extends SingletonInterface
+interface ImportProgressStatusInterface extends SingletonInterface
 {
     /**
      * Return status of import

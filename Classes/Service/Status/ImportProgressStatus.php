@@ -12,7 +12,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  * Class ImportStatus
  * @package Pixelant\PxaPmImporter\Service\Status
  */
-class ImportStatus implements ImportStatusInterface
+class ImportProgressStatus implements ImportProgressStatusInterface
 {
     /**
      * @var Registry

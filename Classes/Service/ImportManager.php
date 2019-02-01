@@ -9,6 +9,7 @@ use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Service\Status\ImportProgressStatus;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -33,6 +34,11 @@ class ImportManager
     protected $logger = null;
 
     /**
+     * @var ImportProgressStatus
+     */
+    protected $importProgressStatus = null;
+
+    /**
      * Initialize
      *
      * @param RepositoryInterface $repository
@@ -41,6 +47,7 @@ class ImportManager
     {
         $this->importRepository = $repository;
         $this->logger = Logger::getInstance(__CLASS__);
+        $this->importProgressStatus = GeneralUtility::makeInstance(ImportProgressStatus::class);
     }
 
     /**
@@ -64,18 +71,22 @@ class ImportManager
                 // @codingStandardsIgnoreEnd
             }
 
+            // Write to log about import start
             $this->logger->info(sprintf(
                 'Start import for import configuration "%s" with UID - %d, at %s',
                 $import->getName(),
                 $import->getUid(),
                 date('G-i-s')
             ));
+            // Register import
+            $this->importProgressStatus->startImport($import);
 
             $startTime = time();
             $importer->preImport($source, $import, $singleImporterConfiguration);
             $importer->start($source, $import, $singleImporterConfiguration);
             $importer->postImport($import);
 
+            // Log info about import end
             $this->logger->info(sprintf(
                 'End import for import configuration "%s" with UID - %d, at %s',
                 $import->getName(),
@@ -84,6 +95,9 @@ class ImportManager
             ));
             $this->logger->info('Memory usage "' . MainUtility::getMemoryUsage() . '"');
             $this->logger->info('Import duration - ' . $this->getDurationTime($startTime));
+
+            // Register end of import
+            $this->importProgressStatus->endImport($import);
         }
 
         $this->emitSignal('afterImportExecute', [$import]);
