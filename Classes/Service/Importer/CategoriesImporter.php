@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Service\Importer;
 
-use Pixelant\PxaPmImporter\Domain\Model\Import;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaProductManager\Domain\Model\Category;
 use Pixelant\PxaProductManager\Domain\Repository\CategoryRepository;
 use TYPO3\CMS\Core\Database\Connection;
@@ -33,22 +31,6 @@ class CategoriesImporter extends AbstractImporter
             Connection::PARAM_STR
         ]
     ];
-
-    /**
-     * @param SourceInterface $source
-     * @param Import $import
-     * @param array $configuration
-     */
-    public function preImport(SourceInterface $source, Import $import, array $configuration = []): void
-    {
-    }
-
-    /**
-     * @param Import $import
-     */
-    public function postImport(Import $import): void
-    {
-    }
 
     /**
      * Set table name

@@ -3,8 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Service\Importer;
 
-use Pixelant\PxaPmImporter\Domain\Model\Import;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
 
@@ -28,22 +26,6 @@ class AttributesImporter extends AbstractImporter
     protected $defaultNewRecordFields = [
 
     ];
-
-    /**
-     * @param SourceInterface $source
-     * @param Import $import
-     * @param array $configuration
-     */
-    public function preImport(SourceInterface $source, Import $import, array $configuration = []): void
-    {
-    }
-
-    /**
-     * @param Import $import
-     */
-    public function postImport(Import $import): void
-    {
-    }
 
     /**
      * Set table name
