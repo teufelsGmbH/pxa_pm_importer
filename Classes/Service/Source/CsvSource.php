@@ -109,4 +109,21 @@ class CsvSource extends AbstractFileSource
     {
         $this->fileStream->next();
     }
+
+    /**
+     * Count CSV lines
+     *
+     * @return int
+     */
+    public function count()
+    {
+        // Find max
+        $this->fileStream->seek(PHP_INT_MAX);
+        $linesTotal = $this->fileStream->key();
+
+        // Reset
+        $this->rewind();
+
+        return $linesTotal;
+    }
 }

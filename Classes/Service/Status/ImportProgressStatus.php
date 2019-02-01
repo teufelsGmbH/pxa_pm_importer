@@ -56,9 +56,8 @@ class ImportProgressStatus implements ImportProgressStatusInterface
         $runningInfo = $this->getFromRegistry();
         if (isset($runningInfo[$import->getUid()])) {
             unset($runningInfo[$import->getUid()]);
+            $this->registrySet($runningInfo);
         }
-
-        $this->registrySet($runningInfo);
     }
 
     /**

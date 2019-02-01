@@ -9,7 +9,7 @@ use Pixelant\PxaPmImporter\Domain\Model\Import;
  * Class SourceInterface
  * @package Pixelant\PxaPmImporter\Service\Source
  */
-interface SourceInterface extends \Iterator
+interface SourceInterface extends \Iterator, \Countable
 {
     /**
      * Initialize source
