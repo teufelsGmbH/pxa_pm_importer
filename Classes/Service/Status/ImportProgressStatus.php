@@ -5,8 +5,10 @@ namespace Pixelant\PxaPmImporter\Service\Status;
 
 use Pixelant\PxaPmImporter\Domain\Model\DTO\ImportStatusInfo;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
+use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ImportStatus
@@ -20,6 +22,12 @@ class ImportProgressStatus implements ImportProgressStatusInterface
     protected $registry = null;
 
     /**
+     * @var ImportRepository
+     */
+    protected $importRepository = null;
+
+
+    /**
      * Registry namespace
      * @var string
      */
@@ -31,6 +39,7 @@ class ImportProgressStatus implements ImportProgressStatusInterface
     public function __construct()
     {
         $this->registry = GeneralUtility::makeInstance(Registry::class);
+        $this->importRepository = GeneralUtility::makeInstance(ObjectManager::class)->get(ImportRepository::class);
     }
 
     /**
@@ -97,6 +106,32 @@ class ImportProgressStatus implements ImportProgressStatusInterface
         }
 
         return GeneralUtility::makeInstance(ImportStatusInfo::class, $import)->setIsAvailable(false);
+    }
+
+    /**
+     * Get all imports info
+     *
+     * @return array
+     */
+    public function getAllRunningImports(): array
+    {
+        $runningInfo = $this->getFromRegistry();
+        $result = [];
+        foreach ($runningInfo as $importUid => $importInfo) {
+            $import = $this->importRepository->findByUid($importUid);
+            if ($import === null) {
+                continue;
+            }
+
+            $result[] = GeneralUtility::makeInstance(
+                ImportStatusInfo::class,
+                $import,
+                $importInfo['start'],
+                $importInfo['progress']
+            );
+        }
+
+        return $result;
     }
 
     /**

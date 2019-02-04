@@ -38,6 +38,18 @@
 			<trans-unit id="be.importing">
 			    <source>Importing...</source>
 			</trans-unit>
+			<trans-unit id="be.running_imports">
+			    <source>Running imports</source>
+			</trans-unit>
+			<trans-unit id="be.name">
+			    <source>Name</source>
+			</trans-unit>
+			<trans-unit id="be.started_at">
+			    <source>Started at</source>
+			</trans-unit>
+			<trans-unit id="be.progress">
+			    <source>Progress</source>
+			</trans-unit>
 			<!--BE module:END-->
 		</body>
 	</file>

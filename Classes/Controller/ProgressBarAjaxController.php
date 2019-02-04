@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Controller;
 
+use Pixelant\PxaPmImporter\Domain\Model\DTO\ImportStatusInfo;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
 use Pixelant\PxaPmImporter\Service\Status\ImportProgressStatus;
@@ -57,12 +58,44 @@ class ProgressBarAjaxController
         if ($import !== null) {
             $importStatus = $this->importProgressStatus->getImportStatus($import);
 
-            $answer['status'] = $importStatus->isAvailable();
-            $answer += $importStatus->toArray();
+            $answer = $this->getImportStatusArray($importStatus);
         }
 
         $response->getBody()->write(json_encode($answer));
 
         return $response;
+    }
+
+    /**
+     * Get all running imports
+     *
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @return ResponseInterface
+     */
+    public function getAllRunningJobs(ServerRequestInterface $request, ResponseInterface $response)
+    {
+        $runningImports = [];
+        foreach ($this->importProgressStatus->getAllRunningImports() as $importStatus) {
+            $runningImports[] = $this->getImportStatusArray($importStatus);
+        }
+
+        $response->getBody()->write(json_encode($runningImports));
+
+        return $response;
+    }
+
+    /**
+     * Get import status as array
+     * @param ImportStatusInfo $importStatusInfo
+     * @return array
+     */
+    protected function getImportStatusArray(ImportStatusInfo $importStatusInfo): array
+    {
+        $status['status'] = $importStatusInfo->isAvailable();
+        $status['name'] = $importStatusInfo->getImport()->getName();
+        $status += $importStatusInfo->toArray();
+
+        return $status;
     }
 }

@@ -9,7 +9,8 @@ define(['jquery'], function ($) {
 			importSubmit: '#pxa-pm-import-submit',
 			parentWrapper: '.pxa-pm-importer',
 			selectImportBox: '#pxa-import-select',
-			progressBarPlaceholder: '#import-progress-bar'
+			formProgressBarPlaceholder: '#import-progress-bar',
+			runningImportsWrapper: '#running-imports-wrapper'
 		}
 	}
 
@@ -17,14 +18,47 @@ define(['jquery'], function ($) {
 		/**
 		 * Init main method
 		 */
-		init: function () {
+		init() {
 			this.submitButtonInit();
+			this.loadRunningImports();
+		},
+
+		/**
+		 * Init info about running imports
+		 */
+		loadRunningImports() {
+			$.ajax({
+				type: 'GET',
+				url: TYPO3.settings.ajaxUrls['pxapmimporter-all-imports']
+			}).done(response => {
+				let wrapper = this.getjQueryInstance('runningImportsWrapper');
+
+				for (let i = 0; i < response.length; i++) {
+					let runningImport = response[i];
+					if (runningImport.status !== true) {
+						continue;
+					}
+
+					let template = wrapper.find('#running-import-template').clone();
+					template.attr('id', '');
+					template.find('.running-import-name').text(runningImport.name);
+					template.find('.running-import-start').text(this.timestampToHumanDate(runningImport.start));
+
+					let progressBarTemplate = this.initProgressBar(runningImport.import);
+
+					template.find('.import-progress-bar').html(progressBarTemplate);
+
+					wrapper.append(template);
+					template.removeClass('hidden');
+					wrapper.removeClass('hidden');
+				}
+			});
 		},
 
 		/**
 		 * Submit state for import button
 		 */
-		submitButtonInit: function () {
+		submitButtonInit() {
 			this.getjQueryInstance('importSubmit').on('click', e => {
 				let $button = $(e.currentTarget);
 				$button.button('loading');
@@ -34,7 +68,9 @@ define(['jquery'], function ($) {
 
 				// Progress bar
 				let importId = parseInt(this.getjQueryInstance('selectImportBox').val());
-				this.initProgressBar(importId);
+				let progressBarTemplate = this.initProgressBar(importId);
+
+				this.getjQueryInstance('formProgressBarPlaceholder').html(progressBarTemplate);
 			});
 		},
 
@@ -42,33 +78,42 @@ define(['jquery'], function ($) {
 		 * Init progress bar
 		 *
 		 * @param importId
+		 * @param currentProgress
 		 */
-		initProgressBar: function (importId) {
+		initProgressBar(importId, currentProgress) {
 			let progressBarTemplate = $(this.getProgressBar());
 			let progressBar = progressBarTemplate.find('.progress-bar');
+			currentProgress = currentProgress || 0;
+
 			progressBar
-				.css('width', '0%')
-				.text('0%');
+				.css('width', currentProgress + '%')
+				.text(currentProgress + '%');
 
-			this.getjQueryInstance('progressBarPlaceholder').html(progressBarTemplate);
-
-			let progress = setInterval(function () {
+			let importProgress = setInterval(function () {
 				$.ajax({
 					type: 'POST',
 					url: TYPO3.settings.ajaxUrls['pxapmimporter-progress-bar'],
 					data: {
 						importId: importId,
 					}
-				}).done(({progress}) => {
+				}).done(response => {
+					let progress = response.progress;
+
+					if (progress > 100 || response.status === false) {
+						progress = 100;
+					}
+
 					progressBar
 						.css('width', progress + '%')
 						.text(progress + '%');
 
-					if (progressBar >= 100) {
-						clearInterval(progress);
+					if (progress >= 100) {
+						clearInterval(importProgress);
 					}
 				});
 			}, 1000);
+
+			return progressBar;
 		},
 
 		/**
@@ -77,7 +122,7 @@ define(['jquery'], function ($) {
 		 * @param element
 		 * @return string
 		 */
-		getjQueryInstance: function (element) {
+		getjQueryInstance(element) {
 			return $(this.selectors[element] || '');
 		},
 
@@ -86,12 +131,40 @@ define(['jquery'], function ($) {
 		 *
 		 * @return {string}
 		 */
-		getProgressBar: function () {
+		getProgressBar() {
 			return '<div class="progress">\n' +
 				'    <div class="progress-bar progress-bar-striped active" role="progressbar"\n' +
 				'         aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">\n' +
 				'    </div>\n' +
 				'</div>';
+		},
+
+		/**
+		 * Get formatted dated
+		 * @param timestamp
+		 * @return {string}
+		 */
+		timestampToHumanDate(timestamp) {
+			let date = new Date(timestamp * 1000);
+
+			let formattedDate = '';
+			formattedDate += this.prependDateWithZero(date.getDate());
+			formattedDate += '.' + this.prependDateWithZero(date.getMonth());
+			formattedDate += '.' + this.prependDateWithZero(date.getFullYear());
+			formattedDate += ', ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+
+			return formattedDate;
+		},
+
+		/**
+		 * Prepend zero for date if needed
+		 * @param value
+		 * @return {string}
+		 */
+		prependDateWithZero(value) {
+			return value < 10
+				? ('0' + value.toString())
+				: value.toString();
 		}
 	};
 

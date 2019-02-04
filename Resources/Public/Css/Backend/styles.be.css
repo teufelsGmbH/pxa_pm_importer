@@ -1,3 +1,15 @@
 .loading .pxa-after-import-messages {
     display: none;
 }
+
+.progress-label {
+    display: none;
+}
+
+.loading .progress-label {
+    display: inline;
+}
+
+.import-progress-bar {
+    height: 18px;
+}

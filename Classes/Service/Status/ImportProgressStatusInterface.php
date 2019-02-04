@@ -14,6 +14,13 @@ use TYPO3\CMS\Core\SingletonInterface;
 interface ImportProgressStatusInterface extends SingletonInterface
 {
     /**
+     * Get all running imports
+     *
+     * @return ImportStatusInfo[]
+     */
+    public function getAllRunningImports(): array;
+
+    /**
      * Return status of import
      *
      * @param Import $import
