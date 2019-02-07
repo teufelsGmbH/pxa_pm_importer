@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Service\Importer;
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\AbstractImporter;
@@ -328,20 +329,22 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function postponeProcessorWillAddProcessorInQueue()
+    public function postponeProcessorWillAddProcessorInQueueAndIncreaseAmountOfImportItems()
     {
         $this->subject->_set('postponedProcessors', []);
+        $this->subject->_set('amountOfImportItems', 1);
+
         $processorInstance = $this->createMock(FieldProcessorInterface::class);
+        $value = 'test value';
 
-        $expect = [
-            [
-                'value' => 'test',
-                'processorInstance' => $processorInstance
-            ]
-        ];
+        $this->subject->_call('postponeProcessor', $processorInstance, $value);
 
-        $this->subject->_call('postponeProcessor', $processorInstance, 'test');
-        $this->assertEquals($expect, $this->subject->_get('postponedProcessors'));
+        $postponedProcessor = $this->subject->_get('postponedProcessors')[0];
+
+        $this->assertInstanceOf(PostponedProcessor::class, $postponedProcessor);
+        $this->assertEquals($value, $postponedProcessor->getValue());
+        $this->assertSame($postponedProcessor->getProcessor(), $processorInstance);
+        $this->assertEquals(2, $this->subject->_get('amountOfImportItems'));
     }
 
     /**
@@ -359,5 +362,27 @@ class AbstractImporterTest extends UnitTestCase
         $this->subject->_call('setSettings', $configuration);
 
         $this->assertEquals($settings, $this->subject->_get('settings'));
+    }
+
+    /**
+     * @test
+     */
+    public function getImportProgressReturnMaxResultIfNotAmountSet()
+    {
+        $this->subject->_set('amountOfImportItems', 0);
+
+        $this->assertEquals(100.00, $this->subject->_call('getImportProgress'));
+    }
+
+    /**
+     * @test
+     */
+    public function getImportProgressReturnCurrentImportProgress()
+    {
+        $this->subject->_set('amountOfImportItems', 35);
+        $this->subject->_set('batchProgressCount', 5);
+
+        $expect = round(5 / 35 * 100, 2);
+        $this->assertEquals($expect, $this->subject->_call('getImportProgress'));
     }
 }

@@ -9,6 +9,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Adapter\AbstractDefaultAdapter;
 use Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter;
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
+use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 
 /**
  * Class AbstractDefaultAdapterTest
@@ -34,6 +35,30 @@ class DefaultDataAdapterTest extends UnitTestCase
     {
         parent::tearDown();
         unset($this->subject);
+    }
+
+    /**
+     * @test
+     */
+    public function countAmountOfItemsReturnLanguagesMultipleBySourceItems()
+    {
+        $data = [
+            0 => [
+                'test' => 'test'
+            ],
+            1 => [
+                'test' => 'test'
+            ]
+        ];
+        $this->subject->_set('languagesMapping', $data);
+
+        $source = $this->createPartialMock(SourceInterface::class, ['count', 'initialize', 'current', 'next', 'key', 'rewind', 'valid']);
+        $source
+            ->expects($this->once())
+            ->method('count')
+            ->willReturn(5);
+
+        $this->assertEquals(2 * 5, $this->subject->countAmountOfItems($source));
     }
 
     /**
