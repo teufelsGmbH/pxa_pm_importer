@@ -67,6 +67,6 @@ class PostponedProcessorTest extends UnitTestCase
 
         $postponedProcessor = new PostponedProcessor($processor, $value);
 
-        $this->assertSame($postponedProcessor->getValue(), $processor);
+        $this->assertSame($postponedProcessor->getProcessor(), $processor);
     }
 }
