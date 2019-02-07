@@ -75,6 +75,9 @@ abstract class AbstractSource implements SourceInterface
      */
     public function count()
     {
+        if ($this->data === null) {
+            $this->setData();
+        }
         return count($this->data);
     }
 
