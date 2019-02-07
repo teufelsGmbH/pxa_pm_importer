@@ -213,10 +213,18 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->source = $source;
         $this->import = $import;
-        $this->preImportPreparations($configuration);
-        $this->initImporterRelated();
 
-        $this->runImport();
+        try {
+            $this->preImportPreparations($configuration);
+            $this->initImporterRelated();
+
+            $this->runImport();
+        } catch (\Exception $exception) {
+            // If fail mark as done
+            $this->importProgressStatus->endImport($import);
+
+            throw $exception;
+        }
     }
 
     /**
