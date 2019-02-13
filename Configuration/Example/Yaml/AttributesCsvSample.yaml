@@ -21,18 +21,20 @@ importers:
     # Default
     identifierField: 'id'
     # Storage
-    pid: 611
+    pid: 706
 
     # Mapping fields, data adapter should return array with associative array
     mapping:
       name:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
         # Custom settings
-        validation: 'required'
+        validation:
+          - required
       label:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
       type:
         processor: 'Pixelant\PxaPmImporter\Processors\IntegerProcessor'
-        validation: 'required'
+        validation:
+          - required
       options:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\AttributeOptionsProcessor'
