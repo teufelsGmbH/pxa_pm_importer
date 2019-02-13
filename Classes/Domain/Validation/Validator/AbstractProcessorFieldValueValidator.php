@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Domain\Validation;
+namespace Pixelant\PxaPmImporter\Domain\Validation\Validator;
 
+use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatus;
+use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**

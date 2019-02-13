@@ -682,7 +682,7 @@ abstract class AbstractImporter implements ImporterInterface
                     }
                 }
             } catch (\Exception $exception) {
-                if ($exception instanceof PostponedProcessor
+                if ($exception instanceof PostponeProcessorException
                     || $exception instanceof ErrorValidationException
                 ) {
                     $this->logger->error(

@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Domain\Validation;
+namespace Pixelant\PxaPmImporter\Domain\Validation\Validator;
+
+use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
 
 /**
  * Class RequiredValidator
@@ -19,7 +21,7 @@ class RequiredValidator extends AbstractProcessorFieldValueValidator
     {
         if (empty($value)) {
             $this->validationStatus = $this->createValidationStatus(
-                'Value "' . $value . '" can not be empty',
+                'Value can not be empty for required property',
                 ValidationStatusInterface::ERROR
             );
 

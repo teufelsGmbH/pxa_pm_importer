@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
-use Pixelant\PxaPmImporter\Domain\Validation\ProcessorFieldValueValidatorInterface;
 use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
