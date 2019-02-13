@@ -701,7 +701,6 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $languages = $this->adapter->getImportLanguages();
         $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
-
         $batchCount = 0;
 
         foreach ($languages as $language) {
@@ -710,6 +709,7 @@ abstract class AbstractImporter implements ImporterInterface
             // One row per record
             foreach ($this->source as $key => $rawRow) {
                 if (!$this->adapter->includeRow($key, $rawRow)) {
+                    $this->batchProgressCount++;
                     // Skip
                     continue;
                 }
