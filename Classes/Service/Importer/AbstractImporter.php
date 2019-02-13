@@ -683,12 +683,7 @@ abstract class AbstractImporter implements ImporterInterface
             }
 
             // If need to update progress status
-            if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
-                $this->importProgressStatus->updateImportProgress(
-                    $this->import,
-                    $this->getImportProgress()
-                );
-            }
+            $this->updateImportProgress();
         }
         $this->postponedProcessors = [];
         $this->persistAndClear();
@@ -709,7 +704,8 @@ abstract class AbstractImporter implements ImporterInterface
             // One row per record
             foreach ($this->source as $key => $rawRow) {
                 if (!$this->adapter->includeRow($key, $rawRow)) {
-                    $this->batchProgressCount++;
+                    // Update progress
+                    $this->updateImportProgress();
                     // Skip
                     continue;
                 }
@@ -830,14 +826,8 @@ abstract class AbstractImporter implements ImporterInterface
                         ));
                     }
                 }
+                $this->updateImportProgress();
 
-                // If need to update progress status
-                if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
-                    $this->importProgressStatus->updateImportProgress(
-                        $this->import,
-                        $this->getImportProgress()
-                    );
-                }
             }
 
             $this->persistAndClear();
@@ -867,6 +857,19 @@ abstract class AbstractImporter implements ImporterInterface
         }
 
         return 100.00;
+    }
+
+    /**
+     * Update progress
+     */
+    protected function updateImportProgress(): void
+    {
+        if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
+            $this->importProgressStatus->updateImportProgress(
+                $this->import,
+                $this->getImportProgress()
+            );
+        }
     }
 
     /**
