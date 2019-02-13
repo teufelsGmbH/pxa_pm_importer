@@ -64,6 +64,7 @@ class ImportManager
                 // @codingStandardsIgnoreEnd
             }
 
+            // Write to log about import start
             $this->logger->info(sprintf(
                 'Start import for import configuration "%s" with UID - %d, at %s',
                 $import->getName(),
@@ -76,6 +77,7 @@ class ImportManager
             $importer->start($source, $import, $singleImporterConfiguration);
             $importer->postImport($import);
 
+            // Log info about import end
             $this->logger->info(sprintf(
                 'End import for import configuration "%s" with UID - %d, at %s',
                 $import->getName(),

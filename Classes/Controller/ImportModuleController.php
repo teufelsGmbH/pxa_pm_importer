@@ -68,7 +68,7 @@ class ImportModuleController extends ActionController
     {
         $this->getPageRenderer()->loadRequireJsModule(
             'TYPO3/CMS/PxaPmImporter/Backend/ImportModule',
-            'function(ImportModule) { ImportModule.init(); }'
+            'function(ImportModule) { (new ImportModule).init(); }'
         );
     }
 

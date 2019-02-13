@@ -110,6 +110,16 @@ class ExcelSource extends AbstractFileSource
     }
 
     /**
+     * Number of rows
+     *
+     * @return int
+     */
+    public function count()
+    {
+        return $this->highestDataRow;
+    }
+
+    /**
      * Initialize
      *
      * @param array $configuration

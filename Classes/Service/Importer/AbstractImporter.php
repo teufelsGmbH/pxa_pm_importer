@@ -4,18 +4,19 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
+use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Service\Status\ImportProgressStatus;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
@@ -84,6 +85,27 @@ abstract class AbstractImporter implements ImporterInterface
     protected $batchSize = 50;
 
     /**
+     * Update progress after reached batch size
+     *
+     * @var int
+     */
+    protected $batchProgressSize = 10;
+
+    /**
+     * Amount of items to be imported
+     *
+     * @var int
+     */
+    protected $amountOfImportItems = 0;
+
+    /**
+     * Keep track on already imported amount of items
+     *
+     * @var int
+     */
+    protected $batchProgressCount = 0;
+
+    /**
      * Mapping rules
      *
      * @var array
@@ -132,9 +154,14 @@ abstract class AbstractImporter implements ImporterInterface
     protected $source = null;
 
     /**
+     * @var ImportProgressStatus
+     */
+    protected $importProgressStatus = null;
+
+    /**
      * Array of import processor that should be run in postImport
      *
-     * @var FieldProcessorInterface[]
+     * @var PostponedProcessor[]
      */
     protected $postponedProcessors = [];
 
@@ -160,6 +187,19 @@ abstract class AbstractImporter implements ImporterInterface
         $this->logger = $logger !== null ? $logger : Logger::getInstance(__CLASS__);
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
+        $this->importProgressStatus = $this->objectManager->get(ImportProgressStatus::class);
+    }
+
+    /**
+     * Run pre-import actions
+     *
+     * @param SourceInterface $source
+     * @param Import $import
+     * @param array $configuration
+     */
+    public function preImport(SourceInterface $source, Import $import, array $configuration = []): void
+    {
+        $this->importProgressStatus->startImport($import);
     }
 
     /**
@@ -173,10 +213,28 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->source = $source;
         $this->import = $import;
-        $this->preImportPreparations($configuration);
-        $this->initImporterRelated();
 
-        $this->runImport();
+        try {
+            $this->preImportPreparations($configuration);
+            $this->initImporterRelated();
+
+            $this->runImport();
+        } catch (\Exception $exception) {
+            // If fail mark as done
+            $this->importProgressStatus->endImport($import);
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Actions after import is finished
+     *
+     * @param Import $import
+     */
+    public function postImport(Import $import): void
+    {
+        $this->importProgressStatus->endImport($import);
     }
 
     /**
@@ -337,34 +395,7 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function getRecordByImportIdHash(string $idHash, int $language = 0): ?array
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($this->dbTable);
-        $queryBuilder
-            ->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-
-        $row = $queryBuilder
-            ->select('*')
-            ->from($this->dbTable)
-            ->where(
-                $queryBuilder->expr()->eq(
-                    self::DB_IMPORT_ID_HASH_FIELD,
-                    $queryBuilder->createNamedParameter($idHash, Connection::PARAM_STR)
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter($language, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->eq(
-                    'pid',
-                    $queryBuilder->createNamedParameter($this->pid, Connection::PARAM_INT)
-                )
-            )
-            ->setMaxResults(1)
-            ->execute()
-            ->fetch();
-
-        return is_array($row) ? $row : null;
+        return MainUtility::getRecordByImportIdHash($idHash, $this->dbTable, $this->pid, $language);
     }
 
     /**
@@ -597,13 +628,14 @@ abstract class AbstractImporter implements ImporterInterface
      */
     protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
     {
-        // Tears down
-        $processor->tearDown();
+        // Increase amount of import items, since postponed processor means + 1 operation
+        $this->amountOfImportItems++;
 
-        $this->postponedProcessors[] = [
-            'value' => $value,
-            'processorInstance' => $processor
-        ];
+        $this->postponedProcessors[] = GeneralUtility::makeInstance(
+            PostponedProcessor::class,
+            $processor,
+            $value
+        );
     }
 
     /**
@@ -613,9 +645,8 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $batchCount = 0;
         foreach ($this->postponedProcessors as $postponedProcessor) {
-            $value = $postponedProcessor['value'];
-            /** @var FieldProcessorInterface $processor */
-            $processor = $postponedProcessor['processorInstance'];
+            $value = $postponedProcessor->getValue();
+            $processor = $postponedProcessor->getProcessor();
 
             $entityUid = (int)$processor->getProcessingDbRow()['uid'];
             if ($entityUid === 0) {
@@ -650,6 +681,9 @@ abstract class AbstractImporter implements ImporterInterface
                     'Failed executing postponed processor with message "' . $exception->getMessage() . '"'
                 );
             }
+
+            // If need to update progress status
+            $this->updateImportProgress();
         }
         $this->postponedProcessors = [];
         $this->persistAndClear();
@@ -661,6 +695,7 @@ abstract class AbstractImporter implements ImporterInterface
     protected function runImport(): void
     {
         $languages = $this->adapter->getImportLanguages();
+        $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
         $batchCount = 0;
 
         foreach ($languages as $language) {
@@ -669,6 +704,8 @@ abstract class AbstractImporter implements ImporterInterface
             // One row per record
             foreach ($this->source as $key => $rawRow) {
                 if (!$this->adapter->includeRow($key, $rawRow)) {
+                    // Update progress
+                    $this->updateImportProgress();
                     // Skip
                     continue;
                 }
@@ -789,6 +826,8 @@ abstract class AbstractImporter implements ImporterInterface
                         ));
                     }
                 }
+                $this->updateImportProgress();
+
             }
 
             $this->persistAndClear();
@@ -804,6 +843,33 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->persistenceManager->persistAll();
         $this->persistenceManager->clearState();
+    }
+
+    /**
+     * Calculate current progress of import
+     *
+     * @return int
+     */
+    protected function getImportProgress(): float
+    {
+        if ($this->amountOfImportItems > 0) {
+            return round($this->batchProgressCount / $this->amountOfImportItems * 100, 2);
+        }
+
+        return 100.00;
+    }
+
+    /**
+     * Update progress
+     */
+    protected function updateImportProgress(): void
+    {
+        if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
+            $this->importProgressStatus->updateImportProgress(
+                $this->import,
+                $this->getImportProgress()
+            );
+        }
     }
 
     /**

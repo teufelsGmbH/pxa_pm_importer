@@ -253,11 +253,12 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected function getOptions(string $value): array
     {
         $values = GeneralUtility::trimExplode(',', $value, true);
-        unset($value);
-        $hashes = [];
-        foreach ($values as $value) {
-            $hashes[] = MainUtility::getImportIdHash($value);
-        }
+        $hashes = array_map(
+            function ($value) {
+                return MainUtility::getImportIdHash($value);
+            },
+            $values
+        );
 
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
             ->getQueryBuilderForTable('tx_pxaproductmanager_domain_model_option');

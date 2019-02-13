@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Adapter;
 
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
+use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -126,6 +127,18 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     public function getImportLanguages(): array
     {
         return array_keys($this->languagesMapping);
+    }
+
+    /**
+     * Count amount of import items
+     * Usually source count multiply by languages
+     *
+     * @param SourceInterface $source
+     * @return int
+     */
+    public function countAmountOfItems(SourceInterface $source): int
+    {
+        return count($this->getImportLanguages()) * $source->count();
     }
 
     /**

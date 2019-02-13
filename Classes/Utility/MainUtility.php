@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Utility;
 
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
@@ -81,5 +85,63 @@ class MainUtility
         $unit = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
 
         return @round($size / pow(1024, ($i = floor(log($size, 1024)))), 2) . ' ' . $unit[(int)$i];
+    }
+
+    /**
+     * Fetch records from DB by import Identifier
+     *
+     * @param string $id
+     * @param string $table
+     * @param int $pid
+     * @param int $language
+     * @return array|null
+     */
+    public static function getRecordByImportId(string $id, string $table, int $pid, int $language = 0): ?array
+    {
+        $idHash = static::getImportIdHash($id);
+
+        return static::getRecordByImportIdHash($idHash, $table, $pid, $language);
+    }
+
+    /**
+     * Fetch records from DB by import hash
+     * Respect PID and language
+     *
+     * @param string $idHash
+     * @param string $table
+     * @param int $pid
+     * @param int $language
+     * @return array|null
+     */
+    public static function getRecordByImportIdHash(string $idHash, string $table, int $pid, int $language = 0): ?array
+    {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
+        $queryBuilder
+            ->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+
+        $row = $queryBuilder
+            ->select('*')
+            ->from($table)
+            ->where(
+                $queryBuilder->expr()->eq(
+                    ImporterInterface::DB_IMPORT_ID_HASH_FIELD,
+                    $queryBuilder->createNamedParameter($idHash, Connection::PARAM_STR)
+                ),
+                $queryBuilder->expr()->eq(
+                    'sys_language_uid',
+                    $queryBuilder->createNamedParameter($language, Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
+                )
+            )
+            ->setMaxResults(1)
+            ->execute()
+            ->fetch();
+
+        return is_array($row) ? $row : null;
     }
 }

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Adapter;
 
+use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+
 /**
  * Interface AdapterInterface
  * @package Pixelant\PxaPmImporter\Adapter
@@ -46,4 +48,12 @@ interface AdapterInterface
      * @return array
      */
     public function getImportLanguages(): array;
+
+    /**
+     * Count amount of items to be importer
+     *
+     * @param SourceInterface $source
+     * @return int
+     */
+    public function countAmountOfItems(SourceInterface $source): int;
 }

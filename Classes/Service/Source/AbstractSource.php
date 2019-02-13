@@ -12,6 +12,7 @@ abstract class AbstractSource implements SourceInterface
 {
     /**
      * Source data
+     *
      * @var array
      */
     protected $data = null;
@@ -65,6 +66,19 @@ abstract class AbstractSource implements SourceInterface
         $current = current($this->data);
 
         return $current;
+    }
+
+    /**
+     * Count items
+     *
+     * @return int
+     */
+    public function count()
+    {
+        if ($this->data === null) {
+            $this->setData();
+        }
+        return count($this->data);
     }
 
     /**
