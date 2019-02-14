@@ -219,7 +219,11 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      */
     protected function addError(string $error): void
     {
-        $this->validationErrors[] = $error;
+        $this->validationErrors[] = sprintf(
+            'Failed validation for property "%s", with message - "%s"',
+            $this->property,
+            $error
+        );
     }
 
     /**

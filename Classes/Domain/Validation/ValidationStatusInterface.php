@@ -12,6 +12,7 @@ interface ValidationStatusInterface
     /**
      * Severity levels
      */
+    const OK = 0; // Default value, no errors
     const WARNING = 1; // Error occurred, property won't be set, but can continue
     const ERROR = 2; // Error occurred and should skip current import row
     const CRITICAL = 3; // Critical validation error, import should stop

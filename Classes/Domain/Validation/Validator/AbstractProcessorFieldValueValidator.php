@@ -25,6 +25,11 @@ abstract class AbstractProcessorFieldValueValidator implements ProcessorFieldVal
      */
     public function getValidationStatus(): ValidationStatusInterface
     {
+        if ($this->validationStatus === null) {
+            // create default status
+            $this->validationStatus = $this->createValidationStatus('', ValidationStatusInterface::OK);
+        }
+
         return $this->validationStatus;
     }
 

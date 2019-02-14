@@ -114,7 +114,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             }
 
             if ($date === null) {
-                $this->addError('Could not parse date from "' . $value . '" for "' . $this->property . '"');
+                $this->addError('Could not parse date from "' . $value . '"');
                 return false;
             }
         }

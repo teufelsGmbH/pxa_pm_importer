@@ -33,7 +33,7 @@ class FloatProcessor extends AbstractFieldProcessor
 
         // Empty value is valid if not required
         if (!empty($value) && !is_numeric($value)) {
-            $this->addError('Property "' . $this->property . '" value should be numeric');
+            $this->addError('Value "' . $value . '" is not numeric');
 
             return false;
         }
