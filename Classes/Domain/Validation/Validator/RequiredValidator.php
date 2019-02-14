@@ -20,10 +20,7 @@ class RequiredValidator extends AbstractProcessorFieldValueValidator
     public function validate($value): bool
     {
         if (empty($value)) {
-            $this->validationStatus = $this->createValidationStatus(
-                'Value can not be empty for required property',
-                ValidationStatusInterface::ERROR
-            );
+            $this->error('Value can not be empty for required property');
 
             return false;
         }

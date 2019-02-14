@@ -34,6 +34,45 @@ abstract class AbstractProcessorFieldValueValidator implements ProcessorFieldVal
     }
 
     /**
+     * Create status with error
+     *
+     * @param string $message
+     */
+    protected function error(string $message): void
+    {
+        $this->validationStatus = $this->createValidationStatus(
+            $message,
+            ValidationStatusInterface::ERROR
+        );
+    }
+
+    /**
+     * Create status with critical error
+     *
+     * @param string $message
+     */
+    protected function critical(string $message): void
+    {
+        $this->validationStatus = $this->createValidationStatus(
+            $message,
+            ValidationStatusInterface::CRITICAL
+        );
+    }
+
+    /**
+     * Create status with warning
+     *
+     * @param string $message
+     */
+    protected function warning(string $message): void
+    {
+        $this->validationStatus = $this->createValidationStatus(
+            $message,
+            ValidationStatusInterface::WARNING
+        );
+    }
+
+    /**
      * Create validation status
      *
      * @param string $message
