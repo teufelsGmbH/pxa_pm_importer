@@ -70,4 +70,61 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
 
         $this->assertSame($validationStatus, $this->subject->getValidationStatus());
     }
+
+    /**
+     * @test
+     */
+    public function errorWillCreateStatusWithError()
+    {
+        $subject = $this->getAccessibleMock(
+            AbstractProcessorFieldValueValidator::class,
+            ['validate', 'createValidationStatus']
+        );
+        $message = 'error';
+
+        $subject
+            ->expects($this->once())
+            ->method('createValidationStatus')
+            ->with($message, ValidationStatusInterface::ERROR);
+
+        $subject->_call('error', $message);
+    }
+
+    /**
+     * @test
+     */
+    public function warningWillCreateStatusWithWarning()
+    {
+        $subject = $this->getAccessibleMock(
+            AbstractProcessorFieldValueValidator::class,
+            ['validate', 'createValidationStatus']
+        );
+        $message = 'error';
+
+        $subject
+            ->expects($this->once())
+            ->method('createValidationStatus')
+            ->with($message, ValidationStatusInterface::WARNING);
+
+        $subject->_call('warning', $message);
+    }
+
+    /**
+     * @test
+     */
+    public function criticalWillCreateStatusWithCritical()
+    {
+        $subject = $this->getAccessibleMock(
+            AbstractProcessorFieldValueValidator::class,
+            ['validate', 'createValidationStatus']
+        );
+        $message = 'error';
+
+        $subject
+            ->expects($this->once())
+            ->method('createValidationStatus')
+            ->with($message, ValidationStatusInterface::CRITICAL);
+
+        $subject->_call('critical', $message);
+    }
 }
