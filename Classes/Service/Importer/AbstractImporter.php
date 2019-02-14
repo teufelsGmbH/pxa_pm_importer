@@ -660,6 +660,14 @@ abstract class AbstractImporter implements ImporterInterface
             }
 
             $record = BackendUtility::getRecord($this->dbTable, $entityUid);
+            // Most likely record was deleted because of validation
+            if ($record === null) {
+                $this->logger->error(
+                    'Failed executing postponed processor for record UID - ' . $entityUid . ', record not found.'
+                );
+
+                continue;
+            }
             $model = $this->mapRow($record);
 
             // Re-init processor
@@ -724,6 +732,14 @@ abstract class AbstractImporter implements ImporterInterface
                 $row = $this->adapter->adaptRow($key, $rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
                 $idHash = $this->getImportIdHash($id);
+
+                // Log import processing
+                $this->logger->info(sprintf(
+                    'Start import for row ID - "%s", hash - "%s" and language - "%d"',
+                    $id,
+                    $idHash,
+                    $language
+                ));
 
                 // Check if is unique for import
                 if (in_array($idHash, $identifiers)) {
