@@ -112,7 +112,7 @@ trait FilesResources
         $files = [];
 
         foreach (GeneralUtility::trimExplode(',', $list, true) as $filePath) {
-            $fileIdentifier = $folder->getIdentifier() . $filePath;
+            $fileIdentifier = $folder->getIdentifier() . ltrim($filePath, '/');
 
             // Emit signal
             $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);

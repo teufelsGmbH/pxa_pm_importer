@@ -97,7 +97,8 @@ importers:
         property: 'title'
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
         # Custom settings
-        validation: 'required'
+        validation:
+            - required
       parent:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
     # Additional settings
@@ -181,8 +182,11 @@ mapping:
     property: 'title'
     # Custom field processor. If set processor take care of setting model property value, otherwise value will be set as simple string without any processing.
     processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-    # Only required is supported so far. But you can implement any in your own processor
-    validation: 'required'
+    # Only required is supported so far. But you can implement more
+    # Add custom class name here
+    # If just a name is provided extension will try to load it from validators folder
+    validation:
+        - required
     # Any other options will be passed as configuration array to processor
     customSetting: true
     anotherSettingValue: 123321
@@ -249,7 +253,22 @@ Extension has next processors out of box:
 - `Pixelant\PxaPmImporter\Processors\FloatProcessor` - float values. No parameters.
 - `Pixelant\PxaPmImporter\Processors\IntegerProcessor` - integer values. No parameter
 - `Pixelant\PxaPmImporter\Processors\StringProcessor` - string values. No parameters.
-- `Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor` - set value for product attribute. Parameters:
+- `Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor` - set value for product attribute. 
+
+##### Processor validation
+Every processor may have many validators.
+Custom validators should implement instance of `\Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface`.
+See `RequiredValidator` for example on how to validate value and `ValidationStatusInterface` for available validation statuses.
+
+```yaml
+validation:
+     # Will use \Pixelant\PxaPmImporter\Domain\Validation\Validator\RequiredValidator
+     - required
+     # Or provide custom validator
+     - Pixelant\MyExtension\Domain\Validation\Validator\CustomValidator
+```
+
+Product attribute processor parameters:
 ```yaml
 # UID of attribute
 attributeUid: 11

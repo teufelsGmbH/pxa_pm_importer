@@ -1,6 +1,6 @@
 source:
   Pixelant\PxaPmImporter\Service\Source\ExcelSource:
-    skipRows: 3
+    skipRows: 1
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/products.xlsx
 importers:
   Pixelant\PxaPmImporter\Service\Importer\ProductsImporter:
@@ -39,7 +39,7 @@ importers:
     # Default
     identifierField: 'id'
     # Storage
-    pid: 611
+    pid: 706
 
     # Shall we create an independent language layer record if parent record doesn't exist
     allowCreateLocalizationIfDefaultNotFound: false
@@ -49,7 +49,8 @@ importers:
       name:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
         # Custom settings
-        validation: 'required'
+        validation:
+          - required
       sku:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
       teaser:

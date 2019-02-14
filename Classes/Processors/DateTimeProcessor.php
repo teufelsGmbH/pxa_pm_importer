@@ -48,8 +48,7 @@ class DateTimeProcessor extends AbstractFieldProcessor
         } else {
             $this->addError(
                 sprintf(
-                    'Property "%s" - can\'t create a DateTime from "%s" with format "%s" (%s)',
-                    $this->property,
+                    'Can\'t create a DateTime from "%s" with format "%s" (%s)',
                     $value,
                     $inputFormat,
                     $this->getDateTimeErrorString()

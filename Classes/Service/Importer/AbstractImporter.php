@@ -8,6 +8,7 @@ use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
+use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
@@ -450,12 +451,20 @@ abstract class AbstractImporter implements ImporterInterface
                 $processor->init($model, $record, $property, $this, $mapping['configuration']);
 
                 try {
-                    $processingResult = $this->executeProcessor($processor, $value);
-                    if ($processor->isPropertyRequired() && $processingResult === false) {
-                        return false;
-                    }
+                    $this->executeProcessor($processor, $value);
                 } catch (PostponeProcessorException $exception) {
                     $this->postponeProcessor($processor, $value);
+                } catch (ErrorValidationException $errorValidationException) {
+                    $this->logger->error(sprintf(
+                    // @codingStandardsIgnoreStart
+                        'Error occurred while validate property "%s" with value "%s" with message "%s", skipping record',
+                        // @codingStandardsIgnoreEnd
+                        $property,
+                        $value,
+                        $errorValidationException->getMessage()
+                    ));
+
+                    return false;
                 }
             } else {
                 // Just set it if no processor
@@ -491,15 +500,13 @@ abstract class AbstractImporter implements ImporterInterface
      *
      * @param FieldProcessorInterface $processor
      * @param $value
-     * @return bool
+     * @return void
      */
-    protected function executeProcessor(FieldProcessorInterface $processor, $value): bool
+    protected function executeProcessor(FieldProcessorInterface $processor, $value): void
     {
         $processor->preProcess($value);
         if ($processor->isValid($value)) {
             $processor->process($value);
-
-            return true;
         } else {
             $this->logger->error(sprintf(
                 'Property "%s" validation failed for value "%s" and import ID "%s(hash:%s)", with messages: %s',
@@ -509,8 +516,6 @@ abstract class AbstractImporter implements ImporterInterface
                 $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD],
                 $processor->getValidationErrorsString()
             ));
-
-            return false;
         }
     }
 
@@ -655,6 +660,14 @@ abstract class AbstractImporter implements ImporterInterface
             }
 
             $record = BackendUtility::getRecord($this->dbTable, $entityUid);
+            // Most likely record was deleted because of validation
+            if ($record === null) {
+                $this->logger->error(
+                    'Failed executing postponed processor for record UID - ' . $entityUid . ', record not found.'
+                );
+
+                continue;
+            }
             $model = $this->mapRow($record);
 
             // Re-init processor
@@ -676,10 +689,16 @@ abstract class AbstractImporter implements ImporterInterface
                         $this->persistAndClear();
                     }
                 }
-            } catch (PostponeProcessorException $exception) {
-                $this->logger->error(
-                    'Failed executing postponed processor with message "' . $exception->getMessage() . '"'
-                );
+            } catch (\Exception $exception) {
+                if ($exception instanceof PostponeProcessorException
+                    || $exception instanceof ErrorValidationException
+                ) {
+                    $this->logger->error(
+                        'Failed executing postponed processor with message "' . $exception->getMessage() . '"'
+                    );
+                } else {
+                    throw $exception;
+                }
             }
 
             // If need to update progress status
@@ -703,15 +722,24 @@ abstract class AbstractImporter implements ImporterInterface
             $identifiers = [];
             // One row per record
             foreach ($this->source as $key => $rawRow) {
+                // Update progress on every iteration
+                $this->updateImportProgress();
+
                 if (!$this->adapter->includeRow($key, $rawRow)) {
-                    // Update progress
-                    $this->updateImportProgress();
                     // Skip
                     continue;
                 }
                 $row = $this->adapter->adaptRow($key, $rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
                 $idHash = $this->getImportIdHash($id);
+
+                // Log import processing
+                $this->logger->info(sprintf(
+                    'Start import for row ID - "%s", hash - "%s" and language - "%d"',
+                    $id,
+                    $idHash,
+                    $language
+                ));
 
                 // Check if is unique for import
                 if (in_array($idHash, $identifiers)) {
@@ -826,8 +854,6 @@ abstract class AbstractImporter implements ImporterInterface
                         ));
                     }
                 }
-                $this->updateImportProgress();
-
             }
 
             $this->persistAndClear();

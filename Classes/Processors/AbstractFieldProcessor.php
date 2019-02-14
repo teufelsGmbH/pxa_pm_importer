@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
+use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
+use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
+use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
@@ -114,12 +118,38 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      */
     public function isValid($value): bool
     {
-        if ($this->isPropertyRequired() && empty($value)) {
-            $this->addError('Property "' . $this->property . '" is required');
+        $validators = isset($this->configuration['validation']) && is_array($this->configuration['validation'])
+            ? $this->configuration['validation']
+            : [];
 
-            return false;
+        foreach ($validators as $validatorName) {
+            $validator = $this->resolveValidator($validatorName);
+
+            // Failed validation
+            if (!$validator->validate($value)) {
+                switch ($validator->getValidationStatus()->getSeverity()) {
+                    case ValidationStatusInterface::WARNING:
+                        $this->addError($validator->getValidationStatus()->getMessage());
+                        // on warnings just return false
+                        return false;
+                        break;
+                    case ValidationStatusInterface::ERROR:
+                        throw new ErrorValidationException(
+                            $validator->getValidationStatus()->getMessage(),
+                            1550065854955
+                        );
+                        break;
+                    case ValidationStatusInterface::CRITICAL:
+                        throw new CriticalErrorValidationException(
+                            $validator->getValidationStatus()->getMessage(),
+                            1550065854955
+                        );
+                        break;
+                }
+            }
         }
 
+        // All passed
         return true;
     }
 
@@ -172,16 +202,6 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     }
 
     /**
-     * Check if field is required
-     *
-     * @return bool
-     */
-    public function isPropertyRequired(): bool
-    {
-        return $this->isRuleInValidationList('required');
-    }
-
-    /**
      * Tear down
      */
     public function tearDown(): void
@@ -193,24 +213,17 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     }
 
     /**
-     * Check if validation rule is in list
-     *
-     * @param string $rule
-     * @return bool
-     */
-    protected function isRuleInValidationList(string $rule): bool
-    {
-        return GeneralUtility::inList($this->configuration['validation'] ?? '', $rule);
-    }
-
-    /**
      * Add validation error
      *
      * @param string $error
      */
     protected function addError(string $error): void
     {
-        $this->validationErrors[] = $error;
+        $this->validationErrors[] = sprintf(
+            'Failed validation for property "%s", with message - "%s"',
+            $this->property,
+            $error
+        );
     }
 
     /**
@@ -238,5 +251,40 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     protected function getRecordByImportIdentifier(string $identifier, string $table, int $language = 0): ?array
     {
         return MainUtility::getRecordByImportId($identifier, $table, $this->importer->getPid(), $language);
+    }
+
+    /**
+     * Get validator instance
+     *
+     * @param string $validatorName
+     * @return ProcessorFieldValueValidatorInterface
+     */
+    protected function resolveValidator(string $validatorName): ProcessorFieldValueValidatorInterface
+    {
+        if (class_exists($validatorName)) {
+            $className = $validatorName;
+        } else {
+            $className = sprintf(
+                'Pixelant\\PxaPmImporter\\Domain\\Validation\\Validator\\%sValidator',
+                ucfirst($validatorName)
+            );
+        }
+
+        if (!class_exists($className)) {
+            throw new \RuntimeException('Validator "' . $className . '" doesn\'t exist.', 1550064722323);
+        }
+
+        $validator = GeneralUtility::makeInstance($className);
+        if (!($validator instanceof ProcessorFieldValueValidatorInterface)) {
+            throw new \UnexpectedValueException(
+                sprintf(
+                    'Validator "%s", should be instance of ProcessorFieldValueValidatorInterface',
+                    $className
+                ),
+                1550064848419
+            );
+        }
+
+        return $validator;
     }
 }

@@ -23,7 +23,7 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     protected $entities = [];
 
     /**
-     * Flag if init entities failed and validion result should be false
+     * Flag if init entities failed and validation result should be false
      *
      * @var bool
      */
