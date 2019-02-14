@@ -6,8 +6,14 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Processors;
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatus;
+use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
+use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
+use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -26,7 +32,10 @@ class AbstractFieldProcessorTest extends UnitTestCase
     {
         $this->subject = $this->getAccessibleMock(
             AbstractFieldProcessor::class,
-            ['process']
+            ['process', 'resolveValidator'],
+            [],
+            '',
+            false
         );
         parent::setUp();
     }
@@ -64,29 +73,181 @@ class AbstractFieldProcessorTest extends UnitTestCase
     /**
      * @test
      */
-    public function isValidIfRequiredReturnFalseOnEmptyValue()
+    public function ifValidationNotSetIsValidReturnTrue()
     {
         $value = '';
-        $configuration = [
-            'validation' => 'required'
-        ];
+        $configuration = [];
         $this->subject->_set('configuration', $configuration);
 
-        $this->assertFalse($this->subject->isValid($value));
+        $this->assertTrue($this->subject->isValid($value));
     }
 
     /**
      * @test
      */
-    public function isValidIfNotRequiredReturnTrueOnEmptyValue()
+    public function resolveValidatorThrowsExceptionIfClassDoesNotExist()
+    {
+        $className= 'FakeClassName';
+        $subject = $this->getAccessibleMock(
+            AbstractFieldProcessor::class,
+            ['process'],
+            [],
+            '',
+            false
+        );
+        $this->expectException(\RuntimeException::class);
+        $subject->_call('resolveValidator', $className);
+    }
+
+    /**
+     * @test
+     */
+    public function resolveValidatorThrowsExceptionIfClassIsNotValidatorInterface()
+    {
+        $className= GeneralUtility::class; // Existing class
+        $subject = $this->getAccessibleMock(
+            AbstractFieldProcessor::class,
+            ['process'],
+            [],
+            '',
+            false
+        );
+
+        $this->expectException(\UnexpectedValueException::class);
+        $subject->_call('resolveValidator', $className);
+    }
+
+    /**
+     * @test
+     */
+    public function isValidAddErrorAndReturnFalseOnWarningValidationStatus()
     {
         $value = '';
         $configuration = [
-            'validation' => ''
+            'validation' => [
+                'required'
+            ]
+        ];
+        $subject = $this->getAccessibleMock(
+            AbstractFieldProcessor::class,
+            ['process', 'resolveValidator', 'addError'],
+            [],
+            '',
+            false
+        );
+        $subject->_set('configuration', $configuration);
+
+        $mockedValidator = $this->createPartialMock(ProcessorFieldValueValidatorInterface::class, ['validate', 'getValidationStatus']);
+        $mockedValidationStatus = $this->createPartialMock(ValidationStatus::class, ['getSeverity']);
+
+        $subject
+            ->expects($this->once())
+            ->method('resolveValidator')
+            ->with('required')
+            ->willReturn($mockedValidator);
+
+        $subject
+            ->expects($this->once())
+            ->method('addError');
+
+        $mockedValidator
+            ->expects($this->once())
+            ->method('validate')
+            ->willReturn(false);
+
+        $mockedValidator
+            ->expects($this->atLeastOnce())
+            ->method('getValidationStatus')
+            ->willReturn($mockedValidationStatus);
+
+        $mockedValidationStatus
+            ->expects($this->once())
+            ->method('getSeverity')
+            ->willReturn(ValidationStatusInterface::WARNING);
+
+        $this->assertFalse($subject->isValid($value));
+    }
+
+    /**
+     * @test
+     */
+    public function isValidThrowExceptionOnErrorValidationStatus()
+    {
+        $value = '';
+        $configuration = [
+            'validation' => [
+                'required'
+            ]
         ];
         $this->subject->_set('configuration', $configuration);
 
-        $this->assertTrue($this->subject->isValid($value));
+        $mockedValidator = $this->createPartialMock(ProcessorFieldValueValidatorInterface::class, ['validate', 'getValidationStatus']);
+        $mockedValidationStatus = $this->createPartialMock(ValidationStatus::class, ['getSeverity']);
+
+        $this->subject
+            ->expects($this->once())
+            ->method('resolveValidator')
+            ->with('required')
+            ->willReturn($mockedValidator);
+
+        $mockedValidator
+            ->expects($this->once())
+            ->method('validate')
+            ->willReturn(false);
+
+        $mockedValidator
+            ->expects($this->atLeastOnce())
+            ->method('getValidationStatus')
+            ->willReturn($mockedValidationStatus);
+
+        $mockedValidationStatus
+            ->expects($this->once())
+            ->method('getSeverity')
+            ->willReturn(ValidationStatusInterface::ERROR);
+
+        $this->expectException(ErrorValidationException::class);
+        $this->subject->isValid($value);
+    }
+
+    /**
+     * @test
+     */
+    public function isValidThrowExceptionOnCriticalValidationStatus()
+    {
+        $value = '';
+        $configuration = [
+            'validation' => [
+                'required'
+            ]
+        ];
+        $this->subject->_set('configuration', $configuration);
+
+        $mockedValidator = $this->createPartialMock(ProcessorFieldValueValidatorInterface::class, ['validate', 'getValidationStatus']);
+        $mockedValidationStatus = $this->createPartialMock(ValidationStatus::class, ['getSeverity']);
+
+        $this->subject
+            ->expects($this->once())
+            ->method('resolveValidator')
+            ->with('required')
+            ->willReturn($mockedValidator);
+
+        $mockedValidator
+            ->expects($this->once())
+            ->method('validate')
+            ->willReturn(false);
+
+        $mockedValidator
+            ->expects($this->atLeastOnce())
+            ->method('getValidationStatus')
+            ->willReturn($mockedValidationStatus);
+
+        $mockedValidationStatus
+            ->expects($this->once())
+            ->method('getSeverity')
+            ->willReturn(ValidationStatusInterface::CRITICAL);
+
+        $this->expectException(CriticalErrorValidationException::class);
+        $this->subject->isValid($value);
     }
 
     /**
@@ -142,29 +303,17 @@ class AbstractFieldProcessorTest extends UnitTestCase
     /**
      * @test
      */
-    public function isRuleInValidationListCheckIfRuleIsInListOfValidation()
-    {
-        $configuration = [
-            'validation' => 'testvalidation,required'
-        ];
-        $this->subject->_set('configuration', $configuration);
-
-        $this->assertTrue($this->subject->_call('isRuleInValidationList', 'required'));
-        $this->assertFalse($this->subject->_call('isRuleInValidationList', 'test'));
-    }
-
-    /**
-     * @test
-     */
     public function addErrorWillAddError()
     {
-        $expect = ['Error test'];
         $error = 'Error test';
 
         $this->subject->_set('validationErrors', []);
         $this->subject->_call('addError', $error);
 
-        $this->assertEquals($expect, $this->subject->getValidationErrors());
+
+        $this->assertTrue(
+            strpos($this->subject->getValidationErrors()[0], $error) !== false
+        );
     }
 
     /**
