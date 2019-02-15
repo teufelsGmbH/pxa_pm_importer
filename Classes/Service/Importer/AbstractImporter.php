@@ -509,11 +509,8 @@ abstract class AbstractImporter implements ImporterInterface
             $processor->process($value);
         } else {
             $this->logger->error(sprintf(
-                'Property "%s" validation failed for value "%s" and import ID "%s(hash:%s)", with messages: %s',
-                $processor->getProcessingProperty(),
-                $value,
+                'Processor error for row with ID "%s", with messages: %s',
                 $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
-                $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD],
                 $processor->getValidationErrorsString()
             ));
         }
