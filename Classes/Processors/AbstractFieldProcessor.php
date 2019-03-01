@@ -5,12 +5,12 @@ namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
 use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\ValidatorFactory;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -126,7 +126,7 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
             $validator = $this->resolveValidator($validatorName);
 
             // Failed validation
-            if (!$validator->validate($value)) {
+            if (!$validator->validate($value, $this)) {
                 switch ($validator->getValidationStatus()->getSeverity()) {
                     case ValidationStatusInterface::WARNING:
                         $this->addError($validator->getValidationStatus()->getMessage());
@@ -254,37 +254,13 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     }
 
     /**
-     * Get validator instance
+     * Wrapper for testing
      *
-     * @param string $validatorName
+     * @param string $validator
      * @return ProcessorFieldValueValidatorInterface
      */
-    protected function resolveValidator(string $validatorName): ProcessorFieldValueValidatorInterface
+    protected function resolveValidator(string $validator): ProcessorFieldValueValidatorInterface
     {
-        if (class_exists($validatorName)) {
-            $className = $validatorName;
-        } else {
-            $className = sprintf(
-                'Pixelant\\PxaPmImporter\\Domain\\Validation\\Validator\\%sValidator',
-                ucfirst($validatorName)
-            );
-        }
-
-        if (!class_exists($className)) {
-            throw new \RuntimeException('Validator "' . $className . '" doesn\'t exist.', 1550064722323);
-        }
-
-        $validator = GeneralUtility::makeInstance($className);
-        if (!($validator instanceof ProcessorFieldValueValidatorInterface)) {
-            throw new \UnexpectedValueException(
-                sprintf(
-                    'Validator "%s", should be instance of ProcessorFieldValueValidatorInterface',
-                    $className
-                ),
-                1550064848419
-            );
-        }
-
-        return $validator;
+        return ValidatorFactory::factory($validator);
     }
 }

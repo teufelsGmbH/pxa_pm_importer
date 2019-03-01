@@ -85,41 +85,6 @@ class AbstractFieldProcessorTest extends UnitTestCase
     /**
      * @test
      */
-    public function resolveValidatorThrowsExceptionIfClassDoesNotExist()
-    {
-        $className= 'FakeClassName';
-        $subject = $this->getAccessibleMock(
-            AbstractFieldProcessor::class,
-            ['process'],
-            [],
-            '',
-            false
-        );
-        $this->expectException(\RuntimeException::class);
-        $subject->_call('resolveValidator', $className);
-    }
-
-    /**
-     * @test
-     */
-    public function resolveValidatorThrowsExceptionIfClassIsNotValidatorInterface()
-    {
-        $className= GeneralUtility::class; // Existing class
-        $subject = $this->getAccessibleMock(
-            AbstractFieldProcessor::class,
-            ['process'],
-            [],
-            '',
-            false
-        );
-
-        $this->expectException(\UnexpectedValueException::class);
-        $subject->_call('resolveValidator', $className);
-    }
-
-    /**
-     * @test
-     */
     public function isValidAddErrorAndReturnFalseOnWarningValidationStatus()
     {
         $value = '';

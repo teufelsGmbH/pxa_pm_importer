@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Domain\Validation\Validator;
 
 use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
+use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 
 /**
  * Interface ProcessorFieldValueValidatorInterface
@@ -17,7 +18,7 @@ interface ProcessorFieldValueValidatorInterface
      * @param $value
      * @return bool
      */
-    public function validate($value): bool;
+    public function validate($value, FieldProcessorInterface $processor): bool;
 
     /**
      * Return result error on validation error
