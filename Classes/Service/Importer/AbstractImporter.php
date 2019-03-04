@@ -756,7 +756,7 @@ abstract class AbstractImporter implements ImporterInterface
                         case self::LOCALIZATION_FAILED:
                             // Failed, skip record
                             $this->logger->error('Could not localize record with import id "' . $id . '"');
-                            continue;
+                            continue 2;
                         case self::LOCALIZATION_SUCCESS:
                             // If localization was created, fetch it.
                             $record = $this->getRecordByImportIdHash($idHash, $language);
