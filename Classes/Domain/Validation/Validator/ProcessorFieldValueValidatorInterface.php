@@ -16,6 +16,7 @@ interface ProcessorFieldValueValidatorInterface
      * Validate given value
      *
      * @param $value
+     * @param FieldProcessorInterface $processor
      * @return bool
      */
     public function validate($value, FieldProcessorInterface $processor): bool;
