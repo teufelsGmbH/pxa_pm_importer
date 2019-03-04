@@ -764,7 +764,7 @@ abstract class AbstractImporter implements ImporterInterface
                         case self::LOCALIZATION_DEFAULT_NOT_FOUND:
                             if (false === $this->allowCreateLocalizationIfDefaultNotFound) {
                                 // Skip if creation without default record is not allowed
-                                continue;
+                                continue 2;
                             }
                             break;
                     }
