@@ -681,10 +681,9 @@ abstract class AbstractImporter implements ImporterInterface
                 // Update again if something changed
                 if ($processor->getProcessingEntity()->_isDirty()) {
                     $this->repository->update($processor->getProcessingEntity());
-
-                    if ((++$batchCount % $this->batchSize) === 0) {
-                        $this->persistAndClear();
-                    }
+                }
+                if ((++$batchCount % $this->batchSize) === 0) {
+                    $this->persistAndClear();
                 }
             } catch (\Exception $exception) {
                 if ($exception instanceof PostponeProcessorException
@@ -712,13 +711,24 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $languages = $this->adapter->getImportLanguages();
         $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
-        $batchCount = 0;
+        $batchCount = -1;
 
         foreach ($languages as $language) {
             // Reset duplicated identifiers for each language
             $identifiers = [];
             // One row per record
             foreach ($this->source as $key => $rawRow) {
+                // Persist and clear after every 50 iterations
+                if ((++$batchCount % $this->batchSize) === 0) {
+                    $this->persistAndClear();
+
+                    $this->logger->info(sprintf(
+                        'Memory usage after %d iterations - %s',
+                        $batchCount,
+                        MainUtility::getMemoryUsage()
+                    ));
+                }
+
                 // Update progress on every iteration
                 $this->updateImportProgress();
 
@@ -839,17 +849,6 @@ abstract class AbstractImporter implements ImporterInterface
                     $this->repository->update($model);
 
                     $this->emitSignal('afterUpdatingImportModel', [$model]);
-
-                    // If reach batch size - persist
-                    if ((++$batchCount % $this->batchSize) === 0) {
-                        $this->persistAndClear();
-
-                        $this->logger->info(sprintf(
-                            'Memory usage after %d updates - %s',
-                            $batchCount,
-                            MainUtility::getMemoryUsage()
-                        ));
-                    }
                 }
             }
 
