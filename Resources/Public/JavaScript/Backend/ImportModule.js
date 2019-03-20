@@ -12,7 +12,9 @@ define(['jquery'], function ($) {
 			formProgressBarPlaceholder: '#import-progress-bar',
 			runningImportsWrapper: '#running-imports-wrapper',
 			progressBarWrapper: '.progress-bar-wrapper'
-		}
+		};
+		// Array with import IDs where progress was generated
+		this.progressBarExistForImport = [];
 	}
 
 	ImportModule.prototype = {
@@ -36,10 +38,11 @@ define(['jquery'], function ($) {
 
 				for (let i = 0; i < response.length; i++) {
 					let runningImport = response[i];
-					if (runningImport.status !== true) {
+					if (runningImport.status !== true || this.progressBarExistForImport.indexOf(runningImport.import) !== -1) {
 						continue;
 					}
 
+					this.progressBarExistForImport.push(runningImport.import);
 					let template = wrapper.find('#running-import-template').clone();
 					template.attr('id', '');
 					template.find('.running-import-name').text(runningImport.name);
@@ -66,14 +69,9 @@ define(['jquery'], function ($) {
 				let parentWrapper = $button.closest(this.selectors['parentWrapper']);
 				parentWrapper.addClass('loading');
 
-				// Progress bar
-				let progressBarPlaceholder = this.getjQueryInstance('formProgressBarPlaceholder');
-				let importId = parseInt(this.getjQueryInstance('selectImportBox').val());
-				let progressBarTemplate = this.initProgressBar(importId, 0, () => {
-					progressBarPlaceholder.closest(this.selectors.progressBarWrapper).removeClass('hidden');
-				});
-
-				progressBarPlaceholder.html(progressBarTemplate);
+				setTimeout(() => {
+					this.loadRunningImports();
+				}, 1000);
 			});
 		},
 
@@ -82,12 +80,10 @@ define(['jquery'], function ($) {
 		 *
 		 * @param importId
 		 * @param currentProgress
-		 * @param firstLoadCallBack
 		 */
-		initProgressBar(importId, currentProgress, firstLoadCallBack) {
+		initProgressBar(importId, currentProgress) {
 			let progressBarTemplate = $(this.getProgressBar());
 			let progressBar = progressBarTemplate.find('.progress-bar');
-			let isVisible = false;
 
 			currentProgress = currentProgress || 0;
 
@@ -112,11 +108,6 @@ define(['jquery'], function ($) {
 					progressBar
 						.css('width', progress + '%')
 						.text(progress + '%');
-
-					if ((typeof firstLoadCallBack === 'function') && false === isVisible) {
-						firstLoadCallBack();
-						isVisible = true;
-					}
 
 					if (progress >= 100) {
 						clearInterval(importProgress);
