@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Processors\Traits;
 
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
 use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -108,6 +109,10 @@ trait UpdateRelationProperty
     protected function updateRelationProperty(AbstractEntity $entity, string $property, array $importEntities): void
     {
         $propertyValue = ObjectAccess::getProperty($entity, $property);
+        if ($propertyValue instanceof LazyLoadingProxy) {
+            $propertyValue = $propertyValue->_loadRealInstance();
+        }
+
         $firstEntity = $importEntities[0] ?? null;
 
         // If already has some values

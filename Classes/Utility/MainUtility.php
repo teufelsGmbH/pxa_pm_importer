@@ -9,6 +9,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 
 /**
@@ -26,7 +27,7 @@ class MainUtility
      */
     public static function convertRecordArrayToModel(array $row, string $model): AbstractEntity
     {
-        $dataMapper = GeneralUtility::makeInstance(DataMapper::class);
+        $dataMapper = GeneralUtility::makeInstance(ObjectManager::class)->get(DataMapper::class);
 
         $result = $dataMapper->map($model, [$row]);
 
