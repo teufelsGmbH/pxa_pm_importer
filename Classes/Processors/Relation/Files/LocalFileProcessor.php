@@ -50,7 +50,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
         // If multiple files
         if ($propertyValue instanceof ObjectStorage) {
             /** @var FileReference $file */
-            foreach (ObjectAccess::getProperty($this->entity, $this->property) as $file) {
+            foreach ($propertyValue as $file) {
                 $existingFiles[$this->getEntityUidForCompare($file)] = $file;
             }
         } elseif ($propertyValue !== null) {
