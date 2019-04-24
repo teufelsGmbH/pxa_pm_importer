@@ -7,6 +7,8 @@ use Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
+use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
@@ -40,9 +42,20 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
          * in order to reuse it if it was already imported
          */
         $existingFiles = [];
-        /** @var FileReference $file */
-        foreach (ObjectAccess::getProperty($this->entity, $this->property) as $file) {
-            $existingFiles[$this->getEntityUidForCompare($file)] = $file;
+
+        $propertyValue = ObjectAccess::getProperty($this->entity, $this->property);
+        if ($propertyValue instanceof LazyLoadingProxy) {
+            $propertyValue = $propertyValue->_loadRealInstance();
+        }
+        // If multiple files
+        if ($propertyValue instanceof ObjectStorage) {
+            /** @var FileReference $file */
+            foreach (ObjectAccess::getProperty($this->entity, $this->property) as $file) {
+                $existingFiles[$this->getEntityUidForCompare($file)] = $file;
+            }
+        } elseif ($propertyValue !== null) {
+            // If one file and not set yet
+            $existingFiles[$this->getEntityUidForCompare($propertyValue)] = $propertyValue;
         }
 
         foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
