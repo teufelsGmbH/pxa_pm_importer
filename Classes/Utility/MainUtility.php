@@ -35,6 +35,19 @@ class MainUtility
     }
 
     /**
+     * Return table name where model is mapped
+     *
+     * @param string $model
+     * @return string
+     */
+    public static function getTableNameByModelName(string $model): string
+    {
+        $dataMapper = GeneralUtility::makeInstance(ObjectManager::class)->get(DataMapper::class);
+
+        return $dataMapper->getDataMap($model)->getTableName();
+    }
+
+    /**
      * Get import id hash
      *
      * @param string $id

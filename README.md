@@ -254,6 +254,7 @@ Extension has next processors out of box:
 - `Pixelant\PxaPmImporter\Processors\IntegerProcessor` - integer values. No parameter
 - `Pixelant\PxaPmImporter\Processors\StringProcessor` - string values. No parameters.
 - `Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor` - set value for product attribute. 
+- `Pixelant\PxaPmImporter\Processors\SlugProcessor` - update slug field for urls.  
 
 ##### Processor validation
 Every processor may have many validators.
@@ -306,6 +307,14 @@ folder: 'uploads'
 inputFormat: 'd/m/Y h:i:s'
 # Output format, the format to store data in entity
 outputFormat: 'U'
+```
+- `Pixelant\PxaPmImporter\Processors\SlugProcessor` - Update slug field value. Parameters:
+```yaml
+# If DB field name doesn't match property name you need to provide DB field name in order to be able to update record
+fieldName: 'pxapm_slug'
+# Set to true in case your import source already has slug value for import and generation is not needed.
+# Otherwise(by default false) script will generate value using TCA configuration
+useImportValue: true
 ```
 
 ## Advanced import  
