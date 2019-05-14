@@ -5,6 +5,8 @@ namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\Processors\SlugFieldNotFoundException;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\DataHandling\Model\RecordStateFactory;
 use TYPO3\CMS\Core\DataHandling\SlugHelper;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -14,7 +16,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class SlugProcessor extends AbstractFieldProcessor
 {
-
     /**
      * Process slug import field
      *
@@ -29,7 +30,9 @@ class SlugProcessor extends AbstractFieldProcessor
         }
 
         $table = MainUtility::getTableNameByModelName(get_class($this->entity));
-        if (!array_key_exists($slugField, $GLOBALS['TCA'][$table]['columns'])) {
+        if (!array_key_exists($slugField, $GLOBALS['TCA'][$table]['columns'])
+            && is_array($GLOBALS['TCA'][$table]['columns'][$slugField]['config'])
+        ) {
             throw new \Exception(
                 "TCA configuration invalid for slug field '$slugField' and table '{$table}'",
                 1557408220115
@@ -40,16 +43,36 @@ class SlugProcessor extends AbstractFieldProcessor
         $currentSlug = (string)$this->dbRow[$slugField];
 
         $helper = GeneralUtility::makeInstance(SlugHelper::class, $table, $slugField, $tcaFieldConf);
-        // Generate a value if there is none, otherwise ensure that all characters are cleaned up
-        if ($value === '') {
-            $value = $helper->generate($this->dbRow, $this->importer->getPid());
-        } else {
+        // If we should use slug from given by import file, sanitize it
+        if ((bool)($this->configuration['useImportValue'] ?? false)) {
             $value = $helper->sanitize($value);
+        } else {
+            // Otherwise build using TCA configuration
+            $value = $helper->generate($this->dbRow, $this->importer->getPid());
         }
 
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($value,'Debug',16);
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($currentSlug, 'Debug', 16);
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($table, 'Debug', 16);
-        die;
+        // Return directly in case no evaluations are defined
+        if (!empty($tcaFieldConf['eval'])) {
+            $state = RecordStateFactory::forName($table)->fromArray($this->dbRow, $this->importer->getPid());
+
+            $evalCodesArray = GeneralUtility::trimExplode(',', $tcaFieldConf['eval'], true);
+            if (in_array('uniqueInSite', $evalCodesArray, true)) {
+                $value = $helper->buildSlugForUniqueInSite($value, $state);
+            }
+            if (in_array('uniqueInPid', $evalCodesArray, true)) {
+                $value = $helper->buildSlugForUniqueInPid($value, $state);
+            }
+        }
+
+        if ($currentSlug !== $value) {
+            GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getConnectionForTable($table)
+                ->update(
+                    $table,
+                    [$slugField => $value],
+                    ['uid' => $this->dbRow['uid']],
+                    [\PDO::PARAM_STR]
+                );
+        }
     }
 }
