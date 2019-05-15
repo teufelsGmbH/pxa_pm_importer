@@ -4,11 +4,11 @@ defined('TYPO3_MODE') || die('Access denied.');
 call_user_func(function () {
     // Register logger
     if (!isset($GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'])) {
-        $extensionManagerConfiguration = \Pixelant\PxaPmImporter\Utility\ConfigurationUtility::getExtMgrConfiguration();
-        $logFolder = $extensionManagerConfiguration['log']['folderPath'] ?? 'typo3temp/var/logs/';
-        $logFolder = trim($logFolder, '/') . '/';
-
-        $logFile = $logFolder . ($extensionManagerConfiguration['log']['basicFileName'] ?? 'pm_importer.log');
+        if (version_compare(TYPO3_version, '9.0', '<')) {
+            $logFile = 'typo3temp/var/logs/pm_importer.log';
+        } else {
+            $logFile = '/logs/pm_importer.log';
+        }
 
         $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
             \TYPO3\CMS\Core\Log\LogLevel::INFO => [

@@ -40,7 +40,6 @@ class ImportManager
     public function __construct(RepositoryInterface $repository)
     {
         $this->importRepository = $repository;
-        $this->logger = Logger::getInstance(__CLASS__);
     }
 
     /**
@@ -50,6 +49,8 @@ class ImportManager
      */
     public function execute(Import $import): void
     {
+        $this->initLogger($import);
+
         $this->emitSignal('beforeImportExecute', [$import]);
 
         $source = $this->resolveImportSource($import);
@@ -153,5 +154,16 @@ class ImportManager
         // @codingStandardsIgnoreStart
         throw new InvalidConfigurationSourceException('It\'s not possible to resolve source in "' . $import->getName() . '" configuration.', 1536043244442);
         // @codingStandardsIgnoreEnd
+    }
+
+    /**
+     * Init logger with custom path
+     *
+     * @param Import $import
+     */
+    protected function initLogger(Import $import): void
+    {
+        $customPath = $import->getConfigurationService()->getLogCustomPath();
+        $this->logger = Logger::getInstance(__CLASS__, $customPath);
     }
 }

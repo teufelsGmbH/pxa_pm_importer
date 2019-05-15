@@ -34,4 +34,11 @@ interface ConfigurationInterface
      * @return array
      */
     public function getImportersConfiguration(): array;
+
+    /**
+     * Return custom log path
+     *
+     * @return string|null
+     */
+    public function getLogCustomPath(): ?string;
 }

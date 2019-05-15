@@ -18,14 +18,6 @@
 			<trans-unit id="be.mail.error_subject">
 			    <source>Error importing</source>
 			</trans-unit>
-
-			<!--Extension manager-->
-			<trans-unit id="extMng.logFolderPath">
-			    <source>Log folder relative savepath</source>
-			</trans-unit>
-			<trans-unit id="extMng.logBasicFileName">
-			    <source>Log file basic name. Note that date will be added to log name</source>
-			</trans-unit>
 		</body>
 	</file>
 </xliff>
