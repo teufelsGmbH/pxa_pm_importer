@@ -33,8 +33,9 @@ class Logger
      * Initialize
      *
      * @param string $className
+     * @param string $customLogPath
      */
-    public function __construct(string $className)
+    public function __construct(string $className, string $customLogPath = null)
     {
         $classParts = GeneralUtility::trimExplode('\\', $className, true);
 
@@ -44,6 +45,17 @@ class Logger
             $classParts[1] = 'PxaPmImporter';
         }
         $className = implode('\\', $classParts);
+
+        // If given custom path, override default
+        if (!empty($customLogPath)) {
+            $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
+                LogLevel::INFO => [
+                    FileWriter::class => [
+                        'logFile' => $customLogPath
+                    ]
+                ]
+            ];
+        }
 
         $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger($className);
     }
@@ -97,10 +109,11 @@ class Logger
      * Get instance
      *
      * @param string $className
+     * @param string $customLogPath
      * @return Logger
      */
-    public static function getInstance(string $className): Logger
+    public static function getInstance(string $className, string $customLogPath = null): Logger
     {
-        return GeneralUtility::makeInstance(__CLASS__, $className);
+        return GeneralUtility::makeInstance(__CLASS__, $className, $customLogPath);
     }
 }

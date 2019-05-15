@@ -1,6 +1,0 @@
-log {
-    # cat=configuration/log; type=string; label=LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_be.xlf:extMng.logFolderPath
-    folderPath = typo3temp/var/logs/
-    # cat=configuration/log; type=string; label=LLL:EXT:pxa_pm_importer/Resources/Private/Language/locallang_be.xlf:extMng.logBasicFileName
-    basicFileName = pm_importer.log
-}

@@ -58,6 +58,9 @@ You can create new Yaml configuration file with you import configuration somewhe
 
 Example:
 ```yaml
+log:
+  # Custom log path
+  path: 'fileadmin/import/log/product_import.log' 
 source:
   SourceClass:
     # Different source settings
@@ -107,6 +110,11 @@ importers:
 ```
 
 ##### Configuration parts
+
+###### Log
+
+In log settings it's possible to set custom path where to write file log.
+
 ###### Source
 
 Source is responsible for reading data from different sources. Currently extension support two import sources:

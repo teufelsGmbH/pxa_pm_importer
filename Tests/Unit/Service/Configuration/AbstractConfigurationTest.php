@@ -118,4 +118,36 @@ class AbstractConfigurationTest extends UnitTestCase
         $this->expectException(\UnexpectedValueException::class);
         $this->subject->getSourceConfiguration();
     }
+
+    /**
+     * @test
+     */
+    public function getLogCustomPathReturnNullIfLogNotSet()
+    {
+        $configuration = [
+            'test' => 'bla',
+        ];
+
+        $this->subject->_set('configuration', $configuration);
+
+        $this->assertNull($this->subject->getLogCustomPath());
+    }
+
+    /**
+     * @test
+     */
+    public function getLogCustomPathReturnLogPathIfSet()
+    {
+        $logPath = 'log_path/test.log';
+
+        $configuration = [
+            'log' => [
+                'path' => $logPath
+            ]
+        ];
+
+        $this->subject->_set('configuration', $configuration);
+
+        $this->assertEquals($logPath, $this->subject->getLogCustomPath());
+    }
 }

@@ -71,6 +71,21 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     }
 
     /**
+     * Read custom log path from settings
+     *
+     * @return string|null
+     */
+    public function getLogCustomPath(): ?string
+    {
+        $configuration = $this->getConfiguration();
+        if (!empty($configuration['log']['path'])) {
+            return $configuration['log']['path'];
+        }
+
+        return null;
+    }
+
+    /**
      * Initialize main method
      */
     protected function initialize(): void
