@@ -39,36 +39,39 @@ class ImportCommandController extends CommandController
      * Import main task
      *
      * @param string $importUids Import configuration uids list
-     * @param string $email Notify about import errors
+     * @param string $receiversEmails Notify about import errors(comma list for multiple receivers)
      * @param string $senderEmail Sender email
      */
-    public function importCommand(string $importUids, string $email = '', string $senderEmail = ''): void
+    public function importCommand(string $importUids, string $receiversEmails = '', string $senderEmail = ''): void
     {
+        $this->emitSignal('beforeSchedulerImportStart', [$importUids, $receiversEmails, $senderEmail]);
+
         foreach (GeneralUtility::intExplode(',', $importUids, true) as $importUid) {
-            $this->import($importUid, $email, $senderEmail);
+            $this->import($importUid, $receiversEmails, $senderEmail);
         }
+
+        $this->emitSignal('afterSchedulerImportDone', [$importUids, $receiversEmails, $senderEmail]);
     }
 
     /**
      * Send email
      *
-     * @param string $receiver
-     * @param string $sender
-     * @param array $body
+     * @param string $sender Sender email
+     * @param string $subject Email subject
+     * @param string $message Message
+     * @param string[] $receivers Email receivers
      */
-    private function sendEmail(string $receiver, string $sender, array $body): void
+    protected function sendEmail(string $sender, string $subject, string $message, string ...$receivers): void
     {
         $mailMessage = GeneralUtility::makeInstance(MailMessage::class);
         $mailMessage
-            ->setTo([$receiver])
-            ->setSubject($this->translate('be.mail.error_subject'))
+            ->setFrom($sender)
+            ->setTo($receivers)
+            ->setSubject($subject)
             ->setBody(
-                implode('<br />', $body),
+                $message,
                 'text/html'
             );
-        if ($sender !== '') {
-            $mailMessage->setFrom($sender);
-        }
 
         $mailMessage->send();
     }
@@ -77,21 +80,21 @@ class ImportCommandController extends CommandController
      * Run single import
      *
      * @param int $importUid
-     * @param string $email
+     * @param string $receivers
      * @param string $senderEmail
      * @throws \Exception
      */
-    private function import(int $importUid, string $email, string $senderEmail): void
+    protected function import(int $importUid, string $receivers, string $senderEmail): void
     {
+        $importManager = GeneralUtility::makeInstance(
+            ImportManager::class,
+            $this->importRepository
+        );
+
+        /** @var Import $import */
+        $import = $this->importRepository->findByUid($importUid);
+
         try {
-            $importManager = GeneralUtility::makeInstance(
-                ImportManager::class,
-                $this->importRepository
-            );
-
-            /** @var Import $import */
-            $import = $this->importRepository->findByUid($importUid);
-
             if ($import === null) {
                 // @codingStandardsIgnoreStart
                 throw new InvalidConfigurationException('Could not find configuration with UID "' . $importUid . '"', 1535957269248);
@@ -102,44 +105,50 @@ class ImportCommandController extends CommandController
             $importManager->execute($import);
 
             if (!empty($importManager->getErrors())) {
-                if (GeneralUtility::validEmail($email)) {
-                    $body = array_merge(
-                        [
-                            $this->translate('be.import_error_occurred'),
-                            $this->translate(
-                                'be.import_name',
-                                [$import->getName() . ' (UID - ' . $import->getUid() . ')']
-                            ),
-                            '<br />',
-                            $this->translate('be.error_message'),
-                        ],
-                        $importManager->getErrors(),
-                        [
-                            '<br />',
-                            $this->translate('be.see_log'),
-                            '"' . $importManager->getLogFilePath() . '"'
-                        ]
-                    );
-
-                    $this->sendEmail($email, $senderEmail, $body);
-                }
+                $errorMessageParts = array_merge(
+                    [
+                        $this->translate('be.import_error_occurred'),
+                        $this->translate(
+                            'be.import_name',
+                            [$import->getName() . ' (UID - ' . $import->getUid() . ')']
+                        ),
+                        '<br />',
+                        $this->translate('be.error_message'),
+                    ],
+                    $importManager->getErrors(),
+                    [
+                        '<br />',
+                        $this->translate('be.see_log'),
+                        '"' . $importManager->getLogFilePath() . '"'
+                    ]
+                );
             }
         } catch (\Exception $exception) {
-            if (GeneralUtility::validEmail($email)) {
-                $body = [
-                    $this->translate('be.import_error_occurred'),
-                    $this->translate('be.import_name', [$import->getName() . ' (UID - ' . $import->getUid() . ')']),
-                    '<br />',
-                    $this->translate('be.error_message'),
-                    $exception->getMessage(),
-                    '<br />',
-                    $this->translate('be.see_log'),
-                    '"' . $importManager->getLogFilePath() . '"'
-                ];
+            $errorMessageParts = [
+                $this->translate('be.import_error_occurred'),
+                (is_object($import) ? $this->translate('be.import_name', [$import->getName() . ' (UID - ' . $import->getUid() . ')']) : ''),
+                '<br />',
+                $this->translate('be.error_message'),
+                $exception->getMessage(),
+                '<br />',
+                $this->translate('be.see_log'),
+                '"' . $importManager->getLogFilePath() . '"'
+            ];
+        }
 
-                $this->sendEmail($email, $senderEmail, $body);
-            }
+        if (isset($errorMessageParts)
+            && !empty($receivers)
+            && !empty($senderEmail)
+        ) {
+            $this->sendEmail(
+                $senderEmail,
+                $this->translate('be.mail.error_subject'),
+                implode('<br />', $errorMessageParts),
+                ...GeneralUtility::trimExplode(',', $receivers)
+            );
+        }
 
+        if (isset($exception)) {
             throw $exception;
         }
     }
