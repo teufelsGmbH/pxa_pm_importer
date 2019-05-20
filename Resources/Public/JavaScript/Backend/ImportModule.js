@@ -152,8 +152,8 @@ define(['jquery'], function ($) {
 			let formattedDate = '';
 			formattedDate += this.prependDateWithZero(date.getDate());
 			formattedDate += '.' + this.prependDateWithZero(date.getMonth());
-			formattedDate += '.' + this.prependDateWithZero(date.getFullYear());
-			formattedDate += ', ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+			formattedDate += '.' + date.getFullYear();
+			formattedDate += ', ' + this.prependDateWithZero(date.getHours()) + ':' + this.prependDateWithZero(date.getMinutes()) + ':' + this.prependDateWithZero(date.getSeconds());
 
 			return formattedDate;
 		},

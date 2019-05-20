@@ -220,9 +220,11 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     protected function addError(string $error): void
     {
         $this->validationErrors[] = sprintf(
-            'Failed validation for property "%s", with message - "%s"',
+            'Failed validation for property "%s", with message - "%s", [ID - "%s", hash - "%s"]',
             $this->property,
-            $error
+            $error,
+            $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
+            $this->dbRow[ImporterInterface::DB_IMPORT_ID_HASH_FIELD]
         );
     }
 
