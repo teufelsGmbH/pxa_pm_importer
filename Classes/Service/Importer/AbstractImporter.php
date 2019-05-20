@@ -457,11 +457,12 @@ abstract class AbstractImporter implements ImporterInterface
                 } catch (ErrorValidationException $errorValidationException) {
                     $this->logger->error(sprintf(
                     // @codingStandardsIgnoreStart
-                        'Error occurred while validate property "%s" with value "%s" with message "%s", skipping record',
+                        'Failed validation for property "%s", with message - "%s", [ID - "%s", hash - "%s"]. Skipping record',
                         // @codingStandardsIgnoreEnd
                         $property,
-                        $value,
-                        $errorValidationException->getMessage()
+                        $errorValidationException->getMessage(),
+                        $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
+                        $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD]
                     ));
 
                     return false;
