@@ -56,7 +56,7 @@ class ProgressBarAjaxController
 
         $answer = ['status' => false];
         if ($import !== null) {
-            $importStatus = $this->importProgressStatus->getImportStatus($import);
+            $importStatus = $this->mportProgressStatus->getImportStatus($import);
 
             $answer = $this->getImportStatusArray($importStatus);
         }

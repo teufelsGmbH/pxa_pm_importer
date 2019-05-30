@@ -6,7 +6,7 @@ namespace Pixelant\PxaPmImporter\Service\Status;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\ImportStatusInfo;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
-use TYPO3\CMS\Core\Registry;
+use Pixelant\PxaPmImporter\Registry\RegistryCore;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 
@@ -17,7 +17,7 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
 class ImportProgressStatus implements ImportProgressStatusInterface
 {
     /**
-     * @var Registry
+     * @var RegistryCore
      */
     protected $registry = null;
 
@@ -29,16 +29,24 @@ class ImportProgressStatus implements ImportProgressStatusInterface
 
     /**
      * Registry namespace
+     *
      * @var string
      */
     protected $namespace = 'pxa_pm_importer_import_status';
+
+    /**
+     * Prefix of import registry entry
+     *
+     * @var string
+     */
+    protected $importRegistryKey = 'running_';
 
     /**
      * Initialize
      */
     public function __construct()
     {
-        $this->registry = GeneralUtility::makeInstance(Registry::class);
+        $this->registry = GeneralUtility::makeInstance(RegistryCore::class);
         $this->importRepository = GeneralUtility::makeInstance(ObjectManager::class)->get(ImportRepository::class);
     }
 
@@ -49,10 +57,9 @@ class ImportProgressStatus implements ImportProgressStatusInterface
      */
     public function startImport(Import $import): void
     {
-        $runningInfo = $this->getFromRegistry();
-        $runningInfo[$import->getUid()] = GeneralUtility::makeInstance(ImportStatusInfo::class, $import)->toArray();
+        $importInfo = GeneralUtility::makeInstance(ImportStatusInfo::class, $import)->toArray();
 
-        $this->registrySet($runningInfo);
+        $this->registrySet($import, $importInfo);
     }
 
     /**
@@ -62,11 +69,10 @@ class ImportProgressStatus implements ImportProgressStatusInterface
      */
     public function endImport(Import $import): void
     {
-        $runningInfo = $this->getFromRegistry();
-        if (isset($runningInfo[$import->getUid()])) {
-            unset($runningInfo[$import->getUid()]);
-            $this->registrySet($runningInfo);
-        }
+        $this->registry->remove(
+            $this->namespace,
+            $this->getImportRegistryKey($import)
+        );
     }
 
     /**
@@ -77,12 +83,12 @@ class ImportProgressStatus implements ImportProgressStatusInterface
      */
     public function updateImportProgress(Import $import, float $progress): void
     {
-        $runningInfo = $this->getFromRegistry();
-        if (isset($runningInfo[$import->getUid()])) {
-            $runningInfo[$import->getUid()]['progress'] = $progress;
+        $importInfo = $this->getFromRegistry($import);
+        if ($importInfo !== null) {
+            $importInfo['progress'] = $progress;
         }
 
-        $this->registrySet($runningInfo);
+        $this->registrySet($import, $importInfo);
     }
 
     /**
@@ -93,10 +99,8 @@ class ImportProgressStatus implements ImportProgressStatusInterface
      */
     public function getImportStatus(Import $import): ImportStatusInfo
     {
-        $runningInfo = $this->getFromRegistry();
-        if (isset($runningInfo[$import->getUid()])) {
-            $importInfo = $runningInfo[$import->getUid()];
-
+        $importInfo = $this->getFromRegistry($import);
+        if ($importInfo !== null) {
             return GeneralUtility::makeInstance(
                 ImportStatusInfo::class,
                 $import,
@@ -115,10 +119,11 @@ class ImportProgressStatus implements ImportProgressStatusInterface
      */
     public function getAllRunningImports(): array
     {
-        $runningInfo = $this->getFromRegistry();
+        $runningInfo = $this->registry->getByNamespace($this->namespace, []);
+
         $result = [];
-        foreach ($runningInfo as $importUid => $importInfo) {
-            $import = $this->importRepository->findByUid($importUid);
+        foreach ($runningInfo as $importInfo) {
+            $import = $this->importRepository->findByUid((int)$importInfo['import']);
             if ($import === null) {
                 continue;
             }
@@ -137,20 +142,33 @@ class ImportProgressStatus implements ImportProgressStatusInterface
     /**
      * Write to registry
      *
+     * @param Import $import
      * @param array $data
      */
-    protected function registrySet(array $data): void
+    protected function registrySet(Import $import, array $data): void
     {
-        $this->registry->set($this->namespace, 'runningImports', $data);
+        $this->registry->set($this->namespace, $this->getImportRegistryKey($import), $data);
     }
 
     /**
      * Read from registry
      *
+     * @param Import $import
      * @return array
      */
-    protected function getFromRegistry(): array
+    protected function getFromRegistry(Import $import): ?array
     {
-        return $this->registry->get($this->namespace, 'runningImports', []);
+        return $this->registry->get($this->namespace, $this->getImportRegistryKey($import));
+    }
+
+    /**
+     * Generate key for import registry
+     *
+     * @param Import $import
+     * @return string
+     */
+    protected function getImportRegistryKey(Import $import): string
+    {
+        return $this->importRegistryKey . $import->getUid();
     }
 }
