@@ -7,6 +7,7 @@ use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\ImportStatusInfo;
 use Pixelant\PxaPmImporter\Domain\Model\Import;
+use Pixelant\PxaPmImporter\Registry\RegistryCore;
 use Pixelant\PxaPmImporter\Service\Status\ImportProgressStatus;
 
 /**
@@ -39,11 +40,6 @@ class ImportProgressStatusTest extends UnitTestCase
      */
     public function startImportWillSetRegistryArrayWithInfo()
     {
-        $this->subject
-            ->expects($this->once())
-            ->method('getFromRegistry')
-            ->willReturn([]);
-
         $import = new Import();
         $import->_setProperty('uid', 12);
 
@@ -59,24 +55,15 @@ class ImportProgressStatusTest extends UnitTestCase
      */
     public function endImportWillSetRegistryArrayWithoutImportInfo()
     {
-        $runningInfo = [
-            21 => [
-                'progress' => 99
-            ]
-        ];
-
-        $this->subject
+        $mockedRegistry = $this->createPartialMock(RegistryCore::class, ['remove']);
+        $mockedRegistry
             ->expects($this->once())
-            ->method('getFromRegistry')
-            ->willReturn($runningInfo);
+            ->method('remove');
+
+        $this->inject($this->subject, 'registry', $mockedRegistry);
 
         $import = new Import();
         $import->_setProperty('uid', 21);
-
-        $this->subject
-            ->expects($this->once())
-            ->method('registrySet')
-            ->with([]);
 
         $this->subject->endImport($import);
     }
@@ -87,8 +74,11 @@ class ImportProgressStatusTest extends UnitTestCase
     public function updateImportProgressWillSetNewProgressValue()
     {
         $uid = 2233;
+        $import = new Import();
+        $import->_setProperty('uid', $uid);
+
         $runningInfo = [
-            $uid => [
+            'running_2233' => [
                 'progress' => 34
             ]
         ];
@@ -96,19 +86,17 @@ class ImportProgressStatusTest extends UnitTestCase
         $this->subject
             ->expects($this->once())
             ->method('getFromRegistry')
+            ->with($import)
             ->willReturn($runningInfo);
-
-        $import = new Import();
-        $import->_setProperty('uid', $uid);
 
         $newRunningInfo = $runningInfo;
         $newProgress = 45.45;
-        $newRunningInfo[$uid]['progress'] = $newProgress;
+        $newRunningInfo['progress'] = $newProgress;
 
         $this->subject
             ->expects($this->once())
             ->method('registrySet')
-            ->with($newRunningInfo);
+            ->with($import, $newRunningInfo);
 
         $this->subject->updateImportProgress($import, $newProgress);
     }
@@ -119,20 +107,19 @@ class ImportProgressStatusTest extends UnitTestCase
     public function getImportStatusWillReturnStatusIfSet()
     {
         $uid = 44;
+        $import = new Import();
+        $import->_setProperty('uid', $uid);
+
         $runningInfo = [
-            $uid => [
-                'start' => time(),
-                'progress' => 12
-            ]
+            'start' => time(),
+            'progress' => 12
         ];
 
         $this->subject
             ->expects($this->once())
             ->method('getFromRegistry')
+            ->with($import)
             ->willReturn($runningInfo);
-
-        $import = new Import();
-        $import->_setProperty('uid', $uid);
 
         $importStatus = $this->subject->getImportStatus($import);
         $this->assertInstanceOf(ImportStatusInfo::class, $importStatus);
@@ -145,19 +132,13 @@ class ImportProgressStatusTest extends UnitTestCase
     public function getImportStatusWillReturnStatusWithNotAvailableIfNotSet()
     {
         $uid = 44;
-        $runningInfo = [
-            12 => [
-                'progress' => 12
-            ]
-        ];
+        $import = new Import();
+        $import->_setProperty('uid', $uid);
 
         $this->subject
             ->expects($this->once())
             ->method('getFromRegistry')
-            ->willReturn($runningInfo);
-
-        $import = new Import();
-        $import->_setProperty('uid', $uid);
+            ->with($import);
 
         $importStatus = $this->subject->getImportStatus($import);
         $this->assertInstanceOf(ImportStatusInfo::class, $importStatus);
