@@ -65,14 +65,26 @@ class SlugProcessor extends AbstractFieldProcessor
         }
 
         if ($currentSlug !== $value) {
-            GeneralUtility::makeInstance(ConnectionPool::class)
-                ->getConnectionForTable($table)
-                ->update(
-                    $table,
-                    [$slugField => $value],
-                    ['uid' => $this->dbRow['uid']],
-                    [\PDO::PARAM_STR]
-                );
+            $this->updateSlugField($table, $slugField, $value);
         }
+    }
+
+    /**
+     * Method to update slug field. It would be easier to extend this method in child processors
+     *
+     * @param string $table
+     * @param string $field
+     * @param string $value
+     */
+    protected function updateSlugField(string $table, string $field, string $value): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($table)
+            ->update(
+                $table,
+                [$field => $value],
+                ['uid' => $this->dbRow['uid']],
+                [\PDO::PARAM_STR]
+            );
     }
 }
