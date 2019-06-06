@@ -93,6 +93,10 @@ importers:
     # Shall we create an independent language layer record if parent record doesn't exist
     allowCreateLocalizationIfDefaultNotFound: false
     
+    # By default always true. If set to false, only update actions allowed.
+    # No new records will be imported
+    allowToCreateNewRecords: true
+    
     # Mapping fields, data adapter should return array with associative array
     mapping:
       title:
@@ -169,6 +173,7 @@ mapping:
       title: 'D'
 ```
 **Important** to set "excelColumns: true" if you are using excel columns letters as column instead of nubmers. **Only number or only letters can be used for one adapter configuration**.
+
 **Importer configuration**
 ```yaml
 # Field name with unique identifier from data adapter
@@ -178,6 +183,10 @@ pid: 136
 
 # Shall we create an independent language layer record if parent record doesn't exist
 allowCreateLocalizationIfDefaultNotFound: false
+
+# By default always true. If set to false, only update actions allowed.
+# No new records will be imported
+allowToCreateNewRecords: true
 
 # Mapping fields, data adapter should return array with associative array
 # Importer settings
