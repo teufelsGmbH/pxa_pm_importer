@@ -7,8 +7,11 @@ use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Utility\ArrayUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 
@@ -18,6 +21,13 @@ use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
  */
 class MainUtility
 {
+    /**
+     * Keep extbase class mapping
+     *
+     * @var array
+     */
+    protected static $classColumnsMappingConfiguration = [];
+
     /**
      * Convert db raw row to extbase model
      *
@@ -44,7 +54,25 @@ class MainUtility
     {
         $dataMapper = GeneralUtility::makeInstance(ObjectManager::class)->get(DataMapper::class);
 
-        return $dataMapper->getDataMap($model)->getTableName();
+        return $dataMapper->convertClassNameToTableName($model);
+    }
+
+    /**
+     * Get property name by DB column name
+     *
+     * @param string $className Model class name
+     * @param string $columnName DB column name
+     * @return string Property name
+     */
+    public static function convertColumnNameToPropertyName(string $className, string $columnName): string
+    {
+        $mapping = static::getClassColumnsMappingConfiguration($className);
+
+        if (!empty($mapping[$columnName]['mapOnProperty'])) {
+            return $mapping[$columnName]['mapOnProperty'];
+        }
+
+        return GeneralUtility::underscoredToLowerCamelCase($columnName);
     }
 
     /**
@@ -158,4 +186,49 @@ class MainUtility
 
         return is_array($row) ? $row : null;
     }
+
+    /**
+     * Return extbase model class mapping
+     *
+     * @param string $className
+     * @return array
+     */
+    protected static function getClassColumnsMappingConfiguration(string $className): array
+    {
+        if (isset(static::$classColumnsMappingConfiguration[$className])) {
+            return static::$classColumnsMappingConfiguration[$className];
+        }
+
+        $frameworkConfiguration = GeneralUtility::makeInstance(ObjectManager::class)
+            ->get(ConfigurationManagerInterface::class)
+            ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK);
+
+        $columnMapping = [];
+        $classSettings = $frameworkConfiguration['persistence']['classes'][$className] ?? null;
+        if ($classSettings !== null) {
+            $classHierarchy = array_merge([$className], class_parents($className));
+            foreach ($classHierarchy as $currentClassName) {
+                if (in_array($currentClassName, [AbstractEntity::class, AbstractValueObject::class])) {
+                    break;
+                }
+                $currentClassSettings = $frameworkConfiguration['persistence']['classes'][$currentClassName];
+                if ($currentClassSettings !== null) {
+                    if (isset($currentClassSettings['mapping']['columns'])
+                        && is_array($currentClassSettings['mapping']['columns'])
+                    ) {
+                        ArrayUtility::mergeRecursiveWithOverrule(
+                            $columnMapping,
+                            $currentClassSettings['mapping']['columns'],
+                            true,
+                            false
+                        );
+                    }
+                }
+            }
+        }
+
+        static::$classColumnsMappingConfiguration[$className] = $columnMapping;
+        return $columnMapping;
+    }
 }
+
