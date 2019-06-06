@@ -44,7 +44,7 @@ class MainUtility
     {
         $dataMapper = GeneralUtility::makeInstance(ObjectManager::class)->get(DataMapper::class);
 
-        return $dataMapper->getDataMap($model)->getTableName();
+        return $dataMapper->convertClassNameToTableName($model);
     }
 
     /**
