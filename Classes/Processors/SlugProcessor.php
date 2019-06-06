@@ -9,6 +9,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\Model\RecordStateFactory;
 use TYPO3\CMS\Core\DataHandling\SlugHelper;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
  * Class SlugProcessor
@@ -48,7 +49,10 @@ class SlugProcessor extends AbstractFieldProcessor
             $value = $helper->sanitize($value);
         } else {
             // Otherwise build using TCA configuration
-            $value = $helper->generate($this->dbRow, $this->importer->getPid());
+            $value = $helper->generate(
+                $this->getDbRowWithSimulatedValuesFromEntity($tcaFieldConf),
+                $this->importer->getPid()
+            );
         }
 
         // Return directly in case no evaluations are defined
@@ -86,5 +90,39 @@ class SlugProcessor extends AbstractFieldProcessor
                 ['uid' => $this->dbRow['uid']],
                 [\PDO::PARAM_STR]
             );
+    }
+
+    /**
+     * Create DB row with value for slug generation from import entity
+     * Since properties might be already update by importer service and we need to use updated values for
+     * slug generation
+     *
+     * @param array $tcaConfig
+     * @return array
+     */
+    protected function getDbRowWithSimulatedValuesFromEntity(array $tcaConfig)
+    {
+        $dbRow = $this->dbRow;
+
+        foreach ($tcaConfig['generatorOptions']['fields'] ?? [] as $fieldNameParts) {
+            if (is_string($fieldNameParts)) {
+                $fieldNameParts = GeneralUtility::trimExplode(',', $fieldNameParts);
+            }
+            foreach ($fieldNameParts as $fieldName) {
+                $propertyName = MainUtility::convertColumnNameToPropertyName(
+                    get_class($this->entity),
+                    $fieldName
+                );
+
+                if (ObjectAccess::isPropertyGettable($this->entity, $propertyName)) {
+                    $dbRow[$fieldName] = ObjectAccess::getProperty(
+                        $this->entity,
+                        $propertyName
+                    );
+                }
+            }
+        }
+
+        return $dbRow;
     }
 }
