@@ -72,6 +72,15 @@ abstract class AbstractImporter implements ImporterInterface
     protected $allowCreateLocalizationIfDefaultNotFound = false;
 
     /**
+     * Flag that allow to actually import new records,
+     * if set to false - script will just update already imported values
+     * Might be useful
+     *
+     * @var bool
+     */
+    protected $allowToCreateNewRecords = true;
+
+    /**
      * Storage
      *
      * @var int
@@ -262,6 +271,19 @@ abstract class AbstractImporter implements ImporterInterface
             $this->allowCreateLocalizationIfDefaultNotFound =
                 (bool)$configuration['allowCreateLocalizationIfDefaultNotFound'];
         }
+
+        if (isset($configuration['allowToCreateNewRecords'])) {
+            $this->allowToCreateNewRecords = (bool)$configuration['allowToCreateNewRecords'];
+        }
+
+        $this->checkStorage();
+    }
+
+    /**
+     * Check if storage exist
+     */
+    protected function checkStorage(): void
+    {
         if (BackendUtility::getRecord('pages', $this->pid, 'uid') === null) {
             throw new \RuntimeException('Storage with UID "' . $this->pid . '" doesn\'t exist', 1536310162347);
         }
@@ -782,13 +804,18 @@ abstract class AbstractImporter implements ImporterInterface
                 }
 
                 if ($record === null) {
+                    if (!$this->allowToCreateNewRecords) {
+                        $this->logger->info(sprintf(
+                            'Creating of new records is forbidden. Skip row with UID "%s".',
+                            $id
+                        ));
+
+                        // Skip it
+                        continue;
+                    }
+
+                    // Create new record
                     $isNew = true;
-                    $this->logger->info(sprintf(
-                        'New record for table "%s" and language "%s", with UID "%s" was created.',
-                        $this->dbTable,
-                        $language,
-                        $id
-                    ));
 
                     $this->createNewEmptyRecord($id, $idHash, $language);
 
@@ -799,6 +826,12 @@ abstract class AbstractImporter implements ImporterInterface
                         throw new \RuntimeException('Error fetching new created record. This should never happen.', 1536063924811);
                         // @codingStandardsIgnoreEnd
                     }
+                    $this->logger->info(sprintf(
+                        'New record for table "%s" and language "%s", with UID "%s" was created.',
+                        $this->dbTable,
+                        $language,
+                        $id
+                    ));
                 }
 
                 $model = $this->mapRow($record);
