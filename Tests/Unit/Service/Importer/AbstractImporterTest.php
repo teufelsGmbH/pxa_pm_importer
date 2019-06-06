@@ -385,4 +385,60 @@ class AbstractImporterTest extends UnitTestCase
         $expect = round(5 / 35 * 100, 2);
         $this->assertEquals($expect, $this->subject->_call('getImportProgress'));
     }
+
+    /**
+     * @test
+     */
+    public function defaultAllowCreateLocalizationIfDefaultNotFoundIsFalse()
+    {
+        $this->assertFalse($this->subject->_get('allowCreateLocalizationIfDefaultNotFound'));
+    }
+
+    /**
+     * @test
+     */
+    public function defaultAllowToCreateNewRecordsIsTrue()
+    {
+        $this->assertTrue($this->subject->_get('allowToCreateNewRecords'));
+    }
+
+    /**
+     * @test
+     */
+    public function allowCreateLocalizationIfDefaultNotFoundCanBeSetFromConfiguration()
+    {
+        $subject = $this->getAccessibleMock(
+            AbstractImporter::class,
+            ['initRepository', 'initDbTableName', 'initModelName', 'initializeAdapter', 'determinateIdentifierField', 'setMapping', 'setSettings', 'checkStorage'],
+            [],
+            '',
+            false
+        );
+
+        $conf = ['allowCreateLocalizationIfDefaultNotFound' => true];
+
+        $subject->_call('preImportPreparations', $conf);
+
+        $this->assertTrue($subject->_get('allowCreateLocalizationIfDefaultNotFound'));
+    }
+
+    /**
+     * @test
+     */
+    public function allowToCreateNewRecordsCanBeSetFromConfiguration()
+    {
+        $subject = $this->getAccessibleMock(
+            AbstractImporter::class,
+            ['initRepository', 'initDbTableName', 'initModelName', 'initializeAdapter', 'determinateIdentifierField', 'setMapping', 'setSettings', 'checkStorage'],
+            [],
+            '',
+            false
+        );
+
+        $conf = ['allowToCreateNewRecords' => false];
+
+        $subject->_call('preImportPreparations', $conf);
+
+        $this->assertFalse($subject->_get('allowToCreateNewRecords'));
+    }
 }
