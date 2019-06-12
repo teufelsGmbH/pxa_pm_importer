@@ -100,18 +100,18 @@ trait FilesResources
      * Get array of Files from path list
      *
      * @param Folder $folder
-     * @param string $list
+     * @param array $list
      * @param Logger|null $logger
      * @return File[]
      */
-    protected function collectFilesFromList(Folder $folder, string $list, Logger $logger = null): array
+    protected function collectFilesFromList(Folder $folder, array $list, Logger $logger = null): array
     {
         $storage = $this->getStorage();
 
         /** @var File[] $files */
         $files = [];
 
-        foreach (GeneralUtility::trimExplode(',', $list, true) as $filePath) {
+        foreach ($list as $filePath) {
             $fileIdentifier = $folder->getIdentifier() . ltrim($filePath, '/');
 
             // Emit signal
@@ -128,5 +128,27 @@ trait FilesResources
         }
 
         return $files;
+    }
+
+    /**
+     * Convert to array if list is string.
+     *
+     * @param array|string $list Only array or string comma separated list is allowed as files list
+     * @return array
+     */
+    protected function convertFilesListValueToArray($list): array
+    {
+        if (!is_array($list) && !is_string($list)) {
+            $type = gettype($list);
+            throw new \InvalidArgumentException(
+                "Expect to get array or string as files list. '{$type}' given.",
+                1560319588819
+            );
+        }
+        if (is_string($list)) {
+            $list = GeneralUtility::trimExplode(',', $list, true);
+        }
+
+        return $list;
     }
 }
