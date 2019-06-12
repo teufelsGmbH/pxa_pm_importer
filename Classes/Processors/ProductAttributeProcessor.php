@@ -161,7 +161,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:
                 $this->updateAttributeFilesReference($value);
-                $attributeValues[$this->attribute->getUid()] = (string)$value;
+                $attributeValues[$this->attribute->getUid()] = is_array($value) ? implode(',', $value) : (string)$value;
                 break;
             default:
                 // @codingStandardsIgnoreStart
@@ -303,10 +303,11 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     /**
      * Update attribute file reference
      *
-     * @param string $value
+     * @param string|array $value Array of file list or comma separated list
      */
-    protected function updateAttributeFilesReference(string $value): void
+    protected function updateAttributeFilesReference($value): void
     {
+        $value = $this->convertFilesListValueToArray($value);
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {

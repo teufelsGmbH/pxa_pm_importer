@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Traits;
 
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
@@ -123,10 +125,35 @@ trait UpdateRelationProperty
             }
             // If relation 1:1
             if ($propertyValue instanceof AbstractEntity
-                && $firstEntity !== null
-                && $this->getEntityUidForCompare($firstEntity) !== $propertyValue->getUid()
+                && (
+                    $firstEntity === null
+                    || $this->getEntityUidForCompare($firstEntity) !== $propertyValue->getUid()
+                )
             ) {
-                ObjectAccess::setProperty($entity, $property, $firstEntity);
+                // If new value is null and current is file reference need to delete it also
+                if ($firstEntity === null && $propertyValue instanceof FileReference) {
+                    // @TODO $propertyValue->getOriginalResource()->delete(); doesn't work. How to properly delete file reference?
+                    // Just setting null not enough for 1:1 relation with file reference.
+                    // Extbase only set null on field of entity table and doesn't update sys_file_reference table
+                    // Which is odd, because work with Object storage
+                    $uid = $propertyValue->_getProperty('_languageUid') > 0
+                        ? $propertyValue->_getProperty('_localizedUid')
+                        : $propertyValue->getUid();
+                    $deleteColumn = $GLOBALS['TCA']['sys_file_reference']['ctrl']['delete'];
+
+                    // Do direct query
+                    GeneralUtility::makeInstance(ConnectionPool::class)
+                        ->getConnectionForTable('sys_file_reference')
+                        ->update(
+                            'sys_file_reference',
+                            [$deleteColumn => 1],
+                            ['uid' => $uid],
+                            [\PDO::PARAM_INT]
+                        );
+                }
+                // If entity is null we need to use direct access, because it's high risk that
+                // setter method except only objects, but we need to reset value
+                ObjectAccess::setProperty($entity, $property, $firstEntity, $firstEntity === null);
             }
         } elseif ($firstEntity !== null) {
             ObjectAccess::setProperty($entity, $property, $firstEntity);

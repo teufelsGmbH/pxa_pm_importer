@@ -28,6 +28,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
     protected function initEntities($value): array
     {
         $entities = [];
+        $value = $this->convertFilesListValueToArray($value);
 
         try {
             $folder = $this->getFolder();

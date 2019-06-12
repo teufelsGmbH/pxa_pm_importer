@@ -134,4 +134,37 @@ class FilesResourcesTest extends UnitTestCase
         ];
         $this->getFolder();
     }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayThrowExceptionIfNonArrayOrNonStringGiven()
+    {
+        $list = 123;
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->convertFilesListValueToArray($list);
+    }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayReturnGivenArray()
+    {
+        $list = ['path1', 'path2'];
+
+        $this->assertEquals($list, $this->convertFilesListValueToArray($list));
+    }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayConvertStringToArray()
+    {
+        $list = 'path1,path2, path3';
+        $expect = ['path1', 'path2', 'path3'];
+
+        $this->assertEquals($expect, $this->convertFilesListValueToArray($list));
+    }
 }

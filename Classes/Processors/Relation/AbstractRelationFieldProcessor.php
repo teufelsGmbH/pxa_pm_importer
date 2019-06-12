@@ -36,9 +36,6 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
      */
     public function preProcess(&$value): void
     {
-        if (!is_string($value)) {
-            $value = (string)$value;
-        }
         parent::preProcess($value);
 
         $this->entities = $this->initEntities($value);
