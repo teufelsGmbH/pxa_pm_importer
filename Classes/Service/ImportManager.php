@@ -99,7 +99,7 @@ class ImportManager
      */
     public function getErrors(): array
     {
-        return $this->logger->getErrorMessages();
+        return Logger::getErrorMessages();
     }
 
     /**

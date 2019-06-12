@@ -27,7 +27,7 @@ class Logger
      *
      * @var array
      */
-    protected $errorMessages = [];
+    protected static $errorMessages = [];
 
     /**
      * Initialize
@@ -72,22 +72,14 @@ class Logger
         $errorLevel = [LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR];
 
         // Save errors, but max 10 and only unique
-        if (in_array(LogLevel::normalizeLevel($level), $errorLevel) && count($this->errorMessages) <= 10) {
+        if (in_array(LogLevel::normalizeLevel($level), $errorLevel) && count(static::$errorMessages) <= 10) {
             $messageHash = md5($message);
-            if (!array_key_exists($messageHash, $this->errorMessages)) {
-                $this->errorMessages[$messageHash] = $message;
+            if (!array_key_exists($messageHash, static::$errorMessages)) {
+                static::$errorMessages[$messageHash] = $message;
             }
         }
 
         $this->logger->log($level, $message, $context);
-    }
-
-    /**
-     * Get errors
-     */
-    public function getErrorMessages(): array
-    {
-        return $this->errorMessages;
     }
 
     /**
@@ -106,6 +98,14 @@ class Logger
         }
 
         return '';
+    }
+
+    /**
+     * Get errors
+     */
+    public static function getErrorMessages(): array
+    {
+        return static::$errorMessages;
     }
 
     /**
