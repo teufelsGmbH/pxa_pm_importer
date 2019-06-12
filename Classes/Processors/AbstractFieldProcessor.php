@@ -72,7 +72,7 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      */
     public function __construct()
     {
-        $this->logger = Logger::getInstance(__CLASS__);
+        $this->logger = Logger::getInstance(get_class($this));
     }
 
     /**
