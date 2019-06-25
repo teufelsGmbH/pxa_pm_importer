@@ -160,8 +160,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 break;
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:
-                $this->updateAttributeFilesReference($value);
-                $attributeValues[$this->attribute->getUid()] = is_array($value) ? implode(',', $value) : (string)$value;
+                $foundFilesValues = $this->updateAttributeFilesReference($value);
+                $attributeValues[$this->attribute->getUid()] = implode(',', $foundFilesValues);
                 break;
             default:
                 // @codingStandardsIgnoreStart
@@ -304,15 +304,16 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      * Update attribute file reference
      *
      * @param string|array $value Array of file list or comma separated list
+     * @return array Values(files) there were attached to the product
      */
-    protected function updateAttributeFilesReference($value): void
+    protected function updateAttributeFilesReference($value): array
     {
         $value = $this->convertFilesListValueToArray($value);
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {
             $this->addError($exception->getMessage());
-            return;
+            return [];
         }
 
         /**
@@ -335,7 +336,11 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
          * If file already has file reference - use it
          */
         $attributeFiles = [];
-        foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
+        // Found files to attach
+        $attachFiles = $this->collectFilesFromList($folder, $value, $this->logger);
+        // Found given values
+        $foundValues = array_keys($attachFiles);
+        foreach ($attachFiles as $file) {
             // Create new file reference
             if (!array_key_exists($file->getUid(), $existingAttributeFiles)) {
                 /** @var AttributeFalFile $fileReference */
@@ -372,6 +377,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             GeneralUtility::underscoredToLowerCamelCase(TCAUtility::ATTRIBUTE_FAL_FIELD_NAME),
             $attributeFiles
         );
+
+        return $foundValues;
     }
 
 

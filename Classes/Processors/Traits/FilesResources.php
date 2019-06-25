@@ -118,7 +118,7 @@ trait FilesResources
             $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
 
             if ($storage->hasFile($fileIdentifier)) {
-                $files[] = $storage->getFile($fileIdentifier);
+                $files[$filePath] = $storage->getFile($fileIdentifier);
             } elseif ($logger !== null) {
                 $logger->error(sprintf(
                     'File "%s" doesn\'t exist',
