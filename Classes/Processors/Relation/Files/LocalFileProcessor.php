@@ -65,7 +65,8 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
                 $entities[] = $this->createFileReference(
                     $file,
                     $this->entity->getUid(),
-                    $this->importer->getPid()
+                    $this->importer->getPid(),
+                    $this->entity->_getProperty('_languageUid')
                 );
             } else {
                 // Use existing file reference
