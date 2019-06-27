@@ -71,6 +71,7 @@ trait FilesResources
      * @param File $file
      * @param int $uidForeign
      * @param int $pid
+     * @param int $languageUid
      * @param string $fileReferenceClass
      * @return FileReference
      */
@@ -78,11 +79,13 @@ trait FilesResources
         File $file,
         int $uidForeign,
         int $pid,
+        int $languageUid = 0,
         string $fileReferenceClass = null
     ): FileReference {
+        /** @var FileReference $fileReference */
         $fileReference = GeneralUtility::makeInstance($fileReferenceClass ?? FileReference::class);
 
-        $newFileReferenceObject = $this->resourceFactory->createFileReferenceObject(
+        $newFileReferenceObject = $this->getResourceFactory()->createFileReferenceObject(
             [
                 'uid_local' => $file->getUid(),
                 'uid_foreign' => $uidForeign,
@@ -92,6 +95,7 @@ trait FilesResources
 
         $fileReference->setOriginalResource($newFileReferenceObject);
         $fileReference->setPid($pid);
+        $fileReference->_setProperty('_languageUid', $languageUid); // Extbase doesn't set this automatically
 
         return $fileReference;
     }
