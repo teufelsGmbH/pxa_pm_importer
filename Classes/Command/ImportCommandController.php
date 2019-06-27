@@ -161,6 +161,10 @@ class ImportCommandController extends CommandController
      */
     protected function sendEmails(string $receivers, string $senderEmail): void
     {
+        if (empty($receivers) || empty($senderEmail)) {
+            return;
+        }
+        
         foreach ($this->emails as $logPath => $messages) {
             $message = implode('<br><br>', $messages);
 
