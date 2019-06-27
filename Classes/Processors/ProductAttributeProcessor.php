@@ -316,8 +316,21 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             return [];
         }
 
+        $attributeFiles = [];
         /**
-         * First collect all existing attribute files
+         * Collect all other attributes values. Since all attributes files are attached to one product field,
+         * but distinguish by pxa_attribute, all files should be present on update process for every attribute
+         */
+        /** @var AttributeFalFile $falReference */
+        foreach ($this->entity->getAttributeFiles() as $falReference) {
+            // Add all other files that doesn't belong to current attribute, so doesn't get removed on update
+            if ($falReference->getAttribute() !== $this->attribute->getUid()) {
+                $attributeFiles[] = $falReference;
+            }
+        }
+
+        /**
+         * Collect all existing attribute files
          * in order to be able to reuse existing file reference
          */
         // File uid => to File reference
@@ -335,7 +348,6 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
          * in "$existingAttributeFiles", this means it need to be attached to product as attribute file.
          * If file already has file reference - use it
          */
-        $attributeFiles = [];
         // Found files to attach
         $attachFiles = $this->collectFilesFromList($folder, $value, $this->logger);
         // Found given values
@@ -348,6 +360,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                     $file,
                     $this->entity->getUid(),
                     $this->importer->getPid(),
+                    $this->entity->_getProperty('_languageUid'),
                     AttributeFalFile::class
                 );
                 $fileReference->setAttribute($this->attribute->getUid());
@@ -356,18 +369,6 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             } else {
                 // Use existing file reference
                 $attributeFiles[] = $existingAttributeFiles[$file->getUid()];
-            }
-        }
-
-        /**
-         * Now collect all other attributes values. Since all attributes files are attached to one product field,
-         * but distinguish by pxa_attribute, all files should be present on update process for every attribute
-         */
-        /** @var AttributeFalFile $falReference */
-        foreach ($this->entity->getAttributeFiles() as $falReference) {
-            // Add all other files that doesn't belong to current attribute, so doesn't get removed on update
-            if ($falReference->getAttribute() !== $this->attribute->getUid()) {
-                $attributeFiles[] = $falReference;
             }
         }
 
