@@ -28,6 +28,13 @@ class ImportCommandController extends CommandController
     protected $importRepository = null;
 
     /**
+     * Error emails
+     *
+     * @var array
+     */
+    protected $emails = [];
+
+    /**
      * @param ImportRepository $importRepository
      */
     public function injectImportRepository(ImportRepository $importRepository): void
@@ -47,10 +54,12 @@ class ImportCommandController extends CommandController
         $this->emitSignal('beforeSchedulerImportStart', [$importUids, $receiversEmails, $senderEmail]);
 
         foreach (GeneralUtility::intExplode(',', $importUids, true) as $importUid) {
-            $this->import($importUid, $receiversEmails, $senderEmail);
+            $this->import($importUid);
         }
 
         $this->emitSignal('afterSchedulerImportDone', [$importUids, $receiversEmails, $senderEmail]);
+
+        $this->sendEmails($receiversEmails, $senderEmail);
     }
 
     /**
@@ -80,11 +89,9 @@ class ImportCommandController extends CommandController
      * Run single import
      *
      * @param int $importUid
-     * @param string $receivers
-     * @param string $senderEmail
      * @throws \Exception
      */
-    protected function import(int $importUid, string $receivers, string $senderEmail): void
+    protected function import(int $importUid): void
     {
         $importManager = GeneralUtility::makeInstance(
             ImportManager::class,
@@ -105,51 +112,77 @@ class ImportCommandController extends CommandController
             $importManager->execute($import);
 
             if (!empty($importManager->getErrors())) {
-                $errorMessageParts = array_merge(
-                    [
-                        $this->translate('be.import_error_occurred'),
-                        $this->translate(
-                            'be.import_name',
-                            [$import->getName() . ' (UID - ' . $import->getUid() . ')']
-                        ),
-                        '<br />',
-                        $this->translate('be.error_message'),
-                    ],
-                    $importManager->getErrors(),
-                    [
-                        '<br />',
-                        $this->translate('be.see_log'),
-                        '"' . $importManager->getLogFilePath() . '"'
-                    ]
-                );
+                $errors = $importManager->getErrors();
             }
         } catch (\Exception $exception) {
-            $errorMessageParts = [
-                $this->translate('be.import_error_occurred'),
-                (is_object($import) ? $this->translate('be.import_name', [$import->getName() . ' (UID - ' . $import->getUid() . ')']) : ''),
-                '<br />',
-                $this->translate('be.error_message'),
-                $exception->getMessage(),
-                '<br />',
-                $this->translate('be.see_log'),
-                '"' . $importManager->getLogFilePath() . '"'
-            ];
+            $errors = [$exception->getMessage()];
         }
 
-        if (isset($errorMessageParts)
-            && !empty($receivers)
-            && !empty($senderEmail)
-        ) {
-            $this->sendEmail(
-                $senderEmail,
-                $this->translate('be.mail.error_subject'),
-                implode('<br />', $errorMessageParts),
-                ...GeneralUtility::trimExplode(',', $receivers)
+        if (isset($errors)) {
+            $importName = is_object($import)
+                ? $this->translate('be.import_name', [$import->getName() . ' (UID - ' . $import->getUid() . ')'])
+                : '';
+            $message = sprintf(
+                '%s<br>%s<br><br>%s<br>%s',
+                $this->translate('be.import_error_occurred'),
+                $importName,
+                $this->translate('be.error_message'),
+                implode('<br>', $errors)
             );
+
+            $this->registerMailMessage($importManager->getLogFilePath(), $message);
         }
 
         if (isset($exception)) {
             throw $exception;
+        }
+    }
+
+    /**
+     * Save mail message
+     *
+     * @param string $logPath
+     * @param string $message
+     */
+    protected function registerMailMessage(string $logPath, string $message): void
+    {
+        if (!array_key_exists($logPath, $this->emails)) {
+            $this->emails[$logPath] = [];
+        }
+
+        $this->emails[$logPath][] = $message;
+    }
+
+    /**
+     * Send error emails
+     *
+     * @param string $receivers
+     * @param string $senderEmail
+     */
+    protected function sendEmails(string $receivers, string $senderEmail): void
+    {
+        if (empty($receivers) || empty($senderEmail)) {
+            return;
+        }
+        
+        foreach ($this->emails as $logPath => $messages) {
+            $message = implode('<br><br>', $messages);
+
+            if (!empty($message)) {
+                $message = sprintf(
+                    '%s<br><br>%s<br>%s',
+                    $message,
+                    $this->translate('be.see_log'),
+                    $logPath
+                );
+
+                $this->sendEmail(
+                    $senderEmail,
+                    $this->translate('be.mail.error_subject'),
+                    $message,
+                    ...GeneralUtility::trimExplode(',', $receivers)
+                );
+            }
         }
     }
 }
