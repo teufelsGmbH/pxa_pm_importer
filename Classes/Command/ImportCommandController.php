@@ -35,6 +35,16 @@ class ImportCommandController extends CommandController
     protected $emails = [];
 
     /**
+     * @var string
+     */
+    protected $receiversEmails = '';
+
+    /**
+     * @var string
+     */
+    protected $senderEmail = '';
+
+    /**
      * @param ImportRepository $importRepository
      */
     public function injectImportRepository(ImportRepository $importRepository): void
@@ -51,6 +61,9 @@ class ImportCommandController extends CommandController
      */
     public function importCommand(string $importUids, string $receiversEmails = '', string $senderEmail = ''): void
     {
+        $this->setReceiversEmails($receiversEmails);
+        $this->setSenderEmail($senderEmail);
+
         $this->emitSignal('beforeSchedulerImportStart', [$importUids, $receiversEmails, $senderEmail]);
 
         foreach (GeneralUtility::intExplode(',', $importUids, true) as $importUid) {
@@ -59,7 +72,7 @@ class ImportCommandController extends CommandController
 
         $this->emitSignal('afterSchedulerImportDone', [$importUids, $receiversEmails, $senderEmail]);
 
-        $this->sendEmails($receiversEmails, $senderEmail);
+        $this->sendEmails();
     }
 
     /**
@@ -134,6 +147,8 @@ class ImportCommandController extends CommandController
         }
 
         if (isset($exception)) {
+            $this->sendEmails();
+
             throw $exception;
         }
     }
@@ -155,16 +170,13 @@ class ImportCommandController extends CommandController
 
     /**
      * Send error emails
-     *
-     * @param string $receivers
-     * @param string $senderEmail
      */
-    protected function sendEmails(string $receivers, string $senderEmail): void
+    protected function sendEmails(): void
     {
-        if (empty($receivers) || empty($senderEmail)) {
+        if (empty($this->receiversEmails) || empty($this->senderEmail)) {
             return;
         }
-        
+
         foreach ($this->emails as $logPath => $messages) {
             $message = implode('<br><br>', $messages);
 
@@ -177,12 +189,28 @@ class ImportCommandController extends CommandController
                 );
 
                 $this->sendEmail(
-                    $senderEmail,
+                    $this->senderEmail,
                     $this->translate('be.mail.error_subject'),
                     $message,
-                    ...GeneralUtility::trimExplode(',', $receivers)
+                    ...GeneralUtility::trimExplode(',', $this->receiversEmails)
                 );
             }
         }
+    }
+
+    /**
+     * @param string $receiversEmails
+     */
+    protected function setReceiversEmails(string $receiversEmails): void
+    {
+        $this->receiversEmails = $receiversEmails;
+    }
+
+    /**
+     * @param string $senderEmail
+     */
+    protected function setSenderEmail(string $senderEmail): void
+    {
+        $this->senderEmail = $senderEmail;
     }
 }
