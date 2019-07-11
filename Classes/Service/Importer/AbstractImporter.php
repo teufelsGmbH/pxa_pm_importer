@@ -561,7 +561,8 @@ abstract class AbstractImporter implements ImporterInterface
                 self::DB_IMPORT_ID_FIELD => $id,
                 self::DB_IMPORT_ID_HASH_FIELD => $idHash,
                 'sys_language_uid' => $language,
-                'pid' => $this->pid
+                'pid' => $this->pid,
+                'crdate' => time()
             ],
             $defaultValues
         );
@@ -569,6 +570,7 @@ abstract class AbstractImporter implements ImporterInterface
             [
                 Connection::PARAM_STR,
                 Connection::PARAM_STR,
+                Connection::PARAM_INT,
                 Connection::PARAM_INT,
                 Connection::PARAM_INT
             ],
@@ -632,7 +634,7 @@ abstract class AbstractImporter implements ImporterInterface
      *
      * @param int $uid
      */
-    protected function deleteNewRecord(int $uid)
+    protected function deleteNewRecord(int $uid): void
     {
         $this->logger->info('Delete new record with UID "' . $uid . '"');
 
@@ -845,6 +847,9 @@ abstract class AbstractImporter implements ImporterInterface
                             if ($isNew) {
                                 // Clean new empty record
                                 $this->deleteNewRecord((int)$record['uid']);
+                            } else {
+                                // Import might want to disable this record or do anything else
+                                $this->emitSignal('failedPopulatingImportModel', [$model]);
                             }
                             // Skip record where population failed
                             continue;
@@ -853,6 +858,9 @@ abstract class AbstractImporter implements ImporterInterface
                         if ($isNew) {
                             // Clean new empty record
                             $this->deleteNewRecord((int)$record['uid']);
+                        } else {
+                            // Import might want to disable this record or do anything else
+                            $this->emitSignal('failedPopulatingImportModel', [$model]);
                         }
 
                         throw  $exception;
