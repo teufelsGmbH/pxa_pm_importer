@@ -847,6 +847,9 @@ abstract class AbstractImporter implements ImporterInterface
                             if ($isNew) {
                                 // Clean new empty record
                                 $this->deleteNewRecord((int)$record['uid']);
+                            } else {
+                                // Import might want to disable this record or do anything else
+                                $this->emitSignal('failedPopulatingImportModel', [$model]);
                             }
                             // Skip record where population failed
                             continue;
@@ -855,6 +858,9 @@ abstract class AbstractImporter implements ImporterInterface
                         if ($isNew) {
                             // Clean new empty record
                             $this->deleteNewRecord((int)$record['uid']);
+                        } else {
+                            // Import might want to disable this record or do anything else
+                            $this->emitSignal('failedPopulatingImportModel', [$model]);
                         }
 
                         throw  $exception;
