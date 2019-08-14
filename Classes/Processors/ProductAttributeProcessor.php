@@ -134,7 +134,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
         // If value is same and attribute value record exist
         // Fal type doesn't have attribute values
-        if ($currentValue == $value && ($this->attribute->isFalType() || $this->getAttributeValue() !== null)) {
+        if ($this->skipAttributeImportProcessing($currentValue, $value)) {
             return;
         }
 
@@ -160,8 +160,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 break;
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:
-                $foundFilesValues = $this->updateAttributeFilesReference($value);
-                $attributeValues[$this->attribute->getUid()] = implode(',', $foundFilesValues);
+                $this->updateAttributeFilesReference($value);
                 break;
             default:
                 // @codingStandardsIgnoreStart
@@ -169,11 +168,30 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             // @codingStandardsIgnoreEnd
         }
 
-        $this->entity->setSerializedAttributesValues(serialize($attributeValues));
         // We don't need to save value for fal attribute, since fal reference is already set
         if (false === $this->attribute->isFalType()) {
+            $this->entity->setSerializedAttributesValues(serialize($attributeValues));
             $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
         }
+    }
+
+    /**
+     * Check if processing can be skipped for attribute.
+     * For example in case if import values is same as current
+     *
+     * @param $currentValue
+     * @param $importValue
+     * @return bool
+     */
+    protected function skipAttributeImportProcessing($currentValue, $importValue): bool
+    {
+        if ($this->attribute->isFalType()) {
+            // Always run import for FAL attributes.
+            // Relation processor will check if files are different or no
+            return false;
+        }
+
+        return $currentValue == $importValue && $this->getAttributeValue() !== null;
     }
 
     /**
