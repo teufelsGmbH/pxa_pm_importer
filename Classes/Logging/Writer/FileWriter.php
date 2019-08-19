@@ -89,6 +89,6 @@ class FileWriter extends LogFileWriter
      */
     protected function getLogFileDate(): string
     {
-        return date('Y-m-d_H:i:s');
+        return date('Y-m-d_H-i-s');
     }
 }
