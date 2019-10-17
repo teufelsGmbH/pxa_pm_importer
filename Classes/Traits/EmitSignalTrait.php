@@ -15,23 +15,21 @@ trait EmitSignalTrait
     /**
      * @var Dispatcher
      */
-    private $signalSlotDispatcher = null;
+    protected $signalSlotDispatcher = null;
 
     /**
      * Emit signal
      *
-     * @param string $name
-     * @param array $variables
+     * @param string $className
+     * @param string $signalName
+     * @param array $signalArguments
      */
-    protected function emitSignal($name, array $variables)
+    protected function emitSignal(string $className, string $signalName, array $signalArguments): void
     {
-        $class = get_class($this);
-        $variables[] = $this;
-
         $this->getSignalSlotDispatcher()->dispatch(
-            $class,
-            $name,
-            $variables
+            $className,
+            $signalName,
+            $signalArguments
         );
     }
 

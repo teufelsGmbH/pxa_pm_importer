@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Service\Configuration;
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Pixelant\PxaPmImporter\Exception\YamlResourceInvalidException;
 use Symfony\Component\Yaml\Yaml;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class YamlConfiguration extends AbstractConfiguration
 {
@@ -19,11 +20,11 @@ class YamlConfiguration extends AbstractConfiguration
     /**
      * Initialize
      *
-     * @param string $yamlPath Absolute path to file
+     * @param string $yamlPath Path to file
      */
     public function __construct(string $yamlPath)
     {
-        $this->yamlPath = $yamlPath;
+        $this->yamlPath = GeneralUtility::getFileAbsFileName($yamlPath);
         parent::__construct();
     }
 
@@ -52,7 +53,7 @@ class YamlConfiguration extends AbstractConfiguration
 
         if (!is_array($configuration)) {
             // @codingStandardsIgnoreStart
-            throw new InvalidConfigurationSourceException('Parsed configuration is not array, but "' . gettype($configuration) . '"', 1535961126729);
+            throw new InvalidConfigurationSourceException('Yaml configuration is not array, but "' . gettype($configuration) . '"', 1535961126729);
             // @codingStandardsIgnoreEnd
         }
 
