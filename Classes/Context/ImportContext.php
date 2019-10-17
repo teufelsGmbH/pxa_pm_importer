@@ -35,6 +35,20 @@ class ImportContext implements SingletonInterface
     protected $importStartTimeStamp = null;
 
     /**
+     * Keep name of current importer
+     *
+     * @var string
+     */
+    protected $currentImporter = null;
+
+    /**
+     * Keep name of current source
+     *
+     * @var string
+     */
+    protected $currentSource = null;
+
+    /**
      * Initialize
      */
     public function __construct()
@@ -82,5 +96,37 @@ class ImportContext implements SingletonInterface
     public function getImportStartTimeStamp(): int
     {
         return $this->importStartTimeStamp;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getCurrentImporter(): ?string
+    {
+        return $this->currentImporter;
+    }
+
+    /**
+     * @param string|null $currentImporter
+     */
+    public function setCurrentImporter(?string $currentImporter): void
+    {
+        $this->currentImporter = $currentImporter;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getCurrentSource(): ?string
+    {
+        return $this->currentSource;
+    }
+
+    /**
+     * @param string|null $currentSource
+     */
+    public function setCurrentSource(?string $currentSource): void
+    {
+        $this->currentSource = $currentSource;
     }
 }

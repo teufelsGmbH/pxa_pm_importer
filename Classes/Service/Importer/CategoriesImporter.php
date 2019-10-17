@@ -11,7 +11,7 @@ use TYPO3\CMS\Core\Database\Connection;
  * Class CategoriesImporter
  * @package Pixelant\PxaPmImporter\Service\Importer
  */
-class CategoriesImporter extends AbstractImporter
+class CategoriesImporter extends Importer
 {
     /**
      * @var CategoryRepository

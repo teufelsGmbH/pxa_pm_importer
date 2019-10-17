@@ -4,7 +4,7 @@ sources:
     delimiter: ,
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/attributes.csv
 importers:
-  Pixelant\PxaPmImporter\Service\Importer\AttributesImporter:
+  Pixelant\PxaPmImporter\Service\Importer\Builder\AttributesImporterBuilder:
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
@@ -21,7 +21,7 @@ importers:
     # Default
     identifierField: 'id'
     # Storage
-    pid: 706
+    pid: 113
 
     # Mapping fields, data adapter should return array with associative array
     mapping:

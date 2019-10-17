@@ -9,7 +9,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
-use Pixelant\PxaPmImporter\Service\Importer\AbstractImporter;
+use Pixelant\PxaPmImporter\Service\Importer\Importer;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
@@ -21,7 +21,7 @@ use TYPO3\CMS\Core\Log\Logger;
 class AbstractImporterTest extends UnitTestCase
 {
     /**
-     * @var AbstractImporter|MockObject|AccessibleMockObjectInterface
+     * @var Importer|MockObject|AccessibleMockObjectInterface
      */
     protected $subject = null;
 
@@ -29,7 +29,7 @@ class AbstractImporterTest extends UnitTestCase
     {
         parent::setUp();
         $this->subject = $this->getAccessibleMock(
-            AbstractImporter::class,
+            Importer::class,
             ['emitSignal', 'initDbTableName', 'initModelName', 'initRepository', 'preImport', 'postImport', 'getRecordByImportIdHash', 'getDataHandler'],
             [],
             '',
@@ -408,7 +408,7 @@ class AbstractImporterTest extends UnitTestCase
     public function allowCreateLocalizationIfDefaultNotFoundCanBeSetFromConfiguration()
     {
         $subject = $this->getAccessibleMock(
-            AbstractImporter::class,
+            Importer::class,
             ['initRepository', 'initDbTableName', 'initModelName', 'initializeAdapter', 'determinateIdentifierField', 'setMapping', 'setSettings', 'checkStorage'],
             [],
             '',
@@ -428,7 +428,7 @@ class AbstractImporterTest extends UnitTestCase
     public function allowToCreateNewRecordsCanBeSetFromConfiguration()
     {
         $subject = $this->getAccessibleMock(
-            AbstractImporter::class,
+            Importer::class,
             ['initRepository', 'initDbTableName', 'initModelName', 'initializeAdapter', 'determinateIdentifierField', 'setMapping', 'setSettings', 'checkStorage'],
             [],
             '',

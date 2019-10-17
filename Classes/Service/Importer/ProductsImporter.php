@@ -14,7 +14,7 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
  * Class ProductsImporter
  * @package Pixelant\PxaPmImporter\Service\Importer
  */
-class ProductsImporter extends AbstractImporter
+class ProductsImporter extends Importer
 {
     /**
      * @var ProductRepository

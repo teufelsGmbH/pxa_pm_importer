@@ -4,15 +4,14 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service;
 
 use Pixelant\PxaPmImporter\Context\ImportContext;
-use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationServiceFactory;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Service\Importer\Builder\ImporterBuilderInterface;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterDirector;
 use Pixelant\PxaPmImporter\Service\Source\SourceFactory;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class Importer
@@ -38,12 +37,24 @@ class ImportManager
     protected $sourceFactory = null;
 
     /**
+     * @var ImporterDirector
+     */
+    protected $importerDirector = null;
+
+    /**
+     * @var ObjectManager
+     */
+    protected $objectManager = null;
+
+    /**
      * ImportManager constructor.
      * @param SourceFactory $sourceFactory
+     * @param ImporterDirector $importerDirector
      */
-    public function __construct(SourceFactory $sourceFactory)
+    public function __construct(SourceFactory $sourceFactory, ImporterDirector $importerDirector)
     {
         $this->sourceFactory = $sourceFactory;
+        $this->importerDirector = $importerDirector;
     }
 
     /**
@@ -52,6 +63,14 @@ class ImportManager
     public function injectContext(ImportContext $context)
     {
         $this->context = $context;
+    }
+
+    /**
+     * @param ObjectManager $objectManager
+     */
+    public function injectObjectManager(ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
     }
 
     /**
@@ -67,21 +86,18 @@ class ImportManager
 
         $sources = $this->context->getConfigurationService()->getSourcesConfiguration();
         $importers = $this->context->getConfigurationService()->getImportersConfiguration();
+
         $multipleSources = count($sources) > 1;
 
         // Run import for every source
-        foreach ($sources as $source) {
-            $sourceInstance = $this->sourceFactory->createSource($source);
+        foreach ($sources as $source => $sourceConfiguration) {
+            $sourceInstance = $this->sourceFactory->createSource($source, $sourceConfiguration);
 
             // Run importers for each source
-            foreach ($importers as $importerClass => $singleImporterConfiguration) {
-                /** @var ImporterInterface $importer */
-                $importer = GeneralUtility::makeInstance($importerClass, $this->logger);
-                if (!($importer instanceof ImporterInterface)) {
-                    // @codingStandardsIgnoreStart
-                    throw new \UnexpectedValueException('Class "' . $importerClass . '" should be instance of ImporterInterface', 1536044275945);
-                    // @codingStandardsIgnoreEnd
-                }
+            foreach ($importers as $importerBuilder => $importConfiguration) {
+                /** @var ImporterBuilderInterface $importerBuilderInstance */
+                $importerBuilderInstance = $this->objectManager->get($importerBuilder);
+                $importer = $this->importerDirector->build($importerBuilderInstance);
 
                 // Write to log about import start
                 $this->logger->info(sprintf(
@@ -91,9 +107,16 @@ class ImportManager
                 ));
 
                 $startTime = time();
-                $importer->preImport($source, $singleImporterConfiguration);
-                $importer->start($source, $singleImporterConfiguration);
+
+                $this->context->setCurrentImporter($importerBuilder);
+                $this->context->setCurrentSource($source);
+
+                $importer->preImport();
+                $importer->start($sourceInstance, $importConfiguration);
                 $importer->postImport();
+
+                $this->context->setCurrentImporter(null);
+                $this->context->setCurrentSource(null);
 
                 $this->logger->info('Memory usage "' . MainUtility::getMemoryUsage() . '"');
                 $this->logger->info('Import duration - ' . $this->getDurationTime($startTime));

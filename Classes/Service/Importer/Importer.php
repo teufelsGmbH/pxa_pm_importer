@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
+use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
-use Pixelant\PxaPmImporter\Domain\Model\Import;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
@@ -23,6 +23,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
+use TYPO3\CMS\Extbase\Persistence\Repository;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -30,7 +31,7 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  * Class AbstractImporter
  * @package Pixelant\PxaPmImporter\Service\Importer
  */
-abstract class AbstractImporter implements ImporterInterface
+class Importer implements ImporterInterface
 {
     use EmitSignalTrait;
 
@@ -154,11 +155,6 @@ abstract class AbstractImporter implements ImporterInterface
     protected $repository = null;
 
     /**
-     * @var Import
-     */
-    protected $import = null;
-
-    /**
      * @var SourceInterface
      */
     protected $source = null;
@@ -188,50 +184,66 @@ abstract class AbstractImporter implements ImporterInterface
     protected $defaultNewRecordFields = [];
 
     /**
+     * @var ImportContext
+     */
+    protected $context = null;
+
+    /**
      * Initialize
      *
-     * @param Logger $logger
      */
-    public function __construct(Logger $logger = null)
+    public function __construct()
     {
-        $this->logger = $logger !== null ? $logger : Logger::getInstance(__CLASS__);
-        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
-        $this->persistenceManager = $this->objectManager->get(PersistenceManager::class);
-        $this->importProgressStatus = $this->objectManager->get(ImportProgressStatus::class);
+        $this->logger = Logger::getInstance(__CLASS__);
+    }
+
+    /**
+     * @param ObjectManager $objectManager
+     */
+    public function injectObjectManager(ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
+
+    /**
+     * @param PersistenceManager $manager
+     */
+    public function injectPersistenceManager(PersistenceManager $manager)
+    {
+        $this->persistenceManager = $manager;
+    }
+
+    /**
+     * @param ImportContext $importContext
+     */
+    public function injectImportContext(ImportContext $importContext)
+    {
+        $this->context = $importContext;
     }
 
     /**
      * Run pre-import actions
-     *
-     * @param SourceInterface $source
-     * @param Import $import
-     * @param array $configuration
      */
-    public function preImport(SourceInterface $source, Import $import, array $configuration = []): void
+    public function preImport(): void
     {
-        $this->importProgressStatus->startImport($import);
     }
 
     /**
      * Start import
      *
      * @param SourceInterface $source
-     * @param Import $import
      * @param array $configuration
+     * @throws \Exception
      */
-    public function start(SourceInterface $source, Import $import, array $configuration = []): void
+    public function start(SourceInterface $source, array $configuration): void
     {
-        $this->source = $source;
-        $this->import = $import;
-
         try {
             $this->preImportPreparations($configuration);
-            $this->initImporterRelated();
 
-            $this->runImport();
+            $this->runImport($source);
         } catch (\Exception $exception) {
             // If fail mark as done
-            $this->importProgressStatus->endImport($import);
+            //$this->importProgressStatus->endImport($import);
 
             throw $exception;
         }
@@ -239,12 +251,10 @@ abstract class AbstractImporter implements ImporterInterface
 
     /**
      * Actions after import is finished
-     *
-     * @param Import $import
      */
-    public function postImport(Import $import): void
+    public function postImport(): void
     {
-        $this->importProgressStatus->endImport($import);
+        //$this->importProgressStatus->endImport($import);
     }
 
     /**
@@ -256,17 +266,72 @@ abstract class AbstractImporter implements ImporterInterface
     }
 
     /**
+     * Sets repository of import subject
+     *
+     * @param Repository $repository
+     */
+    public function setRepository(Repository $repository): void
+    {
+        $this->repository = $repository;
+    }
+
+    /**
+     * Sets model name of import subject
+     *
+     * @param string $model
+     */
+    public function setModelName(string $model): void
+    {
+        $this->modelName = $model;
+    }
+
+    /**
+     * Set table name of import subject
+     *
+     * @param string $table
+     */
+    public function setDatabaseTableName(string $table): void
+    {
+        $this->dbTable = $table;
+    }
+
+    /**
+     * Sets default fields of new created record
+     * Example:
+     * [
+     *    'values' => ['title' => ''],
+     *    'types' => [\PDO::PARAM_STR]
+     * ]
+     *
+     * @param array $fields
+     */
+    public function setDefaultNewRecordFields(array $fields): void
+    {
+        $defaultValues = $fields['values'] ?? [];
+        $defaultTypes = $fields['types'] ?? [];
+        if (count($defaultValues) !== count($defaultTypes)) {
+            throw new \InvalidArgumentException(
+                'Values in "defaultNewRecordFields" require corresponding types',
+                1536138820478
+            );
+        }
+
+        $this->defaultNewRecordFields = $fields;
+    }
+
+    /**
      * Setup stuff for import
      *
      * @param array $configuration
      */
-    protected function preImportPreparations(array $configuration = []): void
+    protected function preImportPreparations(array $configuration): void
     {
         $this->initializeAdapter($configuration);
         $this->determinateIdentifierField($configuration);
         $this->setMapping($configuration);
         $this->setSettings($configuration);
         $this->pid = (int)($configuration['pid'] ?? 0);
+
         if (isset($configuration['allowCreateLocalizationIfDefaultNotFound'])) {
             $this->allowCreateLocalizationIfDefaultNotFound =
                 (bool)$configuration['allowCreateLocalizationIfDefaultNotFound'];
@@ -297,8 +362,6 @@ abstract class AbstractImporter implements ImporterInterface
     protected function determinateIdentifierField(array $configuration): void
     {
         $identifier = $configuration['identifierField'] ?? null;
-
-        $this->emitSignal('determinateIdentifierField', [&$identifier]);
 
         if ($identifier === null) {
             // @codingStandardsIgnoreStart
@@ -397,16 +460,6 @@ abstract class AbstractImporter implements ImporterInterface
     protected function getImportIdHash(string $id): string
     {
         return MainUtility::getImportIdHash($id);
-    }
-
-    /**
-     * Init all stuff that is specified for each import
-     */
-    protected function initImporterRelated(): void
-    {
-        $this->initDbTableName();
-        $this->initModelName();
-        $this->initRepository();
     }
 
     /**
@@ -550,11 +603,6 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $defaultValues = $this->defaultNewRecordFields['values'] ?? [];
         $defaultTypes = $this->defaultNewRecordFields['types'] ?? [];
-        if (count($defaultValues) !== count($defaultTypes)) {
-            // @codingStandardsIgnoreStart
-            throw new \UnexpectedValueException('Values in "defaultNewRecordFields" require corresponding types', 1536138820478);
-            // @codingStandardsIgnoreEnd
-        }
 
         $values = array_merge(
             [
@@ -731,18 +779,20 @@ abstract class AbstractImporter implements ImporterInterface
 
     /**
      * Actual import
+     *
+     * @param SourceInterface $source
      */
-    protected function runImport(): void
+    protected function runImport(SourceInterface $source): void
     {
         $languages = $this->adapter->getImportLanguages();
-        $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
+        $this->amountOfImportItems = $this->adapter->countAmountOfItems($source);
         $batchCount = -1;
 
         foreach ($languages as $language) {
             // Reset duplicated identifiers for each language
             $identifiers = [];
             // One row per record
-            foreach ($this->source as $key => $rawRow) {
+            foreach ($source as $key => $rawRow) {
                 // Persist and clear after every 50 iterations
                 if ((++$batchCount % $this->batchSize) === 0) {
                     $this->persistAndClear();
@@ -849,7 +899,7 @@ abstract class AbstractImporter implements ImporterInterface
                                 $this->deleteNewRecord((int)$record['uid']);
                             } else {
                                 // Import might want to disable this record or do anything else
-                                $this->emitSignal('failedPopulatingImportModel', [$model]);
+                                $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model]);
                             }
                             // Skip record where population failed
                             continue;
@@ -860,7 +910,7 @@ abstract class AbstractImporter implements ImporterInterface
                             $this->deleteNewRecord((int)$record['uid']);
                         } else {
                             // Import might want to disable this record or do anything else
-                            $this->emitSignal('failedPopulatingImportModel', [$model]);
+                            $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model]);
                         }
 
                         throw  $exception;
@@ -879,7 +929,7 @@ abstract class AbstractImporter implements ImporterInterface
                     continue;
                 }
 
-                $this->emitSignal('beforeUpdatingImportModel', [$model]);
+                $this->emitSignal(__CLASS__, 'beforeUpdatingImportModel', [$model]);
 
                 if ($model->_isDirty()) {
                     $this->logger->info(sprintf(
@@ -890,7 +940,7 @@ abstract class AbstractImporter implements ImporterInterface
 
                     $this->repository->update($model);
 
-                    $this->emitSignal('afterUpdatingImportModel', [$model]);
+                    $this->emitSignal(__CLASS__, 'afterUpdatingImportModel', [$model]);
                 }
             }
 
@@ -944,18 +994,5 @@ abstract class AbstractImporter implements ImporterInterface
         return GeneralUtility::makeInstance(DataHandler::class);
     }
 
-    /**
-     * Set import target dbTable
-     */
-    abstract protected function initDbTableName(): void;
 
-    /**
-     * Set import target extbase model name
-     */
-    abstract protected function initModelName(): void;
-
-    /**
-     * Init target model repository
-     */
-    abstract protected function initRepository(): void;
 }

@@ -11,7 +11,7 @@ use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
  *
  * @package Pixelant\PxaPmImporter\Service\Importer
  */
-class AttributesImporter extends AbstractImporter
+class AttributesImporter extends Importer
 {
     /**
      * @var AttributeRepository
