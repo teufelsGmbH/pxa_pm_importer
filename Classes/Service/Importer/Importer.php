@@ -82,13 +82,6 @@ class Importer implements ImporterInterface
     protected $allowToCreateNewRecords = true;
 
     /**
-     * Storage
-     *
-     * @var int
-     */
-    protected $pid = 0;
-
-    /**
      * Update after reached batch size
      *
      * @var int
@@ -255,14 +248,6 @@ class Importer implements ImporterInterface
     public function postImport(): void
     {
         //$this->importProgressStatus->endImport($import);
-    }
-
-    /**
-     * @return int
-     */
-    public function getPid(): int
-    {
-        return $this->pid;
     }
 
     /**

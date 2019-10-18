@@ -76,11 +76,4 @@ interface ImporterInterface
      * @return void
      */
     public function postImport(): void;
-
-    /**
-     * Return storage
-     *
-     * @return int
-     */
-    public function getPid(): int;
 }
