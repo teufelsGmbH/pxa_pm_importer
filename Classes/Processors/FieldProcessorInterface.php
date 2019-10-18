@@ -18,14 +18,12 @@ interface FieldProcessorInterface
      * @param AbstractEntity $entity
      * @param array $dbRow
      * @param string $property
-     * @param ImporterInterface $importer
      * @param array $configuration
      */
     public function init(
         AbstractEntity $entity,
         array $dbRow,
         string $property,
-        ImporterInterface $importer,
         array $configuration
     ): void;
 
@@ -51,13 +49,6 @@ interface FieldProcessorInterface
      * @param $value
      */
     public function process($value): void;
-
-    /**
-     * Return validation errors
-     *
-     * @return string
-     */
-    public function getValidationErrorsString(): string;
 
     /**
      * Get current entity

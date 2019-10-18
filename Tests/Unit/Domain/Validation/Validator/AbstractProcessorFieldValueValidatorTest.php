@@ -40,7 +40,7 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
      */
     public function getValidationStatusReturnStatusWithOkMessageIfNotSet()
     {
-        $this->assertEquals(ValidationStatusInterface::OK, $this->subject->getValidationStatus()->getSeverity());
+        $this->assertEquals(ValidationStatusInterface::OK, $this->subject->getSeverity()->getSeverity());
     }
 
     /**
@@ -68,7 +68,7 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
 
         $this->subject->_set('validationStatus', $validationStatus);
 
-        $this->assertSame($validationStatus, $this->subject->getValidationStatus());
+        $this->assertSame($validationStatus, $this->subject->getSeverity());
     }
 
     /**

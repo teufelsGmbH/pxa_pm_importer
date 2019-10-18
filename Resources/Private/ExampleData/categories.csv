@@ -1,6 +1,6 @@
 Import ID,label EN,Label SV,parent
 Cars,Cars,Bilar,Products
-Pick-Ups,Pick-Ups,Pick-Ups,Cars
-Bicycles,Bicycles,Cyklar,Products
-Products,Products,Produkter,
-Roadsters,Roadsters,Roadsters,Cars
+Pick-Ups,Pick-Ups,Pick-Ups SV,Cars
+Bicycles,Bicycles,Cyklar SV,Products
+Products,Products,Produkter SV,
+Roadsters,Roadsters,Roadsters SV,Cars

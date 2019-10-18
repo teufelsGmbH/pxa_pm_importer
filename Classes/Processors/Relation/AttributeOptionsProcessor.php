@@ -35,7 +35,7 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
             );
         } catch (FailedInitEntityException $exception) {
             $this->failedInit = true;
-            $this->addError('Failed to create option with value "' . $exception->getIdentifier() . '"');
+            $this->logger->error('Failed to create option with value "' . $exception->getIdentifier() . '"');
         }
 
         return $entities ?? [];
@@ -55,7 +55,7 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
                 'tx_pxaproductmanager_domain_model_option',
                 [
                     'value' => $identifier,
-                    'pid' => $this->importer->getPid(),
+                    'pid' => $this->context->getNewRecordsPid(),
                     'sys_language_uid' => 0,
                     'attribute' => $this->entity->getUid(),
                     ImporterInterface::DB_IMPORT_ID_FIELD => $identifier,

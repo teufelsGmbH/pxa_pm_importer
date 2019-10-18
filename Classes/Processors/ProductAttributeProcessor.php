@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
-use Pixelant\PxaPmImporter\Processors\Helpers\BulkInsertHelper;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
 use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
@@ -114,7 +113,13 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             }
 
             if ($date === null) {
-                $this->addError('Could not parse date from "' . $value . '"');
+                $this->logger->error(sprintf(
+                    'Could not parse date [ID-"%s", ATTR-"%s", VALUE-"%s", ]',
+                    $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
+                    $this->attribute->getIdentifier(),
+                    $value
+                ));
+
                 return false;
             }
         }
@@ -208,23 +213,12 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             return;
         }
 
-        // If not found, create one
-        $time = time();
-        $bulkInsertHelper = $this->getBulkInsertHelper();
-        $bulkInsertHelper->addRow(
-            'tx_pxaproductmanager_domain_model_attributevalue',
-            [
-                'attribute' => $this->attribute->getUid(),
-                'product' => intval($this->dbRow['uid']),
-                'value' => $value,
-                'tstamp' => $time,
-                'crdate' => $time,
-                'pid' => $this->importer->getPid(),
-                't3_origuid' => 0,
-                'l10n_parent' => 0,
-                'sys_language_uid' => intval($this->dbRow['sys_language_uid'])
-            ]
-        );
+        $attributeValue = $this->objectManager->get(AttributeValue::class);
+        $attributeValue->setPid($this->context->getNewRecordsPid());
+        $attributeValue->setValue($value);
+        $attributeValue->setAttribute($this->attribute);
+
+        $this->entity->addAttributeValue($attributeValue);
     }
 
     /**
@@ -305,7 +299,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 ),
                 $queryBuilder->expr()->eq(
                     'pid',
-                    $queryBuilder->createNamedParameter($this->importer->getPid(), Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($this->context->getStoragePids(), Connection::PARAM_INT)
                 ),
                 $queryBuilder->expr()->eq(
                     'attribute',
@@ -330,7 +324,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {
-            $this->addError($exception->getMessage());
+            $this->logger->error($exception->getMessage());
             return [];
         }
 
@@ -377,7 +371,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 $fileReference = $this->createFileReference(
                     $file,
                     $this->entity->getUid(),
-                    $this->importer->getPid(),
+                    $this->context->getNewRecordsPid(),
                     $this->entity->_getProperty('_languageUid'),
                     AttributeFalFile::class
                 );
@@ -398,14 +392,5 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         );
 
         return $foundValues;
-    }
-
-
-    /**
-     * @return BulkInsertHelper
-     */
-    protected function getBulkInsertHelper(): BulkInsertHelper
-    {
-        return GeneralUtility::makeInstance(BulkInsertHelper::class);
     }
 }

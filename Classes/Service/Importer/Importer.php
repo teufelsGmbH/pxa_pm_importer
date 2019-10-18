@@ -307,8 +307,14 @@ class Importer implements ImporterInterface
     {
         $pid = intval($configuration['importNewRecords']['pid'] ?? 0);
 
-        if ($pid <= 0 && $this->isAllowedOperation('create')) {
-            throw new \UnexpectedValueException('New recods pid could not be empty', 1571381562830);
+        if ($this->isAllowedOperation('create')) {
+            if ($pid <= 0) {
+                throw new \UnexpectedValueException('New records pid could not be empty', 1571381562830);
+            }
+
+            if (!in_array($pid, $this->context->getStoragePids())) {
+                throw new \UnexpectedValueException('New records pid need to one of the storage pids.', 1571391396860);
+            }
         }
 
         $this->context->setNewRecordsPid($pid);
@@ -563,31 +569,15 @@ class Importer implements ImporterInterface
 
             // If processor is set, it should set value for model property
             if (!empty($mapping['processor'])) {
-                $processor = GeneralUtility::makeInstance($mapping['processor']);
-                if (!($processor instanceof FieldProcessorInterface)) {
-                    // @codingStandardsIgnoreStart
-                    throw new \UnexpectedValueException('Processor "' . $mapping['processor'] . '" should be instance of "FieldProcessorInterface"', 1536128672117);
-                    // @codingStandardsIgnoreEnd
-                }
-
-                $processor->init($model, $record, $property, $this, $mapping['configuration']);
+                $processor = $this->createProcessor($mapping);
+                $processor->init($model, $record, $property, $mapping['configuration']);
 
                 try {
                     $this->executeProcessor($processor, $value);
-                } catch (PostponeProcessorException $exception) {
-                    $this->postponeProcessor($processor, $value);
                 } catch (ErrorValidationException $errorValidationException) {
-                    $this->logger->error(sprintf(
-                    // @codingStandardsIgnoreStart
-                        'Failed validation for property "%s", with message - "%s", [ID - "%s", hash - "%s"]. Skipping record',
-                        // @codingStandardsIgnoreEnd
-                        $property,
-                        $errorValidationException->getMessage(),
-                        $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
-                        $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD]
-                    ));
+                    $this->logProcessorValidationError($processor, $errorValidationException);
 
-                    throw new FailedImportModelData('Failed validation', 1571387529039);
+                    throw new FailedImportModelData('Processor validation error', 1571387529039);
                 }
             } else {
                 // Just set it if no processor
@@ -597,6 +587,36 @@ class Importer implements ImporterInterface
                 }
             }
         }
+    }
+
+    /**
+     * Log error about validation error
+     *
+     * @param FieldProcessorInterface $processor
+     * @param ErrorValidationException $exception
+     */
+    protected function logProcessorValidationError(
+        FieldProcessorInterface $processor,
+        ErrorValidationException $exception
+    ): void {
+        $this->logger->error(sprintf(
+            'Error mapping property. Skipping record. [ID-"%s", UID-"%s", PROP-"%s", REASON-"%s"].',
+            $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
+            $processor->getProcessingDbRow()['uid'],
+            $processor->getProcessingProperty(),
+            $exception->getMessage()
+        ));
+    }
+
+    /**
+     * Create processor
+     *
+     * @param array $mapping
+     * @return FieldProcessorInterface
+     */
+    protected function createProcessor(array $mapping): FieldProcessorInterface
+    {
+        return $this->objectManager->get($mapping['processor']);
     }
 
     /**
@@ -625,15 +645,14 @@ class Importer implements ImporterInterface
      */
     protected function executeProcessor(FieldProcessorInterface $processor, $value): void
     {
-        $processor->preProcess($value);
-        if ($processor->isValid($value)) {
-            $processor->process($value);
-        } else {
-            $this->logger->error(sprintf(
-                'Processor error for row with ID "%s", with messages: %s',
-                $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
-                $processor->getValidationErrorsString()
-            ));
+        try {
+            $processor->preProcess($value);
+
+            if ($processor->isValid($value)) {
+                $processor->process($value);
+            }
+        } catch (PostponeProcessorException $exception) {
+            $this->postponeProcessor($processor, $value);
         }
     }
 
@@ -733,6 +752,8 @@ class Importer implements ImporterInterface
                     $record[self::DB_IMPORT_ID_FIELD],
                     $language
                 ));
+
+                return $record;
                 break;
             case self::LOCALIZATION_DEFAULT_NOT_FOUND:
                 if (!$this->isAllowedOperation('createLocalize')) {
@@ -847,7 +868,6 @@ class Importer implements ImporterInterface
                 $model,
                 $record,
                 $processor->getProcessingProperty(),
-                $this,
                 $processor->getConfiguration()
             );
 
@@ -860,21 +880,16 @@ class Importer implements ImporterInterface
                 if ((++$batchCount % $this->batchSize) === 0) {
                     $this->persistAndClear();
                 }
-            } catch (\Exception $exception) {
-                if ($exception instanceof PostponeProcessorException
-                    || $exception instanceof ErrorValidationException
-                ) {
-                    $this->logger->error(
-                        'Failed executing postponed processor with message "' . $exception->getMessage() . '"'
-                    );
-                } else {
-                    throw $exception;
-                }
+            } catch (PostponeProcessorException | ErrorValidationException $exception) {
+                $this->logger->error(
+                    "Postponed processor failed [REASON-'{$exception->getMessage()}'] "
+                );
             }
 
             // If need to update progress status
             $this->updateImportProgress();
         }
+
         $this->postponedProcessors = [];
         $this->persistAndClear();
     }
@@ -940,7 +955,7 @@ class Importer implements ImporterInterface
                     try {
                         $record = $this->tryLocalizeRecord($idHash, $language);
                     } catch (LocalizationImpossibleException $exception) {
-                        $this->logger->error("Localization failed[Message-'{$exception->getMessage()}']");
+                        $this->logger->error("Localization failed [Message-'{$exception->getMessage()}']");
                         continue;
                     }
                 }

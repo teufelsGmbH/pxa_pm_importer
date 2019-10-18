@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
-use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
+use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
 use Pixelant\PxaPmImporter\Domain\Validation\Validator\ValidatorFactory;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
@@ -35,13 +35,6 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     protected $property = '';
 
     /**
-     * Error messages
-     *
-     * @var array
-     */
-    protected $validationErrors = [];
-
-    /**
      * Model that is currently populated
      *
      * @var AbstractEntity
@@ -56,16 +49,14 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     protected $dbRow = [];
 
     /**
-     * Parent object
-     *
-     * @var ImporterInterface
-     */
-    protected $importer = null;
-
-    /**
      * @var Logger
      */
     protected $logger = null;
+
+    /**
+     * @var ImportContext
+     */
+    protected $context = null;
 
     /**
      * Initialize
@@ -76,38 +67,40 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     }
 
     /**
+     * @param ImportContext $importContext
+     */
+    public function injectImportContext(ImportContext $importContext)
+    {
+        $this->context = $importContext;
+    }
+
+    /**
      * Init
      *
      * @param AbstractEntity $entity
      * @param array $dbRow
      * @param string $property
-     * @param ImporterInterface $importer
      * @param array $configuration
      */
     public function init(
         AbstractEntity $entity,
         array $dbRow,
         string $property,
-        ImporterInterface $importer,
         array $configuration
     ): void {
         $this->entity = $entity;
         $this->dbRow = $dbRow;
         $this->property = $property;
-        $this->importer = $importer;
         $this->configuration = $configuration;
     }
 
     /**
-     * Pretty common for all fields
+     * If something is need to be done before process, override in child class
      *
      * @param mixed &$value
      */
     public function preProcess(&$value): void
     {
-        if (is_string($value)) {
-            $value = trim($value);
-        }
     }
 
     /**
@@ -127,21 +120,28 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
 
             // Failed validation
             if (!$validator->validate($value, $this)) {
-                switch ($validator->getValidationStatus()->getSeverity()) {
-                    case ValidationStatusInterface::WARNING:
-                        $this->addError($validator->getValidationStatus()->getMessage());
+                switch ($validator->getSeverity()) {
+                    case ProcessorFieldValueValidatorInterface::WARNING:
+                        $this->logger->error(sprintf(
+                            'Error mapping property. Skipping property. [ID-"%s", UID-"%s", PROP-"%s", REASON-"%s"].',
+                            $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
+                            $this->dbRow['uid'],
+                            $this->property,
+                            $validator->getValidationError()
+                        ));
+
                         // on warnings just return false
                         return false;
                         break;
-                    case ValidationStatusInterface::ERROR:
+                    case ProcessorFieldValueValidatorInterface::ERROR:
                         throw new ErrorValidationException(
-                            $validator->getValidationStatus()->getMessage(),
+                            $validator->getValidationError(),
                             1550065854955
                         );
                         break;
-                    case ValidationStatusInterface::CRITICAL:
+                    case ProcessorFieldValueValidatorInterface::CRITICAL:
                         throw new CriticalErrorValidationException(
-                            $validator->getValidationStatus()->getMessage(),
+                            $validator->getValidationError(),
                             1550065854955
                         );
                         break;
@@ -151,22 +151,6 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
 
         // All passed
         return true;
-    }
-
-    /**
-     * @return array
-     */
-    public function getValidationErrors(): array
-    {
-        return $this->validationErrors;
-    }
-
-    /**
-     * @return string
-     */
-    public function getValidationErrorsString(): string
-    {
-        return '"' . implode('", "', $this->validationErrors) . '"';
     }
 
     /**
@@ -207,25 +191,7 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     public function tearDown(): void
     {
         $this->entity = null;
-        $this->validationErrors = [];
         $this->dbRow = ['uid' => $this->dbRow['uid']]; // Leave only UID for later re-init of processor
-        $this->importer = null;
-    }
-
-    /**
-     * Add validation error
-     *
-     * @param string $error
-     */
-    protected function addError(string $error): void
-    {
-        $this->validationErrors[] = sprintf(
-            'Failed validation for property "%s", with message - "%s", [ID - "%s", hash - "%s"]',
-            $this->property,
-            $error,
-            $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
-            $this->dbRow[ImporterInterface::DB_IMPORT_ID_HASH_FIELD]
-        );
     }
 
     /**
@@ -252,7 +218,7 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      */
     protected function getRecordByImportIdentifier(string $identifier, string $table, int $language = 0): ?array
     {
-        return MainUtility::getRecordByImportId($identifier, $table, $this->importer->getPid(), $language);
+        return MainUtility::getRecordByImportId($identifier, $table, $this->context->getStoragePids(), $language);
     }
 
     /**

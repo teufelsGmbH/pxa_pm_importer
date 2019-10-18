@@ -3,10 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Domain\Validation\Validator;
 
-use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatus;
-use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-
 /**
  * Class AbstractProcessorFieldValueValidator
  * @package Pixelant\PxaPmImporter\Domain\Validation
@@ -14,23 +10,33 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 abstract class AbstractProcessorFieldValueValidator implements ProcessorFieldValueValidatorInterface
 {
     /**
-     * @var ValidationStatusInterface
+     * @var int
      */
-    protected $validationStatus = null;
+    protected $severity = 0;
+
+    /**
+     * @var string
+     */
+    protected $message = '';
 
     /**
      * Return result error on validation error
      *
-     * @return ValidationStatusInterface
+     * @return int
      */
-    public function getValidationStatus(): ValidationStatusInterface
+    public function getSeverity(): int
     {
-        if ($this->validationStatus === null) {
-            // create default status
-            $this->validationStatus = $this->createValidationStatus('', ValidationStatusInterface::OK);
-        }
+        return $this->severity;
+    }
 
-        return $this->validationStatus;
+    /**
+     * Return error
+     *
+     * @return string
+     */
+    public function getValidationError(): string
+    {
+        return $this->message;
     }
 
     /**
@@ -40,10 +46,8 @@ abstract class AbstractProcessorFieldValueValidator implements ProcessorFieldVal
      */
     protected function error(string $message): void
     {
-        $this->validationStatus = $this->createValidationStatus(
-            $message,
-            ValidationStatusInterface::ERROR
-        );
+        $this->message = $message;
+        $this->severity = self::ERROR;
     }
 
     /**
@@ -53,10 +57,9 @@ abstract class AbstractProcessorFieldValueValidator implements ProcessorFieldVal
      */
     protected function critical(string $message): void
     {
-        $this->validationStatus = $this->createValidationStatus(
-            $message,
-            ValidationStatusInterface::CRITICAL
-        );
+
+        $this->message = $message;
+        $this->severity = self::CRITICAL;
     }
 
     /**
@@ -66,25 +69,8 @@ abstract class AbstractProcessorFieldValueValidator implements ProcessorFieldVal
      */
     protected function warning(string $message): void
     {
-        $this->validationStatus = $this->createValidationStatus(
-            $message,
-            ValidationStatusInterface::WARNING
-        );
-    }
 
-    /**
-     * Create validation status
-     *
-     * @param string $message
-     * @param int $severity
-     * @return ValidationStatus
-     */
-    protected function createValidationStatus(string $message, int $severity): ValidationStatus
-    {
-        return GeneralUtility::makeInstance(
-            ValidationStatus::class,
-            $message,
-            $severity
-        );
+        $this->message = $message;
+        $this->severity = self::WARNING;
     }
 }

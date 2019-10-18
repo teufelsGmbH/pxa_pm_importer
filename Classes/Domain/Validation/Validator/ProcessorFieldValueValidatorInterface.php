@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Domain\Validation\Validator;
 
-use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 
 /**
@@ -12,6 +11,10 @@ use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
  */
 interface ProcessorFieldValueValidatorInterface
 {
+    const WARNING = 1; // Error occurred, property won't be set, but can continue
+    const ERROR = 2; // Error occurred and should skip current import row
+    const CRITICAL = 3; // Critical validation error, import should stop
+
     /**
      * Validate given value
      *
@@ -22,9 +25,16 @@ interface ProcessorFieldValueValidatorInterface
     public function validate($value, FieldProcessorInterface $processor): bool;
 
     /**
-     * Return result error on validation error
+     * Return result error level on validation error
      *
-     * @return ValidationStatusInterface
+     * @return int
      */
-    public function getValidationStatus(): ValidationStatusInterface;
+    public function getSeverity(): int;
+
+    /**
+     * Return validation error
+     *
+     * @return string
+     */
+    public function getValidationError(): string;
 }

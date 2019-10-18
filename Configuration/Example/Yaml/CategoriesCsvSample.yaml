@@ -1,10 +1,32 @@
-source:
+sources:
   Pixelant\PxaPmImporter\Service\Source\CsvSource:
     skipRows: 1
     delimiter: ,
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/categories.csv
 importers:
-  Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
+  CategoriesImport:
+    # Unique identifier field provided by Adapter
+    identifierField: 'id'
+
+    # Domain model name
+    domainModel: Pixelant\PxaProductManager\Domain\Model\Category
+
+    # Allowed import operations
+    # default is 'create,update,localize,createLocalize'
+    allowedOperations: 'create,update,localize'
+
+    # Settings for new records
+    importNewRecords:
+      # Storage of new records
+      pid: 438
+
+    # Storage of records. Import will check storage for records
+    storage:
+      # Comma-separated list of folders
+      pid: 438
+      # Recursive level
+      recursive: 0
+
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
@@ -18,10 +40,6 @@ importers:
             parent: 3
           1:
             title: 2
-    # Default
-    identifierField: 'id'
-    # Storage
-    pid: 706
 
     # Mapping fields, data adapter should return array with associative array
     mapping:

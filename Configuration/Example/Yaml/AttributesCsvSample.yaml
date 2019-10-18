@@ -12,18 +12,18 @@ importers:
     domainModel: Pixelant\PxaProductManager\Domain\Model\Attribute
 
     # Allowed import operations
-    # default is 'create,update,localize'
+    # default is 'create,update,localize,createLocalize'
     allowedOperations: 'create,update'
 
     # Settings for new records
     importNewRecords:
       # Storage of new records
-      pid: 23
+      pid: 440
 
     # Storage of records. Import will check storage for records
     storage:
       # Comma-separated list of folders
-      pid: 113
+      pid: 440
       # Recursive level
       recursive: 0
 

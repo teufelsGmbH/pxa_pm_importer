@@ -51,13 +51,13 @@ class SlugProcessor extends AbstractFieldProcessor
             // Otherwise build using TCA configuration
             $value = $helper->generate(
                 $this->getDbRowWithSimulatedValuesFromEntity($tcaFieldConf),
-                $this->importer->getPid()
+                $this->context->getNewRecordsPid()
             );
         }
 
         // Return directly in case no evaluations are defined
         if (!empty($tcaFieldConf['eval'])) {
-            $state = RecordStateFactory::forName($table)->fromArray($this->dbRow, $this->importer->getPid());
+            $state = RecordStateFactory::forName($table)->fromArray($this->dbRow, $this->context->getNewRecordsPid());
 
             $evalCodesArray = GeneralUtility::trimExplode(',', $tcaFieldConf['eval'], true);
             if (in_array('uniqueInSite', $evalCodesArray, true)) {

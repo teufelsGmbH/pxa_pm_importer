@@ -119,7 +119,7 @@ trait FilesResources
             $fileIdentifier = $folder->getIdentifier() . ltrim($filePath, '/');
 
             // Emit signal
-            $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
+            $this->emitSignal(__CLASS__, 'beforeImportFileGet', [$fileIdentifier, $this->configuration]);
 
             if ($storage->hasFile($fileIdentifier)) {
                 $files[$filePath] = $storage->getFile($fileIdentifier);

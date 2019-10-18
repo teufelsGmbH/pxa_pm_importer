@@ -33,7 +33,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {
-            $this->addError($exception->getMessage());
+            $this->logger->error($exception->getMessage());
 
             return [];
         }
@@ -65,7 +65,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
                 $entities[] = $this->createFileReference(
                     $file,
                     $this->entity->getUid(),
-                    $this->importer->getPid(),
+                    $this->context->getNewRecordsPid(),
                     $this->entity->_getProperty('_languageUid')
                 );
             } else {

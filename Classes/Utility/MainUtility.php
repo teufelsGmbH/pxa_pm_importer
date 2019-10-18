@@ -134,15 +134,15 @@ class MainUtility
      *
      * @param string $id
      * @param string $table
-     * @param int $pid
+     * @param array $pids
      * @param int $language
      * @return array|null
      */
-    public static function getRecordByImportId(string $id, string $table, int $pid, int $language = 0): ?array
+    public static function getRecordByImportId(string $id, string $table, array $pids, int $language = 0): ?array
     {
         $idHash = static::getImportIdHash($id);
 
-        return static::getRecordByImportIdHash($idHash, $table, $pid, $language);
+        return static::getRecordByImportIdHash($idHash, $table, $pids, $language);
     }
 
     /**
