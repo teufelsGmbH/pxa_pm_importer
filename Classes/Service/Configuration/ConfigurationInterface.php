@@ -10,11 +10,6 @@ namespace Pixelant\PxaPmImporter\Service\Configuration;
 interface ConfigurationInterface
 {
     /**
-     * @return bool
-     */
-    public function isSourceValid(): bool;
-
-    /**
      * Return full configuration
      *
      * @return array

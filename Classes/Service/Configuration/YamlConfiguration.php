@@ -25,21 +25,6 @@ class YamlConfiguration extends AbstractConfiguration
     public function __construct(string $yamlPath)
     {
         $this->yamlPath = GeneralUtility::getFileAbsFileName($yamlPath);
-        parent::__construct();
-    }
-
-    /**
-     * Check if yaml source is valid
-     *
-     * @return bool
-     */
-    public function isSourceValid(): bool
-    {
-        if (!empty($this->yamlPath)) {
-            return $this->isFileValid($this->yamlPath);
-        }
-
-        return false;
     }
 
     /**
@@ -47,7 +32,7 @@ class YamlConfiguration extends AbstractConfiguration
      *
      * @return array
      */
-    protected function parseConfiguration(): array
+    protected function setConfigurationFromRawSource(): array
     {
         $configuration = Yaml::parseFile($this->yamlPath);
 

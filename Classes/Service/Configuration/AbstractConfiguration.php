@@ -22,20 +22,16 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     protected $configuration = null;
 
     /**
-     * Initialize configuration
-     */
-    public function __construct()
-    {
-        $this->initialize();
-    }
-
-    /**
      * Getter for configuration, return full array
      *
      * @return array
      */
     public function getConfiguration(): array
     {
+        if ($this->configuration === null) {
+            $this->setConfigurationFromRawSource();
+        }
+
         return $this->configuration;
     }
 
@@ -85,27 +81,6 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     }
 
     /**
-     * Initialize main method
-     */
-    protected function initialize(): void
-    {
-        if ($this->isSourceValid()) {
-            $configuration = $this->parseConfiguration();
-            $this->emitSignal(
-                __CLASS__,
-                'postConfigurationParse',
-                ['configuration' => &$configuration]
-            );
-
-            $this->configuration = $configuration;
-        } else {
-            // @codingStandardsIgnoreStart
-            throw new InvalidConfigurationSourceException('Configuration source "' . $this->getConfigurationSource() . '" is invalid', 1535959642938);
-            // @codingStandardsIgnoreEnd
-        }
-    }
-
-    /**
      * Check if file path is valid
      *
      * @param string $filePath
@@ -118,12 +93,13 @@ abstract class AbstractConfiguration implements ConfigurationInterface
 
     /**
      * Parse configuration source as array
+     *
      * @return array
      */
-    abstract protected function parseConfiguration(): array;
+    abstract protected function setConfigurationFromRawSource(): array;
 
     /**
-     * Return configuration source
+     * Return configuration source. For example file path or API url
      *
      * @return string
      */
