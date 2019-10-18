@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Command;
 
-use Pixelant\PxaPmImporter\Exception\InvalidConfigurationException;
 use Pixelant\PxaPmImporter\Service\ImportManager;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Traits\TranslateBeTrait;
@@ -11,7 +10,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
