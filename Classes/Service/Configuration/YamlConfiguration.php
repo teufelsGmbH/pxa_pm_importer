@@ -29,10 +29,8 @@ class YamlConfiguration extends AbstractConfiguration
 
     /**
      *  Parse yaml configuration
-     *
-     * @return array
      */
-    protected function setConfigurationFromRawSource(): array
+    protected function setConfigurationFromRawSource(): void
     {
         $configuration = Yaml::parseFile($this->yamlPath);
 
@@ -59,7 +57,7 @@ class YamlConfiguration extends AbstractConfiguration
             unset($configuration['imports']);
         }
 
-        return $configuration;
+        $this->configuration = $configuration;
     }
 
     /**

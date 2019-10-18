@@ -93,10 +93,8 @@ abstract class AbstractConfiguration implements ConfigurationInterface
 
     /**
      * Parse configuration source as array
-     *
-     * @return array
      */
-    abstract protected function setConfigurationFromRawSource(): array;
+    abstract protected function setConfigurationFromRawSource(): void;
 
     /**
      * Return configuration source. For example file path or API url
