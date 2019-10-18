@@ -37,6 +37,11 @@ class ImportManager
     protected $sourceFactory = null;
 
     /**
+     * @var ConfigurationServiceFactory
+     */
+    protected $configurationFactory = null;
+
+    /**
      * @var ImporterDirector
      */
     protected $importerDirector = null;
@@ -50,11 +55,16 @@ class ImportManager
      * ImportManager constructor.
      * @param SourceFactory $sourceFactory
      * @param ImporterDirector $importerDirector
+     * @param ConfigurationServiceFactory $configurationFactory
      */
-    public function __construct(SourceFactory $sourceFactory, ImporterDirector $importerDirector)
-    {
+    public function __construct(
+        SourceFactory $sourceFactory,
+        ImporterDirector $importerDirector,
+        ConfigurationServiceFactory $configurationFactory
+    ) {
         $this->sourceFactory = $sourceFactory;
         $this->importerDirector = $importerDirector;
+        $this->configurationFactory = $configurationFactory;
     }
 
     /**
@@ -193,7 +203,7 @@ class ImportManager
      */
     protected function initializeImportConfigurationAndSetInContext(string $configurationSource): void
     {
-        $configurationService = ConfigurationServiceFactory::getConfiguration($configurationSource);
+        $configurationService = $this->configurationFactory->createConfiguration($configurationSource);
 
         $this->context->setConfigurationService($configurationService);
         $this->context->setImportConfigurationSource($configurationSource);
