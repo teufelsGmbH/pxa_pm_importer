@@ -149,13 +149,13 @@ class MainUtility
      * Fetch records from DB by import hash
      * Respect PID and language
      *
-     * @param string $idHash
+     * @param string $hash
      * @param string $table
-     * @param int $pid
+     * @param array $pids
      * @param int $language
      * @return array|null
      */
-    public static function getRecordByImportIdHash(string $idHash, string $table, int $pid, int $language = 0): ?array
+    public static function getRecordByImportIdHash(string $hash, string $table, array $pids, int $language = 0): ?array
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
         $queryBuilder
@@ -169,15 +169,15 @@ class MainUtility
             ->where(
                 $queryBuilder->expr()->eq(
                     ImporterInterface::DB_IMPORT_ID_HASH_FIELD,
-                    $queryBuilder->createNamedParameter($idHash, Connection::PARAM_STR)
+                    $queryBuilder->createNamedParameter($hash, Connection::PARAM_STR)
                 ),
                 $queryBuilder->expr()->eq(
                     'sys_language_uid',
                     $queryBuilder->createNamedParameter($language, Connection::PARAM_INT)
                 ),
-                $queryBuilder->expr()->eq(
+                $queryBuilder->expr()->in(
                     'pid',
-                    $queryBuilder->createNamedParameter($pid, Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($pids, Connection::PARAM_INT_ARRAY)
                 )
             )
             ->setMaxResults(1)

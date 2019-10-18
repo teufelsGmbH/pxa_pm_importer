@@ -22,6 +22,14 @@ class SourceFactory
     {
         /** @var SourceInterface $sourceInstance */
         $sourceInstance = GeneralUtility::makeInstance($source);
+
+        if (!$sourceInstance instanceof SourceInterface) {
+            throw new \InvalidArgumentException(
+                'Class "' . $source . '" must implement SourceInterface',
+                1536044243356
+            );
+        }
+
         $sourceInstance->initialize($configuration ?? []);
 
         return $sourceInstance;

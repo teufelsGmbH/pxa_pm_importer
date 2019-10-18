@@ -104,10 +104,9 @@ class ImportManager
             $sourceInstance = $this->sourceFactory->createSource($source, $sourceConfiguration);
 
             // Run importers for each source
-            foreach ($importers as $importerBuilder => $importConfiguration) {
-                /** @var ImporterBuilderInterface $importerBuilderInstance */
-                $importerBuilderInstance = $this->objectManager->get($importerBuilder);
-                $importer = $this->importerDirector->build($importerBuilderInstance);
+            foreach ($importers as $importName => $importConfiguration) {
+                // Initialize importer
+                $importer = $this->importerDirector->build($importConfiguration);
 
                 // Write to log about import start
                 $this->logger->info(sprintf(
@@ -116,18 +115,23 @@ class ImportManager
                     date('G-i-s')
                 ));
 
+                // Save time
                 $startTime = time();
 
-                $this->context->setCurrentImporter($importerBuilder);
+                // Set context info about current importer and source
+                $this->context->setCurrentImporter($importName);
                 $this->context->setCurrentSource($source);
 
-                $importer->preImport();
-                $importer->start($sourceInstance, $importConfiguration);
-                $importer->postImport();
+                // Execute importer
+                $importer
+                    ->initialize($sourceInstance, $importConfiguration)
+                    ->execute();
 
+                // Reset context info about source and importer
                 $this->context->setCurrentImporter(null);
                 $this->context->setCurrentSource(null);
 
+                // Write to log about memory usage and duration
                 $this->logger->info('Memory usage "' . MainUtility::getMemoryUsage() . '"');
                 $this->logger->info('Import duration - ' . $this->getDurationTime($startTime));
 

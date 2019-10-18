@@ -6,6 +6,8 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
+use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
+use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
@@ -18,12 +20,12 @@ use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\QueryGenerator;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
-use TYPO3\CMS\Extbase\Persistence\Repository;
 use TYPO3\CMS\Extbase\Persistence\RepositoryInterface;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -58,6 +60,38 @@ class Importer implements ImporterInterface
     protected $persistenceManager = null;
 
     /**
+     * @var Logger
+     */
+    protected $logger = null;
+
+    /**
+     * @var RepositoryInterface
+     */
+    protected $repository = null;
+
+    /**
+     * @var SourceInterface
+     */
+    protected $source = null;
+
+    /**
+     * @var ImportProgressStatus
+     */
+    protected $importProgressStatus = null;
+
+    /**
+     * @var ImportContext
+     */
+    protected $context = null;
+
+    /**
+     * Array of import processor that should be run in postImport
+     *
+     * @var PostponedProcessor[]
+     */
+    protected $postponedProcessors = [];
+
+    /**
      * Identifier field name
      *
      * @var string
@@ -65,21 +99,12 @@ class Importer implements ImporterInterface
     protected $identifier = 'id';
 
     /**
-     * This flag allow/disallow create record with language uid > 0
-     * in case parent record was not found
+     * By default all operations are allowed
+     * Possible options 'create,update,localize,createLocalize'
      *
-     * @var bool
+     * @var string
      */
-    protected $allowCreateLocalizationIfDefaultNotFound = false;
-
-    /**
-     * Flag that allow to actually import new records,
-     * if set to false - script will just update already imported values
-     * Might be useful
-     *
-     * @var bool
-     */
-    protected $allowToCreateNewRecords = true;
+    protected $allowedOperations = 'create,update,localize';
 
     /**
      * Update after reached batch size
@@ -117,16 +142,11 @@ class Importer implements ImporterInterface
     protected $mapping = [];
 
     /**
-     * Additonal settings
+     * Importer configuration
      *
      * @var array
      */
-    protected $settings = [];
-
-    /**
-     * @var Logger
-     */
-    protected $logger = null;
+    protected $configuration = [];
 
     /**
      * Name of table where we import
@@ -143,43 +163,37 @@ class Importer implements ImporterInterface
     protected $modelName = null;
 
     /**
-     * @var RepositoryInterface
-     */
-    protected $repository = null;
-
-    /**
-     * @var SourceInterface
-     */
-    protected $source = null;
-
-    /**
-     * @var ImportProgressStatus
-     */
-    protected $importProgressStatus = null;
-
-    /**
-     * Array of import processor that should be run in postImport
-     *
-     * @var PostponedProcessor[]
-     */
-    protected $postponedProcessors = [];
-
-    /**
      * Multiple array with default values for new record
      * Example:
      * [
-     *    'values' => ['title' => ''],
-     *    'types' => [Connection::PARAM_STR]
+     *   'title' => 'default title'
      * ]
+     *
      *
      * @var array
      */
     protected $defaultNewRecordFields = [];
 
     /**
-     * @var ImportContext
+     * Array of identifier for one language import
+     *
+     * @var array
      */
-    protected $context = null;
+    protected $identifiers = [];
+
+    /**
+     * Array of new created records uids
+     *
+     * @var array
+     */
+    protected $newUids = [];
+
+    /**
+     * Array of updated records uids
+     *
+     * @var array
+     */
+    protected $updatedUids = [];
 
     /**
      * Initialize
@@ -214,26 +228,42 @@ class Importer implements ImporterInterface
         $this->context = $importContext;
     }
 
-    /**
-     * Run pre-import actions
-     */
-    public function preImport(): void
-    {
-    }
 
     /**
-     * Start import
+     * Initialize importer
      *
      * @param SourceInterface $source
      * @param array $configuration
-     * @throws \Exception
+     * @return ImporterInterface
      */
-    public function start(SourceInterface $source, array $configuration): void
+    public function initialize(SourceInterface $source, array $configuration): ImporterInterface
+    {
+        $this->setConfiguration($configuration);
+        $this->setSource($source);
+
+        $this->initializeAdapter($configuration);
+
+        $this->determinateIdentifierField($configuration);
+        $this->determinateAllowedOperations($configuration);
+        $this->determinateDefaultNewRecordFields($configuration);
+
+        $this->setMappingRules($configuration);
+
+        $this->initializeExtbaseRequired($configuration);
+
+        $this->initializeContextStorage($configuration);
+        $this->initializeContextNewRecordsPid($configuration);
+
+        return $this;
+    }
+
+    /**
+     * Execute import
+     */
+    public function execute(): void
     {
         try {
-            $this->preImportPreparations($configuration);
-
-            $this->runImport($source);
+            $this->runImport();
         } catch (\Exception $exception) {
             // If fail mark as done
             //$this->importProgressStatus->endImport($import);
@@ -243,100 +273,45 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Actions after import is finished
-     */
-    public function postImport(): void
-    {
-        //$this->importProgressStatus->endImport($import);
-    }
-
-    /**
-     * Sets repository of import subject
-     *
-     * @param Repository $repository
-     */
-    public function setRepository(Repository $repository): void
-    {
-        $this->repository = $repository;
-    }
-
-    /**
-     * Sets model name of import subject
-     *
-     * @param string $model
-     */
-    public function setModelName(string $model): void
-    {
-        $this->modelName = $model;
-    }
-
-    /**
-     * Set table name of import subject
-     *
-     * @param string $table
-     */
-    public function setDatabaseTableName(string $table): void
-    {
-        $this->dbTable = $table;
-    }
-
-    /**
-     * Sets default fields of new created record
-     * Example:
-     * [
-     *    'values' => ['title' => ''],
-     *    'types' => [\PDO::PARAM_STR]
-     * ]
-     *
-     * @param array $fields
-     */
-    public function setDefaultNewRecordFields(array $fields): void
-    {
-        $defaultValues = $fields['values'] ?? [];
-        $defaultTypes = $fields['types'] ?? [];
-        if (count($defaultValues) !== count($defaultTypes)) {
-            throw new \InvalidArgumentException(
-                'Values in "defaultNewRecordFields" require corresponding types',
-                1536138820478
-            );
-        }
-
-        $this->defaultNewRecordFields = $fields;
-    }
-
-    /**
-     * Setup stuff for import
+     * Initialize storage
      *
      * @param array $configuration
      */
-    protected function preImportPreparations(array $configuration): void
+    protected function initializeContextStorage(array $configuration): void
     {
-        $this->initializeAdapter($configuration);
-        $this->determinateIdentifierField($configuration);
-        $this->setMapping($configuration);
-        $this->setSettings($configuration);
-        $this->pid = (int)($configuration['pid'] ?? 0);
+        $pids = GeneralUtility::intExplode(',', $configuration['storage']['pid'] ?? '');
+        $recursive = intval($configuration['storage']['recursive'] ?? 0);
 
-        if (isset($configuration['allowCreateLocalizationIfDefaultNotFound'])) {
-            $this->allowCreateLocalizationIfDefaultNotFound =
-                (bool)$configuration['allowCreateLocalizationIfDefaultNotFound'];
+        if (empty($pids)) {
+            throw new \UnexpectedValueException('Importer storage could not be empty', 1571379428146);
         }
 
-        if (isset($configuration['allowToCreateNewRecords'])) {
-            $this->allowToCreateNewRecords = (bool)$configuration['allowToCreateNewRecords'];
+        if ($recursive > 0) {
+            $queryGenerator = GeneralUtility::makeInstance(QueryGenerator::class);
+            foreach ($pids as $pid) {
+                $pidList = $queryGenerator->getTreeList($pid, $recursive, 0, 1);
+                $pids = array_merge($pids, GeneralUtility::intExplode(',', $pidList));
+            }
         }
 
-        $this->checkStorage();
+        // Save in context too
+        $this->context->setStoragePids(array_unique($pids));
     }
 
     /**
-     * Check if storage exist
+     * Get pid for new records from configuration
+     *
+     * @param array $configuration
      */
-    protected function checkStorage(): void
+    protected function initializeContextNewRecordsPid(array $configuration): void
     {
-        if (BackendUtility::getRecord('pages', $this->pid, 'uid') === null) {
-            throw new \RuntimeException('Storage with UID "' . $this->pid . '" doesn\'t exist', 1536310162347);
+        $pid = intval($configuration['importNewRecords']['pid'] ?? 0);
+
+        if ($pid <= 0 && $this->isAllowedOperation('create')) {
+            throw new \UnexpectedValueException('New recods pid could not be empty', 1571381562830);
         }
+
+        $this->context->setNewRecordsPid($pid);
     }
 
     /**
@@ -346,15 +321,37 @@ class Importer implements ImporterInterface
      */
     protected function determinateIdentifierField(array $configuration): void
     {
-        $identifier = $configuration['identifierField'] ?? null;
-
-        if ($identifier === null) {
-            // @codingStandardsIgnoreStart
-            throw new \UnexpectedValueException('Identifier could not be null, check your import settings', 1535983109427);
-            // @codingStandardsIgnoreEnd
+        if (!empty($configuration['identifierField'])) {
+            $this->identifier = $configuration['identifierField'];
         }
+    }
 
-        $this->identifier = $identifier;
+    /**
+     * Override allowed operations
+     *
+     * @param array $configuration
+     */
+    protected function determinateAllowedOperations(array $configuration): void
+    {
+        if (!empty($configuration['allowedOperations'])) {
+            $this->allowedOperations = $configuration['allowedOperations'];
+        }
+    }
+
+    /**
+     * Set default fields for new record
+     *
+     * @param array $configuration
+     */
+    protected function determinateDefaultNewRecordFields(array $configuration): void
+    {
+        if (!empty($configuration['importNewRecords']['defaultFields'])) {
+            if (!is_array($configuration['importNewRecords']['defaultFields'])) {
+                throw new \InvalidArgumentException('"defaultFields" expect to be array', 1571382096248);
+            }
+
+            $this->defaultNewRecordFields = $configuration['importNewRecords']['defaultFields'];
+        }
     }
 
     /**
@@ -364,12 +361,12 @@ class Importer implements ImporterInterface
      */
     protected function initializeAdapter(array $configuration): void
     {
-        if (isset($configuration['adapter']) && !empty($configuration['adapter']['className'])) {
-            $adapter = GeneralUtility::makeInstance($configuration['adapter']['className']);
+        if (!empty($configuration['adapter']['className'])) {
+            $adapter = $this->objectManager->get($configuration['adapter']['className']);
 
-            if (!($adapter instanceof AdapterInterface)) {
+            if (!$adapter instanceof AdapterInterface) {
                 // @codingStandardsIgnoreStart
-                throw new \UnexpectedValueException('Adapter class "' . $configuration['adapter'] . '" must implement instance of AdapterInterface', 1535981100906);
+                throw new \UnexpectedValueException('Adapter class "' . $configuration['adapter'] . '" must implement AdapterInterface', 1535981100906);
                 // @codingStandardsIgnoreEnd
             }
 
@@ -389,7 +386,7 @@ class Importer implements ImporterInterface
      *
      * @param array $configuration
      */
-    protected function setMapping(array $configuration): void
+    protected function setMappingRules(array $configuration): void
     {
         if (empty($configuration['mapping']) || !is_array($configuration['mapping'])) {
             throw new \RuntimeException('No mapping found for importer "' . get_class($this) . '"', 1536054721032);
@@ -408,15 +405,67 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Set settings from Yaml
+     * Set configuration from Yaml
      *
      * @param array $configuration
      */
-    protected function setSettings(array $configuration): void
+    protected function setConfiguration(array $configuration): void
     {
-        if (isset($configuration['settings']) && is_array($configuration['settings'])) {
-            $this->settings = $configuration['settings'];
+        $this->configuration = $configuration;
+    }
+
+    /**
+     * Set import source
+     *
+     * @param SourceInterface $source
+     */
+    protected function setSource(SourceInterface $source): void
+    {
+        $this->source = $source;
+    }
+
+    /**
+     * Init model name, repository and DB table name
+     *
+     * @param array $configuration
+     */
+    protected function initializeExtbaseRequired(array $configuration): void
+    {
+        // Check model name
+        if (empty($configuration['domainModel'])) {
+            throw new \UnexpectedValueException('"domainModel" could not be empty', 1571382616270);
         }
+        $domainModel = $configuration['domainModel'];
+
+        if (!class_exists($domainModel) || !is_subclass_of($domainModel, AbstractEntity::class)) {
+            // @codingStandardsIgnoreStart
+            throw new \RuntimeException("Domain model '$domainModel' is invalid. It should exist and extend AbstractEntity", 1571382750550);
+            // @codingStandardsIgnoreEnd
+        }
+
+        $this->modelName = $domainModel;
+
+        // Get repository using model name
+        $repository = str_replace('\\Model\\', '\\Repository\\', $domainModel) . 'Repository';
+        if (!class_exists($repository)) {
+            throw new \RuntimeException("Repository '$repository' doesn't exist", 1571382879964);
+        }
+
+        $this->repository = $this->objectManager->get($repository);
+
+        // Set table of domain model
+        $this->dbTable = MainUtility::getTableNameByModelName($domainModel);
+    }
+
+    /**
+     * Check if given operation is allowed
+     *
+     * @param string $operation
+     * @return bool
+     */
+    protected function isAllowedOperation(string $operation): bool
+    {
+        return GeneralUtility::inList($this->allowedOperations, $operation);
     }
 
     /**
@@ -456,7 +505,12 @@ class Importer implements ImporterInterface
      */
     protected function getRecordByImportIdHash(string $idHash, int $language = 0): ?array
     {
-        return MainUtility::getRecordByImportIdHash($idHash, $this->dbTable, $this->pid, $language);
+        return MainUtility::getRecordByImportIdHash(
+            $idHash,
+            $this->dbTable,
+            $this->context->getStoragePids(),
+            $language
+        );
     }
 
     /**
@@ -476,13 +530,21 @@ class Importer implements ImporterInterface
      * @param AbstractEntity $model
      * @param array $record
      * @param array $importRow
-     * @return bool Return false if something went wrong, true otherwise
+     * @return void
      */
     protected function populateModelWithImportData(
-        AbstractEntity $model,
+        $model,
         array $record,
         array $importRow
-    ): bool {
+    ): void {
+        if (!is_object($model)) {
+            $type = gettype($model);
+            throw new FailedImportModelData(
+                "Expect model to be an object, '$type' given.",
+                1571387997402
+            );
+        }
+
         foreach ($importRow as $field => $value) {
             try {
                 $mapping = $this->getFieldMapping($field);
@@ -525,7 +587,7 @@ class Importer implements ImporterInterface
                         $processor->getProcessingDbRow()[self::DB_IMPORT_ID_HASH_FIELD]
                     ));
 
-                    return false;
+                    throw new FailedImportModelData('Failed validation', 1571387529039);
                 }
             } else {
                 // Just set it if no processor
@@ -535,8 +597,6 @@ class Importer implements ImporterInterface
                 }
             }
         }
-
-        return true;
     }
 
     /**
@@ -578,6 +638,46 @@ class Importer implements ImporterInterface
     }
 
     /**
+     * Try to import(create) new record
+     *
+     * @param string $id
+     * @param string $hash
+     * @param int $language
+     * @return array|null
+     */
+    protected function tryCreateNewRecord(string $id, string $hash, int $language): ?array
+    {
+        if (!$this->isAllowedOperation('create')) {
+            $this->logger->info(sprintf(
+                'Could not create record [ID-"%s", REASON-"Not allowed by operations"].',
+                $id
+            ));
+
+            return null;
+        }
+
+        $this->createNewEmptyRecord($id, $hash, $language);
+
+        // Get new empty record
+        $record = $this->getRecordByImportIdHash($hash, $language);
+
+        if ($record === null) {
+            // @codingStandardsIgnoreStart
+            throw new \RuntimeException('Error fetching new created record. This should never happen.', 1536063924811);
+            // @codingStandardsIgnoreEnd
+        }
+
+        $this->logger->info(sprintf(
+            'New record created [ID-"%s", LANG-"%d", TABLE-"%s", ].',
+            $id,
+            $language,
+            $this->dbTable
+        ));
+
+        return $record;
+    }
+
+    /**
      * Create new empty record
      *
      * @param string $id
@@ -586,37 +686,63 @@ class Importer implements ImporterInterface
      */
     protected function createNewEmptyRecord(string $id, string $idHash, int $language): void
     {
-        $defaultValues = $this->defaultNewRecordFields['values'] ?? [];
-        $defaultTypes = $this->defaultNewRecordFields['types'] ?? [];
-
+        $time = time();
         $values = array_merge(
             [
                 self::DB_IMPORT_ID_FIELD => $id,
                 self::DB_IMPORT_ID_HASH_FIELD => $idHash,
                 'sys_language_uid' => $language,
-                'pid' => $this->pid,
-                'crdate' => time()
+                'pid' => $this->context->getNewRecordsPid(),
+                'crdate' => $time,
+                'tstamp' => $time,
             ],
-            $defaultValues
-        );
-        $types = array_merge(
-            [
-                Connection::PARAM_STR,
-                Connection::PARAM_STR,
-                Connection::PARAM_INT,
-                Connection::PARAM_INT,
-                Connection::PARAM_INT
-            ],
-            $defaultTypes
+            $this->defaultNewRecordFields
         );
 
         GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable($this->dbTable)
             ->insert(
                 $this->dbTable,
-                $values,
-                $types
+                $values
             );
+    }
+
+    /**
+     * Try to localize record
+     *
+     * @param string $hash
+     * @param int $language
+     * @return array|null
+     */
+    protected function tryLocalizeRecord(string $hash, int $language): ?array
+    {
+        if (!$this->isAllowedOperation('localize')) {
+            throw new LocalizationImpossibleException('Localization not allowed', 1571385017406);
+        }
+
+        switch ($this->handleLocalization($hash, $language)) {
+            case self::LOCALIZATION_FAILED:
+                throw new LocalizationImpossibleException('Localization went with errors', 1571384846222);
+            case self::LOCALIZATION_SUCCESS:
+                // If localization was created, fetch it.
+                $record = $this->getRecordByImportIdHash($hash, $language);
+
+                $this->logger->info(sprintf(
+                    'Localized record [UID-"%s", ID-"%s", LANG-"%s"]',
+                    $record['uid'],
+                    $record[self::DB_IMPORT_ID_FIELD],
+                    $language
+                ));
+                break;
+            case self::LOCALIZATION_DEFAULT_NOT_FOUND:
+                if (!$this->isAllowedOperation('createLocalize')) {
+                    throw new LocalizationImpossibleException('Default language record not found', 1571385047840);
+                }
+
+                // Not localized
+                return null;
+                break;
+        }
     }
 
     /**
@@ -644,20 +770,11 @@ class Importer implements ImporterInterface
 
                 return self::LOCALIZATION_FAILED;
             }
-            $this->logger->info(sprintf(
-                'Successfully localized record UID "%s" for language "%s"',
-                $defaultLanguageRecord['uid'],
-                $language
-            ));
+
             // Assuming we are success
             return self::LOCALIZATION_SUCCESS;
         }
 
-        $this->logger->info(sprintf(
-            'Could not find default record for hash "%s" and language "%s"',
-            $hash,
-            $language
-        ));
 
         return self::LOCALIZATION_DEFAULT_NOT_FOUND;
     }
@@ -669,7 +786,7 @@ class Importer implements ImporterInterface
      */
     protected function deleteNewRecord(int $uid): void
     {
-        $this->logger->info('Delete new record with UID "' . $uid . '"');
+        $this->logger->info(sprintf('Delete record[UID-"%d"]', $uid));
 
         GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable($this->dbTable)
@@ -764,20 +881,19 @@ class Importer implements ImporterInterface
 
     /**
      * Actual import
-     *
-     * @param SourceInterface $source
      */
-    protected function runImport(SourceInterface $source): void
+    protected function runImport(): void
     {
         $languages = $this->adapter->getImportLanguages();
-        $this->amountOfImportItems = $this->adapter->countAmountOfItems($source);
+        $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
+
         $batchCount = -1;
 
         foreach ($languages as $language) {
             // Reset duplicated identifiers for each language
-            $identifiers = [];
+            $this->identifiers = [];
             // One row per record
-            foreach ($source as $key => $rawRow) {
+            foreach ($this->source as $key => $rawRow) {
                 // Persist and clear after every 50 iterations
                 if ((++$batchCount % $this->batchSize) === 0) {
                     $this->persistAndClear();
@@ -790,7 +906,7 @@ class Importer implements ImporterInterface
                 }
 
                 // Update progress on every iteration
-                $this->updateImportProgress();
+                //$this->updateImportProgress();
 
                 if (!$this->adapter->includeRow($key, $rawRow)) {
                     // Skip
@@ -802,16 +918,15 @@ class Importer implements ImporterInterface
 
                 // Log import processing
                 $this->logger->info(sprintf(
-                    'Start import for row ID - "%s", hash - "%s" and language - "%d"',
+                    'Start import for row [ID-"%s", LANG-"%d"]',
                     $id,
-                    $idHash,
                     $language
                 ));
 
                 // Check if is unique for import
-                if (in_array($idHash, $identifiers)) {
+                if (in_array($idHash, $this->identifiers)) {
                     // @TODO maybe add some options what to do in this case?
-                    $this->logger->error('Duplicated identifier found with value "' . $id . '"');
+                    $this->logger->error("Duplicated identifier[ID-'$id']");
                 } else {
                     $identifiers[] = $idHash;
                 }
@@ -822,110 +937,64 @@ class Importer implements ImporterInterface
                 // Try to create localization if doesn't exist
                 if ($record === null && $language > 0) {
                     // Try to localize
-                    switch ($this->handleLocalization($idHash, $language)) {
-                        case self::LOCALIZATION_FAILED:
-                            // Failed, skip record
-                            $this->logger->error('Could not localize record with import id "' . $id . '"');
-                            continue 2;
-                        case self::LOCALIZATION_SUCCESS:
-                            // If localization was created, fetch it.
-                            $record = $this->getRecordByImportIdHash($idHash, $language);
-                            break;
-                        case self::LOCALIZATION_DEFAULT_NOT_FOUND:
-                            if (false === $this->allowCreateLocalizationIfDefaultNotFound) {
-                                // Skip if creation without default record is not allowed
-                                continue 2;
-                            }
-                            break;
+                    try {
+                        $record = $this->tryLocalizeRecord($idHash, $language);
+                    } catch (LocalizationImpossibleException $exception) {
+                        $this->logger->error("Localization failed[Message-'{$exception->getMessage()}']");
+                        continue;
                     }
                 }
 
                 if ($record === null) {
-                    if (!$this->allowToCreateNewRecords) {
-                        $this->logger->info(sprintf(
-                            'Creating of new records is forbidden. Skip row with UID "%s".',
-                            $id
-                        ));
+                    $record = $this->tryCreateNewRecord($id, $idHash, $language);
+                    $isNew = $record !== null;
 
-                        // Skip it
+                    // Not allowed to create, go to next
+                    if (!$isNew) {
                         continue;
                     }
-
-                    // Create new record
-                    $isNew = true;
-
-                    $this->createNewEmptyRecord($id, $idHash, $language);
-
-                    // Get new empty record
-                    $record = $this->getRecordByImportIdHash($idHash, $language);
-                    if ($record === null) {
-                        // @codingStandardsIgnoreStart
-                        throw new \RuntimeException('Error fetching new created record. This should never happen.', 1536063924811);
-                        // @codingStandardsIgnoreEnd
-                    }
-                    $this->logger->info(sprintf(
-                        'New record for table "%s" and language "%s", with UID "%s" was created.',
-                        $this->dbTable,
-                        $language,
-                        $id
-                    ));
                 }
 
                 $model = $this->mapRow($record);
 
-                // If everything is fine try to populate model
-                if (is_object($model)) {
-                    try {
-                        $result = $this->populateModelWithImportData($model, $record, $row);
-
-                        if ($result === false) {
-                            if ($isNew) {
-                                // Clean new empty record
-                                $this->deleteNewRecord((int)$record['uid']);
-                            } else {
-                                // Import might want to disable this record or do anything else
-                                $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model]);
-                            }
-                            // Skip record where population failed
-                            continue;
-                        }
-                    } catch (\Exception $exception) {
-                        if ($isNew) {
-                            // Clean new empty record
-                            $this->deleteNewRecord((int)$record['uid']);
-                        } else {
-                            // Import might want to disable this record or do anything else
-                            $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model]);
-                        }
-
-                        throw  $exception;
-                    }
-                } else {
+                try {
+                    $this->populateModelWithImportData($model, $record, $row);
+                } catch (\Exception $exception) {
                     $this->logger->error(sprintf(
-                        'Failed mapping record with UID "%s" and import id "%s"',
+                        'Failed import model [ID-"%s", UID-"%s", REASON-"%s"].',
+                        $id,
                         $record['uid'],
-                        $id
+                        $exception->getMessage()
                     ));
+
                     if ($isNew) {
-                        // Clean new empty record
-                        $this->deleteNewRecord((int)$record['uid']);
+                        $this->deleteNewRecord($record['uid']);
                     }
-                    // Go to next record
-                    continue;
+
+                    $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model]);
+
+                    // On failed mapping just skip it
+                    if ($exception instanceof FailedImportModelData) {
+                        continue;
+                    } else {
+                        // On any other exception throw it
+                        throw $exception;
+                    }
                 }
 
-                $this->emitSignal(__CLASS__, 'beforeUpdatingImportModel', [$model]);
+                $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
 
                 if ($model->_isDirty()) {
                     $this->logger->info(sprintf(
-                        'Update record for table "%s", with UID "%s"',
-                        $this->dbTable,
-                        $model->getUid()
+                        'Update record [ID-"%s", UID-"%s", TABLE-"%s", ]',
+                        $id,
+                        $record['uid'],
+                        $this->dbTable
                     ));
 
                     $this->repository->update($model);
 
-                    $this->emitSignal(__CLASS__, 'afterUpdatingImportModel', [$model]);
+                    $this->emitSignal(__CLASS__, 'afterPersistImportModel', [$model]);
                 }
             }
 
@@ -978,6 +1047,4 @@ class Importer implements ImporterInterface
     {
         return GeneralUtility::makeInstance(DataHandler::class);
     }
-
-
 }

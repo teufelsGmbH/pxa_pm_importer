@@ -49,6 +49,20 @@ class ImportContext implements SingletonInterface
     protected $currentSource = null;
 
     /**
+     * Importer storage, where to fetch records
+     *
+     * @var array
+     */
+    protected $storagePids = null;
+
+    /**
+     * New records pid
+     *
+     * @var int
+     */
+    protected $newRecordsPid = null;
+
+    /**
      * Initialize
      */
     public function __construct()
@@ -128,5 +142,37 @@ class ImportContext implements SingletonInterface
     public function setCurrentSource(?string $currentSource): void
     {
         $this->currentSource = $currentSource;
+    }
+
+    /**
+     * @return array
+     */
+    public function getStoragePids(): array
+    {
+        return $this->storagePids;
+    }
+
+    /**
+     * @param array $storagePids
+     */
+    public function setStoragePids(array $storagePids): void
+    {
+        $this->storagePids = $storagePids;
+    }
+
+    /**
+     * @return int
+     */
+    public function getNewRecordsPid(): int
+    {
+        return $this->newRecordsPid;
+    }
+
+    /**
+     * @param int $newRecordsPid
+     */
+    public function setNewRecordsPid(int $newRecordsPid): void
+    {
+        $this->newRecordsPid = $newRecordsPid;
     }
 }
