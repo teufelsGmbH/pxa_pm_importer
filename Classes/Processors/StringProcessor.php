@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
-use Pixelant\PxaPmImporter\Command\ImportCommandController;
+use Pixelant\PxaPmImporter\Command\ImportCommand;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**

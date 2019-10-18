@@ -18,12 +18,12 @@ importers:
     # Settings for new records
     importNewRecords:
       # Storage of new records
-      pid: 440
+      pid: 22
 
     # Storage of records. Import will check storage for records
     storage:
       # Comma-separated list of folders
-      pid: 440
+      pid: 22
       # Recursive level
       recursive: 0
 

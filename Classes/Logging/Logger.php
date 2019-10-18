@@ -109,6 +109,16 @@ class Logger
     }
 
     /**
+     * Reset errors
+     *
+     * @return array
+     */
+    public static function resetErrors(): void
+    {
+        static::$errorMessages = [];
+    }
+
+    /**
      * Get instance
      *
      * @param string $className

@@ -19,6 +19,8 @@ importers:
     importNewRecords:
       # Storage of new records
       pid: 440
+      defaultFields:
+        title: ''
 
     # Storage of records. Import will check storage for records
     storage:

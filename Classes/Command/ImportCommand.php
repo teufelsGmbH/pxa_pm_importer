@@ -3,29 +3,28 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Command;
 
-use Pixelant\PxaPmImporter\Domain\Model\Import;
-use Pixelant\PxaPmImporter\Domain\Repository\ImportRepository;
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationException;
 use Pixelant\PxaPmImporter\Service\ImportManager;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Traits\TranslateBeTrait;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
+use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Mail\MailMessage;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Mvc\Controller\CommandController;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ImportCommandController
  * @package Pixelant\PxaPm\Importer\Command
  */
-class ImportCommandController extends CommandController
+class ImportCommand extends Command
 {
     use TranslateBeTrait;
     use EmitSignalTrait;
-
-    /**
-     * @var ImportRepository
-     */
-    protected $importRepository = null;
 
     /**
      * Error emails
@@ -37,7 +36,7 @@ class ImportCommandController extends CommandController
     /**
      * @var string
      */
-    protected $receiversEmails = '';
+    protected $adminEmails = '';
 
     /**
      * @var string
@@ -45,34 +44,74 @@ class ImportCommandController extends CommandController
     protected $senderEmail = '';
 
     /**
-     * @param ImportRepository $importRepository
+     * @var ObjectManager
      */
-    public function injectImportRepository(ImportRepository $importRepository): void
+    protected $objectManager = null;
+
+    /**
+     * @var ImportManager
+     */
+    protected $importManager = null;
+
+    /**
+     * Configure
+     */
+    protected function configure()
     {
-        $this->importRepository = $importRepository;
+        $this
+            ->setDescription('Import "pxa_product_manager" extension related records.')
+            ->setHelp('This command import recods using preconfigured YAML configuration...')
+            ->addArgument(
+                'configurations',
+                InputArgument::REQUIRED,
+                'Import YAML configurations (separate multiple configurations with a comma)'
+            )
+            ->addArgument(
+                'adminEmails',
+                InputArgument::OPTIONAL,
+                'Admins emails (separate multiple emails with a comma)'
+            )
+            ->addArgument(
+                'senderEmail',
+                InputArgument::OPTIONAL,
+                'Sender email'
+            );
     }
 
     /**
-     * Import main task
+     * Execute import
      *
-     * @param string $importUids Import configuration uids list
-     * @param string $receiversEmails Notify about import errors(comma list for multiple receivers)
-     * @param string $senderEmail Sender email
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void|null
      */
-    public function importCommand(string $importUids, string $receiversEmails = '', string $senderEmail = ''): void
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->setReceiversEmails($receiversEmails);
-        $this->setSenderEmail($senderEmail);
+        // Set email options
+        $this->adminEmails = $input->getArgument('adminEmails');
+        $this->senderEmail = $input->getArgument('senderEmail');
 
-        $this->emitSignal('beforeSchedulerImportStart', [$importUids, $receiversEmails, $senderEmail]);
+        $this->initializeRequired();
 
-        foreach (GeneralUtility::intExplode(',', $importUids, true) as $importUid) {
-            $this->import($importUid);
+        $importConfigurations = $input->getArgument('configurations');
+
+        foreach (GeneralUtility::trimExplode(',', $importConfigurations) as $configuration) {
+            $this->import($configuration);
         }
 
-        $this->emitSignal('afterSchedulerImportDone', [$importUids, $receiversEmails, $senderEmail]);
-
         $this->sendEmails();
+    }
+
+    /**
+     * Required before start import
+     */
+    protected function initializeRequired()
+    {
+        // Make sure we can use datahandler
+        Bootstrap::initializeBackendAuthentication();
+        // Extbase
+        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        $this->importManager = $this->objectManager->get(ImportManager::class);
     }
 
     /**
@@ -101,49 +140,32 @@ class ImportCommandController extends CommandController
     /**
      * Run single import
      *
-     * @param int $importUid
+     * @param string $configuration
      * @throws \Exception
      */
-    protected function import(int $importUid): void
+    protected function import(string $configuration): void
     {
-        $importManager = GeneralUtility::makeInstance(
-            ImportManager::class,
-            $this->importRepository
-        );
-
-        /** @var Import $import */
-        $import = $this->importRepository->findByUid($importUid);
-
         try {
-            if ($import === null) {
-                // @codingStandardsIgnoreStart
-                throw new InvalidConfigurationException('Could not find configuration with UID "' . $importUid . '"', 1535957269248);
-                // @codingStandardsIgnoreEnd
-            }
-
             // Run import
-            $importManager->execute($import);
+            $this->importManager->execute($configuration);
 
-            if (!empty($importManager->getErrors())) {
-                $errors = $importManager->getErrors();
+            if (!empty($this->importManager->getErrors())) {
+                $errors = $this->importManager->getErrors();
             }
         } catch (\Exception $exception) {
             $errors = [$exception->getMessage()];
         }
 
         if (isset($errors)) {
-            $importName = is_object($import)
-                ? $this->translate('be.import_name', [$import->getName() . ' (UID - ' . $import->getUid() . ')'])
-                : '';
             $message = sprintf(
                 '%s<br>%s<br><br>%s<br>%s',
                 $this->translate('be.import_error_occurred'),
-                $importName,
+                $configuration,
                 $this->translate('be.error_message'),
                 implode('<br>', $errors)
             );
 
-            $this->registerMailMessage($importManager->getLogFilePath(), $message);
+            $this->registerMailMessage($this->importManager->getLogFilePath(), $message);
         }
 
         if (isset($exception)) {
@@ -173,7 +195,7 @@ class ImportCommandController extends CommandController
      */
     protected function sendEmails(): void
     {
-        if (empty($this->receiversEmails) || empty($this->senderEmail)) {
+        if (empty($this->adminEmails) || empty($this->senderEmail)) {
             return;
         }
 
@@ -192,25 +214,9 @@ class ImportCommandController extends CommandController
                     $this->senderEmail,
                     $this->translate('be.mail.error_subject'),
                     $message,
-                    ...GeneralUtility::trimExplode(',', $this->receiversEmails)
+                    ...GeneralUtility::trimExplode(',', $this->adminEmails)
                 );
             }
         }
-    }
-
-    /**
-     * @param string $receiversEmails
-     */
-    protected function setReceiversEmails(string $receiversEmails): void
-    {
-        $this->receiversEmails = $receiversEmails;
-    }
-
-    /**
-     * @param string $senderEmail
-     */
-    protected function setSenderEmail(string $senderEmail): void
-    {
-        $this->senderEmail = $senderEmail;
     }
 }
