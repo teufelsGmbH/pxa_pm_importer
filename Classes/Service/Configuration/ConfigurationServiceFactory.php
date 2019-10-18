@@ -18,7 +18,7 @@ class ConfigurationServiceFactory
      * @param string $configuration
      * @return ConfigurationInterface
      */
-    public static function getConfiguration(string $configuration): ConfigurationInterface
+    public function createConfiguration(string $configuration): ConfigurationInterface
     {
         if (StringUtility::endsWith($configuration, '.yaml')) {
             return GeneralUtility::makeInstance(YamlConfiguration::class, $configuration);
