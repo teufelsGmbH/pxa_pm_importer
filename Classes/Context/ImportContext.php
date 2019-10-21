@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Context;
 
 use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationInterface;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 
 /**
@@ -39,14 +41,28 @@ class ImportContext implements SingletonInterface
      *
      * @var string
      */
-    protected $currentImporter = null;
+    protected $importerName = null;
+
+    /**
+     * Importer instance
+     *
+     * @var ImporterInterface
+     */
+    protected $importer = null;
 
     /**
      * Keep name of current source
      *
      * @var string
      */
-    protected $currentSource = null;
+    protected $sourceName = null;
+
+    /**
+     * Source instance
+     *
+     * @var SourceInterface
+     */
+    protected $source = null;
 
     /**
      * Importer storage, where to fetch records
@@ -115,33 +131,33 @@ class ImportContext implements SingletonInterface
     /**
      * @return string|null
      */
-    public function getCurrentImporter(): ?string
+    public function getImporterName(): ?string
     {
-        return $this->currentImporter;
+        return $this->importerName;
     }
 
     /**
-     * @param string|null $currentImporter
+     * @param string|null $importerName
      */
-    public function setCurrentImporter(?string $currentImporter): void
+    public function setImporterName(?string $importerName): void
     {
-        $this->currentImporter = $currentImporter;
+        $this->importerName = $importerName;
     }
 
     /**
      * @return string|null
      */
-    public function getCurrentSource(): ?string
+    public function getSourceName(): ?string
     {
-        return $this->currentSource;
+        return $this->sourceName;
     }
 
     /**
-     * @param string|null $currentSource
+     * @param string|null $sourceName
      */
-    public function setCurrentSource(?string $currentSource): void
+    public function setSourceName(?string $sourceName): void
     {
-        $this->currentSource = $currentSource;
+        $this->sourceName = $sourceName;
     }
 
     /**
@@ -174,5 +190,68 @@ class ImportContext implements SingletonInterface
     public function setNewRecordsPid(int $newRecordsPid): void
     {
         $this->newRecordsPid = $newRecordsPid;
+    }
+
+    /**
+     * @return ImporterInterface
+     */
+    public function getImporter(): ?ImporterInterface
+    {
+        return $this->importer;
+    }
+
+    /**
+     * @param ImporterInterface $importer
+     */
+    public function setImporter(ImporterInterface $importer): void
+    {
+        $this->importer = $importer;
+    }
+
+    /**
+     * @return SourceInterface
+     */
+    public function getSource(): ?SourceInterface
+    {
+        return $this->source;
+    }
+
+    /**
+     * @param SourceInterface $source
+     */
+    public function setSource(SourceInterface $source): void
+    {
+        $this->source = $source;
+    }
+
+    /**
+     * Set source and importer info about current import
+     *
+     * @param string $sourceName
+     * @param SourceInterface $source
+     * @param string $importerName
+     * @param ImporterInterface $importer
+     */
+    public function setCurrentImportInfo(
+        string $sourceName,
+        SourceInterface $source,
+        string $importerName,
+        ImporterInterface $importer
+    ): void {
+        $this->sourceName = $sourceName;
+        $this->source = $source;
+        $this->importerName = $importerName;
+        $this->importer = $importer;
+    }
+
+    /**
+     * Reset info about current import
+     */
+    public function resetCurrentImportInfo(): void
+    {
+        $this->sourceName = null;
+        $this->source = null;
+        $this->importerName = null;
+        $this->importer = null;
     }
 }

@@ -119,8 +119,12 @@ class ImportManager
                 $startTime = time();
 
                 // Set context info about current importer and source
-                $this->context->setCurrentImporter($importName);
-                $this->context->setCurrentSource($source);
+                $this->context->setCurrentImportInfo(
+                    $source,
+                    $sourceInstance,
+                    $importName,
+                    $importer
+                );
 
                 // Execute importer
                 $importer
@@ -128,8 +132,7 @@ class ImportManager
                     ->execute();
 
                 // Reset context info about source and importer
-                $this->context->setCurrentImporter(null);
-                $this->context->setCurrentSource(null);
+                $this->context->resetCurrentImportInfo();
 
                 // Write to log about memory usage and duration
                 $this->logger->info('Memory usage "' . MainUtility::getMemoryUsage() . '"');
