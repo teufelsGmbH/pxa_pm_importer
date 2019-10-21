@@ -35,7 +35,35 @@ class ProgressBarController
      * @param ServerRequestInterface $request
      * @return ResponseInterface
      */
-    public function importProgressStatus(ServerRequestInterface $request): ResponseInterface
+    public function importProgressDispatcher(ServerRequestInterface $request): ResponseInterface
+    {
+        $action = $request->getParsedBody()['action'] ?? 'getStatus';
+
+        return $this->{$action}($request);
+    }
+
+    /**
+     * Close progress bar
+     *
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    protected function close(ServerRequestInterface $request): ResponseInterface
+    {
+        $progressUid = $request->getParsedBody()['uid'];
+
+        $this->progressRepository->deleteProgress((int)$progressUid);
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    /**
+     * Get status
+     *
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
+    protected function getStatus(ServerRequestInterface $request): ResponseInterface
     {
         $configuration = $request->getParsedBody()['configuration'];
 

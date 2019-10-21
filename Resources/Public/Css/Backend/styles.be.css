@@ -5,3 +5,14 @@
 .import-progress-bar {
     height: 18px;
 }
+
+.progress-bar-wrapper {
+    position: relative;
+}
+
+.progress-bar-wrapper .close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    float: none;
+}

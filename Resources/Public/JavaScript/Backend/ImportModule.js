@@ -47,6 +47,9 @@ define(['jquery'], function ($) {
 
 					let progressBarTemplate = this.initProgressBar(runningImport.configuration, runningImport.progress);
 
+					// Track close button click
+					this.onCloseProgressBar(template, runningImport.uid);
+
 					template.find('.import-progress-bar').html(progressBarTemplate);
 					wrapper.append(template);
 					wrapper.removeClass('hidden');
@@ -116,6 +119,35 @@ define(['jquery'], function ($) {
 			}, 1000);
 
 			return progressBar;
+		},
+
+		/**
+		 * Close progress bar
+		 *
+		 * @param progressBarTemplate
+		 * @param uid
+		 */
+		onCloseProgressBar(progressBarTemplate, uid) {
+			let close = progressBarTemplate.find('.close');
+
+			close.on('click', function (e) {
+				e.preventDefault();
+
+				if (!window.confirm('Are you sure?')) {
+					return;
+				}
+
+				$.ajax({
+					type: 'POST',
+					url: TYPO3.settings.ajaxUrls['pxapmimporter-progress-bar'],
+					data: {
+						action: 'close',
+						uid: uid,
+					}
+				}).done(() => {
+					document.location.reload(true);
+				});
+			});
 		},
 
 		/**
