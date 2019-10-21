@@ -762,7 +762,6 @@ class Importer implements ImporterInterface
 
                 // Not localized
                 return null;
-                break;
         }
     }
 
@@ -986,7 +985,7 @@ class Importer implements ImporterInterface
                         $this->deleteNewRecord($record['uid']);
                     }
 
-                    $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model]);
+                    $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model, $isNew]);
 
                     // On failed mapping just skip it
                     if ($exception instanceof FailedImportModelData) {
@@ -997,20 +996,7 @@ class Importer implements ImporterInterface
                     }
                 }
 
-                $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
-
-                if ($model->_isDirty()) {
-                    $this->logger->info(sprintf(
-                        'Update record [ID-"%s", UID-"%s", TABLE-"%s", ]',
-                        $id,
-                        $record['uid'],
-                        $this->dbTable
-                    ));
-
-                    $this->repository->update($model);
-
-                    $this->emitSignal(__CLASS__, 'afterPersistImportModel', [$model]);
-                }
+                $this->persistSingleEntity($model, $id, $record, $isNew);
             }
 
             $this->persistAndClear();
@@ -1061,5 +1047,37 @@ class Importer implements ImporterInterface
     protected function getDataHandler(): DataHandler
     {
         return GeneralUtility::makeInstance(DataHandler::class);
+    }
+
+    /**
+     * Save changes for single entity
+     *
+     * @param AbstractEntity $model
+     * @param string $id
+     * @param array $record
+     * @param bool $isNew
+     */
+    protected function persistSingleEntity(AbstractEntity $model, string $id, array $record, bool $isNew): void
+    {
+        $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
+
+        if ($model->_isDirty()) {
+            $this->logger->info(sprintf(
+                'Update record [ID-"%s", UID-"%s", TABLE-"%s", ]',
+                $id,
+                $record['uid'],
+                $this->dbTable
+            ));
+
+            $this->repository->update($model);
+
+            if ($isNew) {
+                $this->newUids[] = $record['uid'];
+            } else {
+                $this->updatedUids[] = $record['uid'];
+            }
+
+            $this->emitSignal(__CLASS__, 'afterPersistImportModel', [$model]);
+        }
     }
 }
