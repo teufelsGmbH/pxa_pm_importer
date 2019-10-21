@@ -609,6 +609,8 @@ class Importer implements ImporterInterface
 
                 try {
                     $this->executeProcessor($processor, $value);
+                } catch (PostponeProcessorException $exception) {
+                    $this->postponeProcessor($processor, $value);
                 } catch (ErrorValidationException $errorValidationException) {
                     $this->logProcessorValidationError($processor, $errorValidationException);
 
@@ -680,14 +682,10 @@ class Importer implements ImporterInterface
      */
     protected function executeProcessor(FieldProcessorInterface $processor, $value): void
     {
-        try {
-            $processor->preProcess($value);
+        $processor->preProcess($value);
 
-            if ($processor->isValid($value)) {
-                $processor->process($value);
-            }
-        } catch (PostponeProcessorException $exception) {
-            $this->postponeProcessor($processor, $value);
+        if ($processor->isValid($value)) {
+            $processor->process($value);
         }
     }
 
