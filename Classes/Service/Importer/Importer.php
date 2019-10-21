@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
+use Pixelant\PxaPmImporter\Domain\Repository\ProgressRepository;
 use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
 use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
@@ -14,7 +15,6 @@ use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationExceptio
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
-use Pixelant\PxaPmImporter\Service\Status\ImportProgressStatus;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -75,9 +75,9 @@ class Importer implements ImporterInterface
     protected $source = null;
 
     /**
-     * @var ImportProgressStatus
+     * @var ProgressRepository
      */
-    protected $importProgressStatus = null;
+    protected $progressRepository = null;
 
     /**
      * @var ImportContext
@@ -196,11 +196,20 @@ class Importer implements ImporterInterface
     protected $updatedUids = [];
 
     /**
+     * Keep progress record UID
+     *
+     * @var int
+     */
+    protected $progressUid = 0;
+
+    /**
      * Initialize
      *
+     * @param ProgressRepository $progressRepository
      */
-    public function __construct()
+    public function __construct(ProgressRepository $progressRepository)
     {
+        $this->progressRepository = $progressRepository;
         $this->logger = Logger::getInstance(__CLASS__);
     }
 
@@ -254,6 +263,8 @@ class Importer implements ImporterInterface
         $this->initializeContextStorage($configuration);
         $this->initializeContextNewRecordsPid($configuration);
 
+        $this->initProgress();
+
         return $this;
     }
 
@@ -264,9 +275,10 @@ class Importer implements ImporterInterface
     {
         try {
             $this->runImport();
+            $this->deleteProgress();
         } catch (\Exception $exception) {
             // If fail mark as done
-            //$this->importProgressStatus->endImport($import);
+            $this->deleteProgress();
 
             throw $exception;
         }
@@ -461,6 +473,29 @@ class Importer implements ImporterInterface
 
         // Set table of domain model
         $this->dbTable = MainUtility::getTableNameByModelName($domainModel);
+    }
+
+    /**
+     * Init progress status records
+     */
+    protected function initProgress(): void
+    {
+        $configuration = $this->context->getImportConfigurationSource();
+        $progress = $this->progressRepository->findByConfiguration($configuration);
+
+        if ($progress !== null) {
+            $this->progressUid = $progress['uid'];
+        } else {
+            $this->progressUid = $this->progressRepository->addWithConfiguration($configuration);
+        }
+    }
+
+    /**
+     * End of import, remove progress record
+     */
+    protected function deleteProgress(): void
+    {
+        $this->progressRepository->deleteProgress($this->progressUid);
     }
 
     /**
@@ -920,7 +955,7 @@ class Importer implements ImporterInterface
                 }
 
                 // Update progress on every iteration
-                //$this->updateImportProgress();
+                $this->updateImportProgress();
 
                 if (!$this->adapter->includeRow($key, $rawRow)) {
                     // Skip
@@ -1034,8 +1069,8 @@ class Importer implements ImporterInterface
     protected function updateImportProgress(): void
     {
         if ((++$this->batchProgressCount % $this->batchProgressSize) === 0) {
-            $this->importProgressStatus->updateImportProgress(
-                $this->import,
+            $this->progressRepository->updateProgress(
+                $this->progressUid,
                 $this->getImportProgress()
             );
         }

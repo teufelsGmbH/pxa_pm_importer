@@ -13,8 +13,6 @@ define(['jquery'], function ($) {
 			runningImportsWrapper: '#running-imports-wrapper',
 			progressBarWrapper: '.progress-bar-wrapper'
 		};
-		// Array with import IDs where progress was generated
-		this.progressBarExistForImport = [];
 	}
 
 	ImportModule.prototype = {
@@ -31,24 +29,23 @@ define(['jquery'], function ($) {
 		 */
 		loadRunningImports() {
 			$.ajax({
-				type: 'GET',
-				url: TYPO3.settings.ajaxUrls['pxapmimporter-all-imports']
+				type: 'POST',
+				url: TYPO3.settings.ajaxUrls['pxapmimporter-progress-bar'],
+				data: {
+					configuration: 'all'
+				}
 			}).done(response => {
 				let wrapper = this.getjQueryInstance('runningImportsWrapper');
 
 				for (let i = 0; i < response.length; i++) {
 					let runningImport = response[i];
-					if (runningImport.status !== true || this.progressBarExistForImport.indexOf(runningImport.import) !== -1) {
-						continue;
-					}
 
-					this.progressBarExistForImport.push(runningImport.import);
 					let template = wrapper.find('#running-import-template').clone();
 					template.attr('id', '');
-					template.find('.running-import-name').text(runningImport.name);
-					template.find('.running-import-start').text(this.timestampToHumanDate(runningImport.start));
+					template.find('.running-import-name').text(runningImport.configuration);
+					template.find('.running-import-start').text(this.timestampToHumanDate(runningImport.crdate));
 
-					let progressBarTemplate = this.initProgressBar(runningImport.import, runningImport.progress);
+					let progressBarTemplate = this.initProgressBar(runningImport.configuration, runningImport.progress);
 
 					template.find('.import-progress-bar').html(progressBarTemplate);
 					wrapper.append(template);
@@ -78,10 +75,10 @@ define(['jquery'], function ($) {
 		/**
 		 * Init progress bar
 		 *
-		 * @param importId
+		 * @param configuration
 		 * @param currentProgress
 		 */
-		initProgressBar(importId, currentProgress) {
+		initProgressBar(configuration, currentProgress) {
 			let progressBarTemplate = $(this.getProgressBar());
 			let progressBar = progressBarTemplate.find('.progress-bar');
 
@@ -96,13 +93,16 @@ define(['jquery'], function ($) {
 					type: 'POST',
 					url: TYPO3.settings.ajaxUrls['pxapmimporter-progress-bar'],
 					data: {
-						importId: importId,
+						configuration: configuration,
 					}
 				}).done(response => {
-					let progress = response.progress;
+					let progress;
 
-					if (progress > 100 || response.status === false) {
+
+					if (response.failed || response.progress > 100) {
 						progress = 100;
+					} else {
+						progress = response.progress;
 					}
 
 					progressBar
