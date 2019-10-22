@@ -107,7 +107,7 @@ class Importer implements ImporterInterface
     protected $allowedOperations = 'create,update,localize';
 
     /**
-     * Update after reached batch size
+     * Persist changes and clear after reached batch size
      *
      * @var int
      */
@@ -121,18 +121,18 @@ class Importer implements ImporterInterface
     protected $batchProgressSize = 10;
 
     /**
-     * Amount of items to be imported
-     *
-     * @var int
-     */
-    protected $amountOfImportItems = 0;
-
-    /**
      * Keep track on already imported amount of items
      *
      * @var int
      */
     protected $batchProgressCount = 0;
+
+    /**
+     * Amount of items to be imported
+     *
+     * @var int
+     */
+    protected $amountOfImportItems = 0;
 
     /**
      * Mapping rules
@@ -251,6 +251,7 @@ class Importer implements ImporterInterface
         $this->setSource($source);
 
         $this->initializeAdapter($configuration);
+        $this->countSourceWithAdapter();
 
         $this->determinateIdentifierField($configuration);
         $this->determinateAllowedOperations($configuration);
@@ -397,6 +398,14 @@ class Importer implements ImporterInterface
         } else {
             throw new \RuntimeException('Could not resolve data adapter from import configuration', 1536047558452);
         }
+    }
+
+    /**
+     * Count source items
+     */
+    protected function countSourceWithAdapter(): void
+    {
+        $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
     }
 
     /**
@@ -932,33 +941,23 @@ class Importer implements ImporterInterface
     protected function runImport(): void
     {
         $languages = $this->adapter->getImportLanguages();
-        $this->amountOfImportItems = $this->adapter->countAmountOfItems($this->source);
-
-        $batchCount = -1;
 
         foreach ($languages as $language) {
             // Reset duplicated identifiers for each language
             $this->identifiers = [];
             // One row per record
             foreach ($this->source as $key => $rawRow) {
-                // Persist and clear after every 50 iterations
-                if ((++$batchCount % $this->batchSize) === 0) {
-                    $this->persistAndClear();
-
-                    $this->logger->info(sprintf(
-                        'Memory usage after %d iterations - %s',
-                        $batchCount,
-                        MainUtility::getMemoryUsage()
-                    ));
-                }
-
                 // Update progress on every iteration
                 $this->updateImportProgress();
+
+                // Persist if reach limit
+                $this->batchPersist();
 
                 if (!$this->adapter->includeRow($key, $rawRow)) {
                     // Skip
                     continue;
                 }
+
                 $row = $this->adapter->adaptRow($key, $rawRow, $language);
                 $id = $this->getImportIdFromRow($row);
                 $idHash = $this->getImportIdHash($id);
@@ -971,12 +970,7 @@ class Importer implements ImporterInterface
                 ));
 
                 // Check if is unique for import
-                if (in_array($idHash, $this->identifiers)) {
-                    // @TODO maybe add some options what to do in this case?
-                    $this->logger->error("Duplicated identifier[ID-'$id']");
-                } else {
-                    $identifiers[] = $idHash;
-                }
+                $this->checkIfIdentifierUnique($idHash, $id);
 
                 $isNew = false;
                 $record = $this->getRecordByImportIdHash($idHash, $language);
@@ -1075,6 +1069,23 @@ class Importer implements ImporterInterface
     }
 
     /**
+     * Persist items in queue
+     */
+    protected function batchPersist(): void
+    {
+        // Persist and clear after reached batch size
+        if (($this->batchProgressCount % $this->batchSize) === 0) {
+            $this->persistAndClear();
+
+            $this->logger->info(sprintf(
+                'Memory usage after %d iterations - %s',
+                $this->batchProgressCount,
+                MainUtility::getMemoryUsage()
+            ));
+        }
+    }
+
+    /**
      * @return DataHandler
      */
     protected function getDataHandler(): DataHandler
@@ -1111,6 +1122,25 @@ class Importer implements ImporterInterface
             }
 
             $this->emitSignal(__CLASS__, 'afterPersistImportModel', [$model]);
+        }
+    }
+
+    /**
+     * Check if ID was already in import
+     *
+     * @param string $idHash
+     * @param string $id
+     */
+    protected function checkIfIdentifierUnique(string $idHash, string $id): void
+    {
+        if (in_array($idHash, $this->identifiers)) {
+            // @TODO does this mean that it records need to be update again?
+            // Persist, we need to save changes done before
+            $this->persistenceManager->persistAll();
+
+            $this->logger->notice("Duplicated identifier[ID-'$id']");
+        } else {
+            $this->identifiers[] = $idHash;
         }
     }
 }
