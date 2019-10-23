@@ -12,8 +12,8 @@ importers:
     domainModel: Pixelant\PxaProductManager\Domain\Model\Attribute
 
     # Allowed import operations
-    # default is 'create,update,localize,createLocalize'
-    allowedOperations: 'create,update'
+    # default is 'create,localize,createLocalize'
+    allowedOperations: 'create'
 
     # Settings for new records
     importNewRecords:
