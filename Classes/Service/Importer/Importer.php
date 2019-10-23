@@ -326,7 +326,7 @@ class Importer implements ImporterInterface
             }
 
             if (!in_array($pid, $this->context->getStoragePids())) {
-                throw new \UnexpectedValueException('New records pid need to one of the storage pids.', 1571391396860);
+                throw new \UnexpectedValueException('New records pid need to be part of storage pids.', 1571391396860);
             }
         }
 

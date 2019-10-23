@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Context;
 
+use Pixelant\PxaPmImporter\Exception\ContextDataAlreadyExistException;
 use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationInterface;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
@@ -77,6 +78,13 @@ class ImportContext implements SingletonInterface
      * @var int
      */
     protected $newRecordsPid = null;
+
+    /**
+     * Keep custom data
+     *
+     * @var array
+     */
+    protected $customData = [];
 
     /**
      * Initialize
@@ -225,6 +233,34 @@ class ImportContext implements SingletonInterface
     }
 
     /**
+     * Set custom data
+     *
+     * @param string $key
+     * @param $data
+     * @param bool $allowOverride
+     * @throws ContextDataAlreadyExistException
+     */
+    public function setData(string $key, $data, bool $allowOverride = true): void
+    {
+        if (array_key_exists($key, $this->customData) && !$allowOverride) {
+            throw new ContextDataAlreadyExistException("Data already set for key '$key'", 1571830522234);
+        }
+
+        $this->customData[$key] = $data;
+    }
+
+    /**
+     * Get from custom data
+     *
+     * @param string $key
+     * @return mixed|null
+     */
+    public function getData(string $key)
+    {
+        return $this->customData[$key] ?? null;
+    }
+
+    /**
      * Set source and importer info about current import
      *
      * @param string $sourceName
@@ -253,5 +289,6 @@ class ImportContext implements SingletonInterface
         $this->source = null;
         $this->importerName = null;
         $this->importer = null;
+        $this->customData = [];
     }
 }
