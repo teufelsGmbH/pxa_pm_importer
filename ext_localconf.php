@@ -14,10 +14,4 @@ call_user_func(function () {
             ]
         ];
     }
-
-    if (TYPO3_MODE === 'BE') {
-        // Register importer
-        // Example how to register extension
-        \Pixelant\PxaPmImporter\Utility\ImportersRegistry::registerImporter('pxa_pm_importer', ['Example/Yaml']);
-    }
 });
