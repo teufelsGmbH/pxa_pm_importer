@@ -1130,8 +1130,9 @@ class Importer implements ImporterInterface
      *
      * @param string $idHash
      * @param string $id
+     * @return bool False if not unique
      */
-    protected function checkIfIdentifierUnique(string $idHash, string $id): void
+    protected function checkIfIdentifierUnique(string $idHash, string $id): bool
     {
         if (in_array($idHash, $this->identifiers)) {
             // @TODO does this mean that it records need to be update again?
@@ -1139,8 +1140,12 @@ class Importer implements ImporterInterface
             $this->persistenceManager->persistAll();
 
             $this->logger->notice("Duplicated identifier[ID-'$id']");
+
+            return false;
         } else {
             $this->identifiers[] = $idHash;
+
+            return true;
         }
     }
 }
