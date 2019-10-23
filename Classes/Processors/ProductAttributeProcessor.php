@@ -51,13 +51,19 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected $entity = null;
 
     /**
-     * Initialize
+     * @param ObjectManager $objectManager
      */
-    public function __construct()
+    public function injectObjectManager(ObjectManager $objectManager)
     {
-        parent::__construct();
-        $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
-        $this->attributeRepository = $this->objectManager->get(AttributeRepository::class);
+        $this->objectManager = $objectManager;
+    }
+
+    /**
+     * @param AttributeRepository $attributeRepository
+     */
+    public function injectAttributeRepository(AttributeRepository $attributeRepository)
+    {
+        $this->attributeRepository = $attributeRepository;
     }
 
     /**
@@ -213,12 +219,22 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             return;
         }
 
-        $attributeValue = $this->objectManager->get(AttributeValue::class);
+        $attributeValue = $this->createAttributeValue();
         $attributeValue->setPid($this->context->getNewRecordsPid());
         $attributeValue->setValue($value);
         $attributeValue->setAttribute($this->attribute);
 
         $this->entity->addAttributeValue($attributeValue);
+    }
+
+    /**
+     * Create empty attribute value
+     *
+     * @return AttributeValue
+     */
+    protected function createAttributeValue(): AttributeValue
+    {
+        $this->objectManager->get(AttributeValue::class);
     }
 
     /**

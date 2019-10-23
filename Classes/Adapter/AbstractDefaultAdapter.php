@@ -106,7 +106,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         if (is_array($this->filters) && count($this->filters) > 0) {
             foreach ($this->filters as $column => $filter) {
                 if (!empty($filter['filter'])) {
-                    $filterObject = GeneralUtility::makeInstance($filter['filter']);
+                    $filterObject = $this->getFilterInstance($filter['filter']);
                     if (!($filterObject instanceof FilterInterface)) {
                         // @codingStandardsIgnoreStart
                         throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
@@ -223,5 +223,21 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         return $mappingResult;
+    }
+
+    /**
+     * @param string $filter
+     * @return object
+     */
+    protected function getFilterInstance(string $filter): FilterInterface
+    {
+        $filterObject = GeneralUtility::makeInstance($filter);
+        if (!$filterObject instanceof FilterInterface) {
+            $type = gettype($filterObject);
+
+            throw new \UnexpectedValueException("Expect filter to be instance of FilterInterface, '$type' given", 1538142318);
+        }
+
+        return $filterObject;
     }
 }
