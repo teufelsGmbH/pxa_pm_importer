@@ -4,9 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Tests\Unit\Domain\Validation\Validator;
 
 use Nimut\TestingFramework\TestCase\UnitTestCase;
-use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatus;
-use Pixelant\PxaPmImporter\Domain\Validation\ValidationStatusInterface;
 use Pixelant\PxaPmImporter\Domain\Validation\Validator\AbstractProcessorFieldValueValidator;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
 
 /**
  * Class AbstractProcessorFieldValueValidatorTest
@@ -25,106 +24,69 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
             AbstractProcessorFieldValueValidator::class,
             ['validate']
         );
-
-        parent::setUp();
     }
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
     }
 
     /**
      * @test
      */
-    public function getValidationStatusReturnStatusWithOkMessageIfNotSet()
+    public function getSeverityReturnSeverity()
     {
-        $this->assertEquals(ValidationStatusInterface::OK, $this->subject->getSeverity()->getSeverity());
+        $this->subject->_set('severity', 100);
+        $this->assertEquals(100, $this->subject->getSeverity());
     }
 
     /**
      * @test
      */
-    public function createValidationStatusWillCreateStatus()
+    public function getValidationErrorReturnMessage()
     {
-        $message = 'test';
-        $severity = ValidationStatusInterface::WARNING;
+        $value = 'errors';
+        $this->subject->_set('message', $value);
 
-        $status= $this->subject->_call('createValidationStatus', $message, $severity);
-
-        $this->assertInstanceOf(ValidationStatusInterface::class, $status);
-
-        $this->assertEquals($message, $status->getMessage());
-        $this->assertEquals($severity, $status->getSeverity());
+        $this->assertEquals($value, $this->subject->getValidationError());
     }
 
     /**
      * @test
      */
-    public function getValidationStatusReturnStatus()
+    public function errorWillSetMessageAndSeverityToError()
     {
-        $validationStatus = new ValidationStatus();
+        $value = 'error';
 
-        $this->subject->_set('validationStatus', $validationStatus);
+        $this->subject->_call('error', $value);
 
-        $this->assertSame($validationStatus, $this->subject->getSeverity());
+        $this->assertEquals($value, $this->subject->getValidationError());
+        $this->assertEquals(ProcessorFieldValueValidatorInterface::ERROR, $this->subject->getSeverity());
     }
 
     /**
      * @test
      */
-    public function errorWillCreateStatusWithError()
+    public function warningWillSetMessageAndSeverityToError()
     {
-        $subject = $this->getAccessibleMock(
-            AbstractProcessorFieldValueValidator::class,
-            ['validate', 'createValidationStatus']
-        );
-        $message = 'error';
+        $value = 'warning';
 
-        $subject
-            ->expects($this->once())
-            ->method('createValidationStatus')
-            ->with($message, ValidationStatusInterface::ERROR);
+        $this->subject->_call('warning', $value);
 
-        $subject->_call('error', $message);
+        $this->assertEquals($value, $this->subject->getValidationError());
+        $this->assertEquals(ProcessorFieldValueValidatorInterface::WARNING, $this->subject->getSeverity());
     }
 
     /**
      * @test
      */
-    public function warningWillCreateStatusWithWarning()
+    public function criticalWillSetMessageAndSeverityToError()
     {
-        $subject = $this->getAccessibleMock(
-            AbstractProcessorFieldValueValidator::class,
-            ['validate', 'createValidationStatus']
-        );
-        $message = 'error';
+        $value = 'critical';
 
-        $subject
-            ->expects($this->once())
-            ->method('createValidationStatus')
-            ->with($message, ValidationStatusInterface::WARNING);
+        $this->subject->_call('critical', $value);
 
-        $subject->_call('warning', $message);
-    }
-
-    /**
-     * @test
-     */
-    public function criticalWillCreateStatusWithCritical()
-    {
-        $subject = $this->getAccessibleMock(
-            AbstractProcessorFieldValueValidator::class,
-            ['validate', 'createValidationStatus']
-        );
-        $message = 'error';
-
-        $subject
-            ->expects($this->once())
-            ->method('createValidationStatus')
-            ->with($message, ValidationStatusInterface::CRITICAL);
-
-        $subject->_call('critical', $message);
+        $this->assertEquals($value, $this->subject->getValidationError());
+        $this->assertEquals(ProcessorFieldValueValidatorInterface::CRITICAL, $this->subject->getSeverity());
     }
 }

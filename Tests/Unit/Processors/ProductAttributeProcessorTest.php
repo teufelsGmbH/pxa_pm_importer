@@ -6,16 +6,15 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Processors;
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
-use Pixelant\PxaPmImporter\Processors\Helpers\BulkInsertHelper;
+use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ProductAttributeProcessorTest
@@ -30,7 +29,6 @@ class ProductAttributeProcessorTest extends UnitTestCase
 
     protected function setUp()
     {
-        parent::setUp();
         $this->subject = $this->getAccessibleMock(
             ProductAttributeProcessor::class,
             ['getOptions'],
@@ -38,11 +36,13 @@ class ProductAttributeProcessorTest extends UnitTestCase
             '',
             false
         );
+
+        $log = $this->createMock(Logger::class);
+        $this->subject->_set('logger', $log);
     }
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
     }
 
@@ -84,6 +84,7 @@ class ProductAttributeProcessorTest extends UnitTestCase
         $attribute->setType(Attribute::ATTRIBUTE_TYPE_DATETIME);
 
         $this->subject->_set('attribute', $attribute);
+        $this->subject->_set('dbRow', [ImporterInterface::DB_IMPORT_ID_FIELD => 'id']);
 
         $value = 'TEST';
         $this->assertFalse($this->subject->isValid($value));
@@ -184,7 +185,7 @@ class ProductAttributeProcessorTest extends UnitTestCase
     {
         $subject = $this->getAccessibleMock(
             ProductAttributeProcessor::class,
-            ['getAttributeValue', 'getBulkInsertHelper'],
+            ['getAttributeValue', 'createAttributeValue'],
             [],
             '',
             false
@@ -195,11 +196,6 @@ class ProductAttributeProcessorTest extends UnitTestCase
 
         $entity = new Product();
 
-        $mockedBulkInsert = $this->createPartialMock(BulkInsertHelper::class, ['addRow']);
-        $mockedBulkInsert
-            ->expects($this->once())
-            ->method('addRow');
-
         $subject
             ->expects($this->once())
             ->method('getAttributeValue')
@@ -207,15 +203,13 @@ class ProductAttributeProcessorTest extends UnitTestCase
 
         $subject
             ->expects($this->once())
-            ->method('getBulkInsertHelper')
-            ->willReturn($mockedBulkInsert);
-
+            ->method('createAttributeValue');
 
 
         $this->inject($subject, 'entity', $entity);
         $this->inject($subject, 'attribute', $attribute);
         $this->inject($subject, 'dbRow', $dbRow);
-        $this->inject($subject, 'importer', $this->createMock(ImporterInterface::class));
+        $this->inject($subject, 'context', $this->createMock(ImportContext::class));
 
 
         $subject->_call('updateAttributeValue', 'New value');

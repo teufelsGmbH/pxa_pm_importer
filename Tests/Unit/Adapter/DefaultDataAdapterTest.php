@@ -24,7 +24,6 @@ class DefaultDataAdapterTest extends UnitTestCase
 
     protected function setUp()
     {
-        parent::setUp();
         $this->subject = $this->getAccessibleMock(
             DefaultDataAdapter::class,
             ['dummy']
@@ -33,7 +32,6 @@ class DefaultDataAdapterTest extends UnitTestCase
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
     }
 
@@ -528,7 +526,7 @@ class DefaultDataAdapterTest extends UnitTestCase
             ],
             'filters' => [
                 'AREA' => [
-                    'filter' => 'Pixelant\PxaPmImporter\Processors\IntegerProcessor',
+                    'filter' => 'stdClass',
                     'value' => 'A'
                 ]
             ]

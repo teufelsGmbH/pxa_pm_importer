@@ -22,10 +22,9 @@ class AbstractConfigurationTest extends UnitTestCase
 
     protected function setUp()
     {
-        parent::setUp();
         $this->subject = $this->getAccessibleMock(
             AbstractConfiguration::class,
-            ['getConfigurationSource', 'isSourceValid', 'parseConfiguration'],
+            ['getConfigurationSource', 'setConfigurationFromRawSource'],
             [],
             '',
             false
@@ -34,18 +33,7 @@ class AbstractConfigurationTest extends UnitTestCase
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
-    }
-
-    /**
-     * @test
-     */
-    public function initializeWithInvalidSourceThrowsException()
-    {
-        $this->expectException(InvalidConfigurationSourceException::class);
-
-        $this->subject->_call('initialize');
     }
 
     /**

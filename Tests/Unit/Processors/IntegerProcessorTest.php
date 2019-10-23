@@ -19,33 +19,28 @@ class IntegerProcessorTest extends UnitTestCase
 
     protected function setUp()
     {
-        parent::setUp();
-        $this->subject = new IntegerProcessor();
+        $this->subject = $this
+            ->getMockBuilder(IntegerProcessor::class)
+            ->setMethods(null)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
     }
 
     /**
      * @test
      */
-    public function notNumericValuesWillNotPassValidation()
+    public function preProcessWillForceInt()
     {
-        $value = '12test';
+        $value = '14';
+        $expect = (int)$value;
 
-        $this->assertFalse($this->subject->isValid($value));
-    }
+        $this->subject->preProcess($value);
 
-    /**
-     * @test
-     */
-    public function numericValueWillPassValidation()
-    {
-        $value = '12';
-
-        $this->assertTrue($this->subject->isValid($value));
+        $this->assertEquals($expect, $value);
     }
 }
