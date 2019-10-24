@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Tests\Functional\Processors;
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\FunctionalTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -36,6 +37,11 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
             '',
             false
         );
+
+        $context = new ImportContext();
+        $context->setNewRecordsPid(1);
+
+        $this->subject->_set('context', $context);
     }
 
     protected function tearDown()
@@ -53,17 +59,9 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
 
         $expect = [131, 141];
 
-        $importer = new class
-        {
-            public function getPid()
-            {
-                return 1;
-            }
-        };
         $mockedAttribute = $this->createPartialMock(AbstractEntity::class, ['dummy']);
         $mockedAttribute->_setProperty('uid', 3344);
 
-        $this->subject->_set('importer', $importer);
         $this->subject->_set('attribute', $mockedAttribute);
 
         $this->assertEquals($expect, $this->subject->_call('getOptions', $values));
