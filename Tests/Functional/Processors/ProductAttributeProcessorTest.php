@@ -40,6 +40,7 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
 
         $context = new ImportContext();
         $context->setNewRecordsPid(1);
+        $context->setStoragePids([1]);
 
         $this->subject->_set('context', $context);
     }
