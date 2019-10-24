@@ -57,11 +57,11 @@ class AbstractConfigurationTest extends UnitTestCase
         $sourceConf = ['source' => 'test'];
         $configuration = [
             'test' => 'bla',
-            'source' => $sourceConf
+            'sources' => $sourceConf
         ];
 
         $this->subject->_set('configuration', $configuration);
-        $this->assertEquals($sourceConf, $this->subject->getSourceConfiguration());
+        $this->assertEquals($sourceConf, $this->subject->getSourcesConfiguration());
     }
 
     /**
@@ -90,7 +90,7 @@ class AbstractConfigurationTest extends UnitTestCase
 
         $this->subject->_set('configuration', $configuration);
         $this->expectException(\UnexpectedValueException::class);
-        $this->subject->getSourceConfiguration();
+        $this->subject->getSourcesConfiguration();
     }
 
     /**
@@ -104,7 +104,7 @@ class AbstractConfigurationTest extends UnitTestCase
 
         $this->subject->_set('configuration', $configuration);
         $this->expectException(\UnexpectedValueException::class);
-        $this->subject->getSourceConfiguration();
+        $this->subject->getSourcesConfiguration();
     }
 
     /**

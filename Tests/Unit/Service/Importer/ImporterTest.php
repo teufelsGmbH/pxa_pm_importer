@@ -6,10 +6,12 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Service\Importer;
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\Importer;
+use Pixelant\PxaPmImporter\Service\Source\CsvSource;
 use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
@@ -18,7 +20,7 @@ use TYPO3\CMS\Core\Log\Logger;
  * Class AbstractImporterTest
  * @package Pixelant\PxaPmImporter\Tests\Unit\Service\Importer
  */
-class AbstractImporterTest extends UnitTestCase
+class ImporterTest extends UnitTestCase
 {
     /**
      * @var Importer|MockObject|AccessibleMockObjectInterface
@@ -27,10 +29,9 @@ class AbstractImporterTest extends UnitTestCase
 
     protected function setUp()
     {
-        parent::setUp();
         $this->subject = $this->getAccessibleMock(
             Importer::class,
-            ['emitSignal', 'initDbTableName', 'initModelName', 'initRepository', 'preImport', 'postImport', 'getRecordByImportIdHash', 'getDataHandler'],
+            ['emitSignal', 'getDataHandler', 'getRecordByImportIdHash', 'createNewEmptyRecord'],
             [],
             '',
             false
@@ -42,27 +43,7 @@ class AbstractImporterTest extends UnitTestCase
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
-    }
-
-    /**
-     * @test
-     */
-    public function getPidReturnPid()
-    {
-        $this->subject->_set('pid', 12);
-
-        $this->assertEquals(12, $this->subject->getPid());
-    }
-
-    /**
-     * @test
-     */
-    public function determinateIdentifierFieldThrowsExceptionIfIdentifierConfigurationMissing()
-    {
-        $this->expectException(\UnexpectedValueException::class);
-        $this->subject->_call('determinateIdentifierField', []);
     }
 
     /**
@@ -70,11 +51,11 @@ class AbstractImporterTest extends UnitTestCase
      */
     public function identifierFieldIsSetFromConfiguration()
     {
-        $conf = ['identifierField' => 'id'];
+        $conf = ['identifierField' => 'test'];
 
         $this->subject->_call('determinateIdentifierField', $conf);
 
-        $this->assertEquals('id', $this->subject->_get('identifier'));
+        $this->assertEquals('test', $this->subject->_get('identifier'));
     }
 
     /**
@@ -93,7 +74,7 @@ class AbstractImporterTest extends UnitTestCase
     {
         $this->expectException(\RuntimeException::class);
 
-        $this->subject->_call('setMapping', []);
+        $this->subject->_call('setMappingRules', []);
     }
 
     /**
@@ -146,7 +127,7 @@ class AbstractImporterTest extends UnitTestCase
             ]
         ];
 
-        $this->subject->_call('setMapping', $configuration);
+        $this->subject->_call('setMappingRules', $configuration);
         $this->assertEquals($expect, $this->subject->_get('mapping'));
     }
 
@@ -241,27 +222,6 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function createNewEmptyRecordWithWrongDefaultFieldsThrowsException()
-    {
-        $defaultFields = [
-            'values' => [
-                123,
-                'test'
-            ],
-            'types' => [
-                \PDO::PARAM_INT
-            ]
-        ];
-
-        $this->subject->_set('defaultNewRecordFields', $defaultFields);
-
-        $this->expectException(\UnexpectedValueException::class);
-        $this->subject->_call('createNewEmptyRecord', '', '', 0);
-    }
-
-    /**
-     * @test
-     */
     public function handleLocalizationIfNoDefaultFoundReturnCorrespondingStatus()
     {
         $hash = '123321';
@@ -350,23 +310,6 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function setSettingWillSetSettingsFromConfigurationArray()
-    {
-        $settings = [
-            'testing' => [
-                'key' => 'value'
-            ]
-        ];
-        $configuration['settings'] = $settings;
-
-        $this->subject->_call('setSettings', $configuration);
-
-        $this->assertEquals($settings, $this->subject->_get('settings'));
-    }
-
-    /**
-     * @test
-     */
     public function getImportProgressReturnMaxResultIfNotAmountSet()
     {
         $this->subject->_set('amountOfImportItems', 0);
@@ -389,56 +332,128 @@ class AbstractImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function defaultAllowCreateLocalizationIfDefaultNotFoundIsFalse()
+    public function tryCreateNewRecordWillNotCreateRecordIfNotAllowed()
     {
-        $this->assertFalse($this->subject->_get('allowCreateLocalizationIfDefaultNotFound'));
+        $this->subject->_set('allowedOperations', '');
+
+        $this->subject
+            ->expects($this->never())
+            ->method('createNewEmptyRecord');
+
+        $this->subject->_call('tryCreateNewRecord', 1, 'test', 0);
     }
 
     /**
      * @test
      */
-    public function defaultAllowToCreateNewRecordsIsTrue()
+    public function tryCreateNewRecordWillCreateRecordIfAllowed()
     {
-        $this->assertTrue($this->subject->_get('allowToCreateNewRecords'));
+        $this->subject->_set('allowedOperations', 'create');
+
+        $this->subject
+            ->expects($this->once())
+            ->method('createNewEmptyRecord');
+
+        $this->subject
+            ->expects($this->once())
+            ->method('getRecordByImportIdHash')
+            ->willReturn([]);
+
+        $this->subject->_call('tryCreateNewRecord', 1, 'test', 0);
     }
 
     /**
      * @test
      */
-    public function allowCreateLocalizationIfDefaultNotFoundCanBeSetFromConfiguration()
+    public function defaultNewRecordFieldsSetFromConfiguration()
     {
-        $subject = $this->getAccessibleMock(
-            Importer::class,
-            ['initRepository', 'initDbTableName', 'initModelName', 'initializeAdapter', 'determinateIdentifierField', 'setMapping', 'setSettings', 'checkStorage'],
-            [],
-            '',
-            false
-        );
+        $defaultFields = ['title' => 'super title'];
+        $configuration['importNewRecords']['defaultFields'] = $defaultFields;
 
-        $conf = ['allowCreateLocalizationIfDefaultNotFound' => true];
+        $this->subject->_call('determinateDefaultNewRecordFields', $configuration);
 
-        $subject->_call('preImportPreparations', $conf);
-
-        $this->assertTrue($subject->_get('allowCreateLocalizationIfDefaultNotFound'));
+        $this->assertEquals($defaultFields, $this->subject->_get('defaultNewRecordFields'));
     }
 
     /**
      * @test
      */
-    public function allowToCreateNewRecordsCanBeSetFromConfiguration()
+    public function determinateAllowedOperationsSetUsingConfiguration()
     {
-        $subject = $this->getAccessibleMock(
-            Importer::class,
-            ['initRepository', 'initDbTableName', 'initModelName', 'initializeAdapter', 'determinateIdentifierField', 'setMapping', 'setSettings', 'checkStorage'],
-            [],
-            '',
-            false
-        );
+        $operations = 'test,test2';
+        $configuration['allowedOperations'] = $operations;
 
-        $conf = ['allowToCreateNewRecords' => false];
+        $this->subject->_call('determinateAllowedOperations', $configuration);
 
-        $subject->_call('preImportPreparations', $conf);
+        $this->assertEquals($operations, $this->subject->_get('allowedOperations'));
+    }
 
-        $this->assertFalse($subject->_get('allowToCreateNewRecords'));
+    /**
+     * @test
+     */
+    public function initializeContextNewRecordsPidSetsStorageToContext()
+    {
+        $context = $this->createPartialMock(ImportContext::class, ['setNewRecordsPid']);
+
+        $newPid = 10;
+        $storage = [10, 12];
+
+        $configuration['importNewRecords']['pid'] = $newPid;
+        $this->inject($context, 'storagePids', $storage);
+
+        $context
+            ->expects($this->once())
+            ->method('setNewRecordsPid')
+            ->with($newPid);
+
+        $this->subject->_set('context', $context);
+        $this->subject->_call('initializeContextNewRecordsPid', $configuration);
+    }
+
+    /**
+     * @test
+     */
+    public function initializeContextNewRecordsPidThrownExceptionIfNewPidIsNotPartOfStorage()
+    {
+        $context = $this->createPartialMock(ImportContext::class, ['setNewRecordsPid']);
+
+        $newPid = 10;
+        $storage = [12];
+
+        $configuration['importNewRecords']['pid'] = $newPid;
+        $this->inject($context, 'storagePids', $storage);
+
+        $context
+            ->expects($this->never())
+            ->method('setNewRecordsPid')
+            ->with($newPid);
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->subject->_set('context', $context);
+        $this->subject->_call('initializeContextNewRecordsPid', $configuration);
+    }
+
+    /**
+     * @test
+     */
+    public function setConfigurationSetsConfiguration()
+    {
+        $conf = ['test' => 'conf'];
+
+        $this->subject->_call('setConfiguration', $conf);
+
+        $this->assertEquals($conf, $this->subject->_get('configuration'));
+    }
+
+    /**
+     * @test
+     */
+    public function setSourceSetSource()
+    {
+        $source = $this->createMock(CsvSource::class);
+
+        $this->subject->_call('setSource', $source);
+
+        $this->assertSame($source, $this->subject->_get('source'));
     }
 }
