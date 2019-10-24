@@ -196,7 +196,10 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         if (!$filterObject instanceof FilterInterface) {
             $type = gettype($filterObject);
 
-            throw new \UnexpectedValueException("Expect filter to be instance of FilterInterface, '$type' given", 1538142318);
+            throw new \UnexpectedValueException(
+                "Expect filter to be instance of FilterInterface, '$type' given",
+                1538142318
+            );
         }
 
         return $filterObject;

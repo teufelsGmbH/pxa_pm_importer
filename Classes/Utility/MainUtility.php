@@ -231,4 +231,3 @@ class MainUtility
         return $columnMapping;
     }
 }
-
