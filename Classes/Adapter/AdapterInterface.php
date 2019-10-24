@@ -25,20 +25,20 @@ interface AdapterInterface
      * ['name' => 'product 1', 'sku' => 123]
      *
      * @param mixed $key Row key
-     * @param array $row Row from source
+     * @param mixed $rawData Raw data for single import item
      * @param int $languageUid Current import language
      * @return array
      */
-    public function adaptRow($key, array $row, int $languageUid): array;
+    public function adaptRow($key, $rawData, int $languageUid): array;
 
     /**
      * Check if row should be included in import
      *
      * @param mixed $key Row key
-     * @param array $row
+     * @param mixed $rawData Raw data for single import item
      * @return bool
      */
-    public function includeRow($key, array $row): bool;
+    public function includeRow($key, $rawData): bool;
 
     /**
      * Array with UIDs of import languages

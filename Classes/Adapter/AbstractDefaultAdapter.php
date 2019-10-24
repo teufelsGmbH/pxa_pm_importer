@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Adapter;
 
-use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
@@ -101,7 +100,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      * @param array $dataRow
      * @return boolean
      */
-    public function includeRow($key, array $dataRow): bool
+    public function includeRow($key, $dataRow): bool
     {
         if (is_array($this->filters) && count($this->filters) > 0) {
             foreach ($this->filters as $column => $filter) {
@@ -139,44 +138,6 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     public function countAmountOfItems(SourceInterface $source): int
     {
         return count($this->getImportLanguages()) * $source->count();
-    }
-
-    /**
-     * Get single field data from row
-     *
-     * @param $column
-     * @param array $row
-     * @return mixed
-     */
-    protected function getFieldData($column, array $row)
-    {
-        if (is_array($column)) {
-            return $this->getMultipleFieldData($column, $row);
-        }
-
-        if (array_key_exists($column, $row)) {
-            return $row[$column];
-        }
-
-        throw new InvalidAdapterFieldMapping('Data column "' . $column . '" is not set', 1536051927592);
-    }
-
-    /**
-     * Get multiple field data from row
-     *
-     * @param array $columns
-     * @param array $row
-     * @return mixed
-     */
-    protected function getMultipleFieldData(array $columns, array $row): string
-    {
-        $fieldData = '';
-
-        foreach ($columns as $column) {
-            $fieldData .= $this->getFieldData($column, $row);
-        }
-
-        return $fieldData;
     }
 
     /**
