@@ -171,7 +171,7 @@ class ImportContext implements SingletonInterface
     /**
      * @return array
      */
-    public function getStoragePids(): array
+    public function getStoragePids(): ?array
     {
         return $this->storagePids;
     }
@@ -187,7 +187,7 @@ class ImportContext implements SingletonInterface
     /**
      * @return int
      */
-    public function getNewRecordsPid(): int
+    public function getNewRecordsPid(): ?int
     {
         return $this->newRecordsPid;
     }
@@ -290,5 +290,7 @@ class ImportContext implements SingletonInterface
         $this->importerName = null;
         $this->importer = null;
         $this->customData = [];
+        $this->newRecordsPid = null;
+        $this->storagePids = null;
     }
 }
