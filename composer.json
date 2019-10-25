@@ -25,7 +25,6 @@
     "phpoffice/phpspreadsheet": "Import data from XLS files"
   },
   "replace": {
-    "pxa_pm_importer": "self.version"
   },
   "autoload": {
     "psr-4": {
@@ -49,6 +48,7 @@
   },
   "extra": {
     "typo3/cms": {
+      "extension-key": "pxa_pm_importer",
       "cms-package-dir": "{$vendor-dir}/typo3/cms",
       "web-dir": ".Build/Web"
     }
