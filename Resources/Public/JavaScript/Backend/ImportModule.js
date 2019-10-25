@@ -71,7 +71,7 @@ define(['jquery'], function ($) {
 
 				setTimeout(() => {
 					this.loadRunningImports();
-				}, 1000);
+				}, 2000);
 			});
 		},
 
