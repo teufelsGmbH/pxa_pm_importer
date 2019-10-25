@@ -729,7 +729,7 @@ class Importer implements ImporterInterface
         }
 
         $this->logger->info(sprintf(
-            'New record created [ID-"%s", LANG-"%d", TABLE-"%s", ].',
+            'New record created [ID-"%s", LANG-"%d", TABLE-"%s"].',
             $id,
             $language,
             $this->dbTable
@@ -1107,7 +1107,7 @@ class Importer implements ImporterInterface
 
         if ($model->_isDirty()) {
             $this->logger->info(sprintf(
-                'Update record [ID-"%s", UID-"%s", TABLE-"%s", ]',
+                'Update record [ID-"%s", UID-"%s", TABLE-"%s"]',
                 $id,
                 $record['uid'],
                 $this->dbTable

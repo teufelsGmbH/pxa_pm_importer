@@ -120,7 +120,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
             if ($date === null) {
                 $this->logger->error(sprintf(
-                    'Could not parse date [ID-"%s", ATTR-"%s", VALUE-"%s", ]',
+                    'Could not parse date [ID-"%s", ATTR-"%s", VALUE-"%s"]',
                     $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
                     $this->attribute->getIdentifier(),
                     $value
