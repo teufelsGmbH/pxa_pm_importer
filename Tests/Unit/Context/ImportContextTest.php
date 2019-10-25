@@ -191,7 +191,8 @@ class ImportContextTest extends UnitTestCase
 
         $this->subject->setData('test', 'some info');
         $this->subject->setCurrentImportInfo($sourceName, $source, $importerName, $importer);
-
+        $this->subject->setNewRecordsPid(1);
+        $this->subject->setStoragePids([12, 15]);
         $this->subject->resetCurrentImportInfo();
 
         $this->assertNull($this->subject->getSourceName());
@@ -201,5 +202,8 @@ class ImportContextTest extends UnitTestCase
         $this->assertNull($this->subject->getImporter());
 
         $this->assertNull($this->subject->getData('test'));
+
+        $this->assertNull($this->subject->getNewRecordsPid());
+        $this->assertNull($this->subject->getStoragePids());
     }
 }
