@@ -44,7 +44,7 @@ Then in your import configuration file you can use **your own importers, source 
 #### Log
 Every import execution is saved in separate log file.
 By default all log files are saved in `typo3temp/var/logs`, file prefix is `pm_importer_YYYY_mm_dd_hours:minutes:seconds.log`
-You can change log folder and file prefix in extension manager settings.
+You can change log path in import configuration
 
 
 #### Backend module
