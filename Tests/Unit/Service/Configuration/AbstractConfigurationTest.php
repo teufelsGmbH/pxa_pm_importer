@@ -138,4 +138,34 @@ class AbstractConfigurationTest extends UnitTestCase
 
         $this->assertEquals($logPath, $this->subject->getLogPath());
     }
+
+    /**
+     * @test
+     */
+    public function getLogSeverityReturnNullIfNotSet()
+    {
+        $configuration = [
+            'test' => '123',
+        ];
+
+        $this->subject->_set('configuration', $configuration);
+
+        $this->assertNull($this->subject->getLogSeverity());
+    }
+
+    /**
+     * @test
+     */
+    public function getLogSeverityReturnSeverityIfSet()
+    {
+        $configuration = [
+            'log' => [
+                'severity' => '2'
+            ]
+        ];
+
+        $this->subject->_set('configuration', $configuration);
+
+        $this->assertEquals(2, $this->subject->getLogSeverity());
+    }
 }

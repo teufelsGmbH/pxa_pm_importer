@@ -25,6 +25,13 @@ class Logger
     protected $logger = null;
 
     /**
+     * Name of class of object that is logging
+     *
+     * @var string
+     */
+    protected $loggingClass = '';
+
+    /**
      * Save some messages
      *
      * @var array
@@ -36,14 +43,7 @@ class Logger
      *
      * @var int
      */
-    protected $logSeverity = LogLevel::INFO;
-
-    /**
-     * Name of class of object that is logging
-     *
-     * @var string
-     */
-    protected $loggingClass = '';
+    protected static $logSeverity = LogLevel::INFO;
 
     /**
      * Initialize
@@ -139,11 +139,12 @@ class Logger
      *
      * @param string $className
      * @param string $customLogPath
+     * @param int $severity
      * @return Logger
      */
-    public static function getInstance(string $className, string $customLogPath = null): Logger
+    public static function getInstance(string $className, string $customLogPath = null, int $severity = null): Logger
     {
-        return GeneralUtility::makeInstance(__CLASS__, $className, $customLogPath);
+        return GeneralUtility::makeInstance(__CLASS__, $className, $customLogPath, $severity);
     }
 
     /**
@@ -155,12 +156,12 @@ class Logger
     protected function configureLogger(string $customPath = null, int $severity = null): void
     {
         $customPath = $customPath ?? (Environment::getVarPath() . '/log/pm_importer.log');
-        $this->logSeverity = $severity ?? LogLevel::INFO;
+        static::$logSeverity = $severity ?? LogLevel::INFO;
 
-        LogLevel::validateLevel($this->logSeverity);
+        LogLevel::validateLevel(static::$logSeverity);
 
         $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
-            $this->logSeverity => [
+            static::$logSeverity => [
                 FileWriter::class => [
                     'logFile' => $customPath
                 ]
@@ -178,7 +179,7 @@ class Logger
     {
         $level = (int)LogLevel::normalizeLevel($level);
 
-        if ($this->logger === null && $level <= $this->logSeverity) {
+        if ($this->logger === null && $level <= static::$logSeverity) {
             $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger($this->loggingClass);
         }
 

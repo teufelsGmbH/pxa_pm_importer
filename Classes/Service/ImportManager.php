@@ -222,8 +222,9 @@ class ImportManager
     protected function initLogger(): void
     {
         $customPath = $this->context->getConfigurationService()->getLogPath();
+        $severity = $this->context->getConfigurationService()->getLogSeverity();
 
         Logger::resetErrors();
-        $this->logger = Logger::getInstance(__CLASS__, $customPath);
+        $this->logger = Logger::getInstance(__CLASS__, $customPath, $severity);
     }
 }

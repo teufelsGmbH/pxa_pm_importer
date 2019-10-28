@@ -81,6 +81,21 @@ abstract class AbstractConfiguration implements ConfigurationInterface
     }
 
     /**
+     * Read log severity
+     *
+     * @return int|null
+     */
+    public function getLogSeverity(): ?int
+    {
+        $configuration = $this->getConfiguration();
+        if (!empty($configuration['log']['severity'])) {
+            return (int)$configuration['log']['severity'];
+        }
+
+        return null;
+    }
+
+    /**
      * Check if file path is valid
      *
      * @param string $filePath

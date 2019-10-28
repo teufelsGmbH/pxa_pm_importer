@@ -36,4 +36,11 @@ interface ConfigurationInterface
      * @return string|null
      */
     public function getLogPath(): ?string;
+
+    /**
+     * Returns log severity
+     *
+     * @return int|null
+     */
+    public function getLogSeverity(): ?int;
 }
