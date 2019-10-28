@@ -163,7 +163,7 @@ class ImportCommand extends Command
                 implode('<br>', $errors)
             );
 
-            $this->registerMailMessage($this->importManager->getLogFilePath(), $message);
+            $this->registerMailMessage($configuration, $message);
         }
 
         if (isset($exception)) {
@@ -176,16 +176,16 @@ class ImportCommand extends Command
     /**
      * Save mail message
      *
-     * @param string $logPath
+     * @param string $configuration
      * @param string $message
      */
-    protected function registerMailMessage(string $logPath, string $message): void
+    protected function registerMailMessage(string $configuration, string $message): void
     {
-        if (!array_key_exists($logPath, $this->emails)) {
-            $this->emails[$logPath] = [];
+        if (!array_key_exists($configuration, $this->emails)) {
+            $this->emails[$configuration] = [];
         }
 
-        $this->emails[$logPath][] = $message;
+        $this->emails[$configuration][] = $message;
     }
 
     /**

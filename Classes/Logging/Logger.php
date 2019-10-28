@@ -5,6 +5,8 @@ namespace Pixelant\PxaPmImporter\Logging;
 
 use Pixelant\PxaPmImporter\Logging\Writer\FileWriter;
 use Psr\Log\LoggerTrait;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Log\Logger as CoreLogger;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -18,7 +20,7 @@ class Logger
     use LoggerTrait;
 
     /**
-     * @var \TYPO3\CMS\Core\Log\Logger
+     * @var CoreLogger
      */
     protected $logger = null;
 
@@ -30,12 +32,27 @@ class Logger
     protected static $errorMessages = [];
 
     /**
+     * Lower log level that need to be logged
+     *
+     * @var int
+     */
+    protected $logSeverity = LogLevel::INFO;
+
+    /**
+     * Name of class of object that is logging
+     *
+     * @var string
+     */
+    protected $loggingClass = '';
+
+    /**
      * Initialize
      *
      * @param string $className
      * @param string $customLogPath
+     * @param int|null $severity
      */
-    public function __construct(string $className, string $customLogPath = null)
+    public function __construct(string $className, string $customLogPath = null, int $severity = null)
     {
         $classParts = GeneralUtility::trimExplode('\\', $className, true);
 
@@ -44,20 +61,15 @@ class Logger
             $classParts[0] = 'Pixelant';
             $classParts[1] = 'PxaPmImporter';
         }
-        $className = implode('\\', $classParts);
+        $this->loggingClass = implode('\\', $classParts);
 
-        // If given custom path, override default
-        if (!empty($customLogPath)) {
-            $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
-                LogLevel::INFO => [
-                    FileWriter::class => [
-                        'logFile' => $customLogPath
-                    ]
-                ]
-            ];
+        // If required to configure logger
+        if (!isset($GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'])
+            || !empty($customLogPath)
+            || !empty($severity)
+        ) {
+            $this->configureLogger($customLogPath, $severity);
         }
-
-        $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger($className);
     }
 
     /**
@@ -69,17 +81,19 @@ class Logger
      */
     public function log($level, $message, array $context = []): void
     {
-        $errorLevel = [LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR];
+        if ($logger = $this->getLogger($level)) {
+            $errorLevel = [LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR];
 
-        // Save errors, but max 10 and only unique
-        if (in_array(LogLevel::normalizeLevel($level), $errorLevel) && count(static::$errorMessages) <= 10) {
-            $messageHash = md5($message);
-            if (!array_key_exists($messageHash, static::$errorMessages)) {
-                static::$errorMessages[$messageHash] = $message;
+            // Save errors, but max 10 and only unique
+            if (in_array(LogLevel::normalizeLevel($level), $errorLevel) && count(static::$errorMessages) <= 10) {
+                $messageHash = md5($message);
+                if (!array_key_exists($messageHash, static::$errorMessages)) {
+                    static::$errorMessages[$messageHash] = $message;
+                }
             }
-        }
 
-        $this->logger->log($level, $message, $context);
+            $logger->log($level, $message, $context);
+        }
     }
 
     /**
@@ -89,10 +103,12 @@ class Logger
      */
     public function getLogFilePath(): string
     {
-        foreach ($this->logger->getWriters() as $writers) {
-            foreach ($writers as $writer) {
-                if ($writer instanceof FileWriter) {
-                    return $writer->getLogFile();
+        if ($this->logger !== null) {
+            foreach ($this->logger->getWriters() as $writers) {
+                foreach ($writers as $writer) {
+                    if ($writer instanceof FileWriter) {
+                        return $writer->getLogFile();
+                    }
                 }
             }
         }
@@ -128,5 +144,44 @@ class Logger
     public static function getInstance(string $className, string $customLogPath = null): Logger
     {
         return GeneralUtility::makeInstance(__CLASS__, $className, $customLogPath);
+    }
+
+    /**
+     * Configure logger
+     *
+     * @param string|null $customPath
+     * @param int|null $severity
+     */
+    protected function configureLogger(string $customPath = null, int $severity = null): void
+    {
+        $customPath = $customPath ?? (Environment::getVarPath() . '/log/pm_importer.log');
+        $this->logSeverity = $severity ?? LogLevel::INFO;
+
+        LogLevel::validateLevel($this->logSeverity);
+
+        $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
+            $this->logSeverity => [
+                FileWriter::class => [
+                    'logFile' => $customPath
+                ]
+            ]
+        ];
+    }
+
+    /**
+     * Get logger
+     *
+     * @param $level
+     * @return CoreLogger|null
+     */
+    protected function getLogger($level): ?CoreLogger
+    {
+        $level = (int)LogLevel::normalizeLevel($level);
+
+        if ($this->logger === null && $level <= $this->logSeverity) {
+            $this->logger = GeneralUtility::makeInstance(LogManager::class)->getLogger($this->loggingClass);
+        }
+
+        return $this->logger;
     }
 }
