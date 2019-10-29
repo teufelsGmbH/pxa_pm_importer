@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Processors\Relation\Files;
 
 use Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
+use Pixelant\PxaPmImporter\Processors\Traits\ImportListValue;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
@@ -17,7 +18,7 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  */
 class LocalFileProcessor extends AbstractRelationFieldProcessor
 {
-    use FilesResources;
+    use FilesResources, ImportListValue;
 
     /**
      * Get files from value list and convert to extbase domain file reference
@@ -28,7 +29,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
     protected function initEntities($value): array
     {
         $entities = [];
-        $value = $this->convertFilesListValueToArray($value);
+        $value = $this->convertListToArray($value);
 
         try {
             $folder = $this->getFolder();

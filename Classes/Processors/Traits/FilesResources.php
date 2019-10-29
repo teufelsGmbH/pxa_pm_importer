@@ -133,26 +133,4 @@ trait FilesResources
 
         return $files;
     }
-
-    /**
-     * Convert to array if list is string.
-     *
-     * @param array|string $list Only array or string comma separated list is allowed as files list
-     * @return array
-     */
-    protected function convertFilesListValueToArray($list): array
-    {
-        if (!is_array($list) && !is_string($list)) {
-            $type = gettype($list);
-            throw new \InvalidArgumentException(
-                "Expect to get array or string as files list. '{$type}' given.",
-                1560319588819
-            );
-        }
-        if (is_string($list)) {
-            $list = GeneralUtility::trimExplode(',', $list, true);
-        }
-
-        return $list;
-    }
 }

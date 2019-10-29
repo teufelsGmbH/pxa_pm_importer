@@ -5,6 +5,7 @@ namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
+use Pixelant\PxaPmImporter\Processors\Traits\ImportListValue;
 use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
@@ -29,6 +30,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 {
     use UpdateRelationProperty;
     use FilesResources;
+    use ImportListValue;
 
     /**
      * @var Attribute
@@ -234,7 +236,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      */
     protected function createAttributeValue(): AttributeValue
     {
-        $this->objectManager->get(AttributeValue::class);
+        return $this->objectManager->get(AttributeValue::class);
     }
 
     /**
@@ -280,7 +282,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      */
     protected function getOptions(string $value): array
     {
-        $values = GeneralUtility::trimExplode(',', $value, true);
+        $values = $this->convertListToArray($value);
         $hashes = array_map(
             function ($value) {
                 return MainUtility::getImportIdHash($value);
@@ -336,7 +338,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      */
     protected function updateAttributeFilesReference($value): array
     {
-        $value = $this->convertFilesListValueToArray($value);
+        $value = $this->convertListToArray($value);
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {

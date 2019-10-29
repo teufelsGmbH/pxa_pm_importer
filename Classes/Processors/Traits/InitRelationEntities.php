@@ -16,6 +16,8 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
  */
 trait InitRelationEntities
 {
+    use ImportListValue;
+
     /**
      * Init entities
      *
@@ -30,7 +32,7 @@ trait InitRelationEntities
         string $domainModelClassName
     ): array {
         $entities = [];
-        $value = GeneralUtility::trimExplode(',', $value, true);
+        $value = $this->convertListToArray($value);
 
         foreach ($value as $identifier) {
             // If identifier is UID from DB
