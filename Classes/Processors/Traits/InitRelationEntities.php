@@ -21,18 +21,17 @@ trait InitRelationEntities
     /**
      * Init entities
      *
-     * @param string $value
-     * @param string $table
+     * @param string|array $value
      * @param string $domainModelClassName
      * @return AbstractEntity[]
      */
     protected function initEntitiesForTable(
-        string $value,
-        string $table,
+        $value,
         string $domainModelClassName
     ): array {
         $entities = [];
         $value = $this->convertListToArray($value);
+        $table = MainUtility::getTableNameByModelName($domainModelClassName);
 
         foreach ($value as $identifier) {
             // If identifier is UID from DB

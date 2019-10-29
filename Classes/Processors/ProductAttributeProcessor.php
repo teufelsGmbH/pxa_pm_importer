@@ -154,7 +154,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         switch ($this->attribute->getType()) {
             case Attribute::ATTRIBUTE_TYPE_DROPDOWN:
             case Attribute::ATTRIBUTE_TYPE_MULTISELECT:
-                $options = $this->getOptions((string)$value);
+                $options = $this->getOptions($value);
                 $attributeValues[$this->attribute->getUid()] = implode(',', $options);
                 break;
             case Attribute::ATTRIBUTE_TYPE_CHECKBOX:
@@ -277,10 +277,10 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      * Fetch options uids
      * Use this query method, since we can fetch it also with hash values
      *
-     * @param string $value
+     * @param string|array $value
      * @return array
      */
-    protected function getOptions(string $value): array
+    protected function getOptions($value): array
     {
         $values = $this->convertListToArray($value);
         $hashes = array_map(

@@ -30,7 +30,6 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
         try {
             $entities = $this->initEntitiesForTable(
                 $value,
-                'tx_pxaproductmanager_domain_model_option',
                 Option::class
             );
         } catch (FailedInitEntityException $exception) {

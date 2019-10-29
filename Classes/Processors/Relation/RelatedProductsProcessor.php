@@ -27,7 +27,6 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor
         try {
             $entities = $this->initEntitiesForTable(
                 $value,
-                'tx_pxaproductmanager_domain_model_product',
                 Product::class
             );
         } catch (FailedInitEntityException $exception) {

@@ -23,7 +23,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
     /**
      * Get files from value list and convert to extbase domain file reference
      *
-     * @param mixed $value
+     * @param string|array $value
      * @return array
      */
     protected function initEntities($value): array

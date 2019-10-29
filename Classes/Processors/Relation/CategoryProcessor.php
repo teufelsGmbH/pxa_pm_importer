@@ -27,7 +27,6 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
         try {
             $entities = $this->initEntitiesForTable(
                 $value,
-                'sys_category',
                 Category::class
             );
         } catch (FailedInitEntityException $exception) {
