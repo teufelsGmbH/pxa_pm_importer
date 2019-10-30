@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Processors\Traits;
 use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Log\Logger;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
@@ -55,12 +56,14 @@ trait InitRelationEntities
                 $entities[] = $model;
             } elseif (!$this->disableExceptionOnFailInitEntity()) {
                 $failedInitEntityException = new FailedInitEntityException(
-                    'Related item with identifier "' . $identifier . '" not found.',
+                    "Related item not found [ID-'$identifier', TABLE-'$table']",
                     1547189793000
                 );
                 $failedInitEntityException->setIdentifier($identifier);
 
                 throw $failedInitEntityException;
+            } elseif (property_exists($this, 'logger')) {
+                $this->logger->error("Related item not found [ID-'$identifier', TABLE-'$table']");
             }
         }
 
