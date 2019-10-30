@@ -31,7 +31,7 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
             );
         } catch (FailedInitEntityException $exception) {
             throw new PostponeProcessorException(
-                'Category with id "' . $exception->getIdentifier() . '" not found.',
+                'Related category not found [ID- "' . $exception->getIdentifier() . '"]',
                 1547190959260
             );
         }

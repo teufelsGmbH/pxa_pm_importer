@@ -53,9 +53,9 @@ trait InitRelationEntities
 
             if (isset($model) && is_object($model)) {
                 $entities[] = $model;
-            } else {
+            } elseif (!$this->disableExceptionOnFailInitEntity()) {
                 $failedInitEntityException = new FailedInitEntityException(
-                    'Could not find entity record for identifier "' . $identifier . '".',
+                    'Related item with identifier "' . $identifier . '" not found.',
                     1547189793000
                 );
                 $failedInitEntityException->setIdentifier($identifier);
@@ -72,9 +72,19 @@ trait InitRelationEntities
      *
      * @return bool
      */
-    private function treatIdentifierAsUid(): bool
+    protected function treatIdentifierAsUid(): bool
     {
         return (bool)($this->configuration['treatIdentifierAsUid'] ?? false);
+    }
+
+    /**
+     * If it should fail when one of the related items wasn't found
+     *
+     * @return bool
+     */
+    protected function disableExceptionOnFailInitEntity(): bool
+    {
+        return (bool)($this->configuration['disableExceptionOnFailInitEntity'] ?? false);
     }
 
     /**

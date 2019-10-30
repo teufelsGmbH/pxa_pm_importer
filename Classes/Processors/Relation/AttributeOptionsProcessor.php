@@ -34,7 +34,7 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
             );
         } catch (FailedInitEntityException $exception) {
             $this->failedInit = true;
-            $this->logger->error('Failed to create option with value "' . $exception->getIdentifier() . '"');
+            $this->logger->error('Failed creating attribute option [ID- "' . $exception->getIdentifier() . '"]');
         }
 
         return $entities ?? [];

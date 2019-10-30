@@ -31,7 +31,7 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor
             );
         } catch (FailedInitEntityException $exception) {
             throw new PostponeProcessorException(
-                'Product with id "' . $exception->getIdentifier() . '" not found.',
+                'Related product not found [ID- "' . $exception->getIdentifier() . '"]',
                 1536148407513
             );
         }
