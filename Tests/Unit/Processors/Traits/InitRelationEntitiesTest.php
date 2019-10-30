@@ -41,7 +41,7 @@ class InitRelationEntitiesTest extends UnitTestCase
 
         $this->expectException(FailedInitEntityException::class);
 
-        $this->initEntitiesForTable('entity', 'sys_dummy', 'DomainDummyClass');
+        $this->initEntitiesForTable('entity', 'DomainDummyClass');
     }
 
     /**
@@ -56,7 +56,7 @@ class InitRelationEntitiesTest extends UnitTestCase
             false,
             false,
             true,
-            ['createNewEntity', 'getRecordByImportIdentifier']
+            ['createNewEntity', 'getRecordByImportIdentifier', 'getTableName']
         );
 
         $mock
@@ -69,7 +69,7 @@ class InitRelationEntitiesTest extends UnitTestCase
             ->method('createNewEntity');
 
         $this->expectException(FailedInitEntityException::class);
-        $this->callInaccessibleMethod($mock, 'initEntitiesForTable', 'entity', 'sys_dummy', 'DomainDummyClass');
+        $this->callInaccessibleMethod($mock, 'initEntitiesForTable', 'entity', 'DomainDummyClass');
     }
 
     /**
@@ -80,5 +80,15 @@ class InitRelationEntitiesTest extends UnitTestCase
     protected function getRecordByImportIdentifier()
     {
         return null;
+    }
+
+    /**
+     * Fake method for trait
+     *
+     * @return null
+     */
+    protected function getTableName(string $domainName)
+    {
+        return 'null';
     }
 }

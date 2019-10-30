@@ -31,7 +31,7 @@ trait InitRelationEntities
     ): array {
         $entities = [];
         $value = $this->convertListToArray($value);
-        $table = MainUtility::getTableNameByModelName($domainModelClassName);
+        $table = $this->getTableName($domainModelClassName);
 
         foreach ($value as $identifier) {
             // If identifier is UID from DB
@@ -75,5 +75,14 @@ trait InitRelationEntities
     private function treatIdentifierAsUid(): bool
     {
         return (bool)($this->configuration['treatIdentifierAsUid'] ?? false);
+    }
+
+    /**
+     * @param string $domainModelClassName
+     * @return string
+     */
+    protected function getTableName(string $domainModelClassName): string
+    {
+        return MainUtility::getTableNameByModelName($domainModelClassName);
     }
 }
