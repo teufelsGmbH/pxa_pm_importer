@@ -297,12 +297,98 @@ Processors are responsible for setting value to property.
 
 Extension has next processors out of box:
 
+###### Simple properties processors:
+
 - `Pixelant\PxaPmImporter\Processors\BooleanProcessor`- boolean values. No parameters.
 - `Pixelant\PxaPmImporter\Processors\FloatProcessor` - float values. No parameters.
 - `Pixelant\PxaPmImporter\Processors\IntegerProcessor` - integer values. No parameter
 - `Pixelant\PxaPmImporter\Processors\StringProcessor` - string values. No parameters.
 - `Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor` - set value for product attribute. 
 - `Pixelant\PxaPmImporter\Processors\SlugProcessor` - update slug field for urls.  
+- `Pixelant\PxaPmImporter\Processors\DateTimeProcessor` - DateTime values.
+
+######Configuration example:
+
+- Simple
+```yaml
+# Field to Extbase property model mapping rules. Support next settings:
+title:
+  # Extbase property name. Set this in case property name differs from field name
+  property: 'title'
+  # Custom field processor. If set processor take care of setting model property value, otherwise value will be set as simple string without any processing.
+  processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
+  # Validators:
+  validation:
+    - required
+```
+- DateTimeProcessor
+
+```yaml
+date:
+  processor: 'Pixelant\PxaPmImporter\Processors\DateTimeProcessor'
+  # Input format, the format to use when creating a DateTime object from value (DateTime::createFromFormat)
+  inputFormat: 'd/m/Y h:i:s'
+  # Output format, the format to store data in entity
+  outputFormat: 'U'
+```
+
+- SlugProcessor
+```yaml
+slug:
+  processor: 'Pixelant\PxaPmImporter\Processors\SlugProcessor'
+  # If DB field name doesn't match property name you need to provide DB field name in order to be able to update record
+  fieldName: 'pxapm_slug'
+  # Set to true in case your import source already has slug value for import and generation is not needed.
+  # Otherwise(by default false) script will generate value using TCA configuration
+  useImportValue: true
+```
+
+- ProductAttributeProcessor:
+```yaml
+color:
+  processor: 'Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor'
+  # UID of attribute or import ID
+  attributeUid: 11
+  # You can set this to true if "attributeUid" above has import identifier value.
+  # This means that attribute was previously imported and you want to find it by this import identifier
+  treatAttributeUidAsImportUid: false
+  # Optional, date format for \DateTime::createFromFormat. Parse date for date attribute type.
+  dateFormat: 'Y-m-d'
+```
+
+###### Relations(1:1, 1:n, n:m) processors:
+
+- `Pixelant\PxaPmImporter\Processors\Relation\AttributeOptionsProcessor` - transform field value (for ex.'Red,Blue,Green') into attribute options and attach to attribute. **Use only for attributes importer**.
+- `Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor` - transform field value like 'Food,Car' into categories and attach to object.
+- `Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor` - transform product identifiers into products and attach to object.
+
+######Configuration example:
+
+```yaml
+relatedProducts:
+  processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
+  # If values are comma-separated UIDs from DB instead of import IDs
+  treatIdentifierAsUid: 1
+subProducts:
+  processor: 'Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor'
+  # If one of the related products was not found and you want to ignore this error
+  disableExceptionOnFailInitEntity: true
+```
+
+###### Files processor
+
+- `Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor` - attach file by name.
+
+######Configuration example:
+
+```yaml
+images:
+  processor: 'Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor'
+  # Relative folder path where file can be found. Skip "fileadmin" for default storage.
+  folder: 'import_files'
+  # Optional storage UID, 1 - default.
+  storageUid: 1
+```
 
 ##### Processor validation
 Every processor may have many validators.
@@ -315,54 +401,6 @@ validation:
  - required
  # Or provide custom validator
  - Pixelant\MyExtension\Domain\Validation\Validator\CustomValidator
-```
-
-Product attribute processor parameters:
-```yaml
-# UID of attribute
-attributeUid: 11
-# You can set this to true if "attributeUid" above has import identifier value.
-# This means that attibute was previously imported and you want to find it by this import identifier
-treatAttributeUidAsImportUid: false
-# Optional, date format for \DateTime::createFromFormat. Parse date for date attribute type.
-dateFormat: 'Y-m-d'
-```
-- `Pixelant\PxaPmImporter\Processors\Relation\AttributeOptionsProcessor` - transform field value (for ex.'Red,Blue,Green') into attribute options and attach to attribute. Use only for attributes importer. Parameters:
-```yaml
-# If values are comma-separated uids of options instead of titles.
-treatIdentifierAsUid: 1
-```
-- `Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor` - transform field value like 'Food,Car' into categories and attach to object. Use for products importer. Parameters:
-```yaml
-# If values are comma-separated uids of categories.
-treatIdentifierAsUid: 1
-```
-- `Pixelant\PxaPmImporter\Processors\Relation\RelatedProductsProcessor` - transform product identifiers into products and attach to object. Use for products importer. Parameters:
-```yaml
-# If values are comma-separated uids of products.
-treatIdentifierAsUid: 1
-```
-- `Pixelant\PxaPmImporter\Processors\Relation\Files\LocalFileProcessor` - attach file by name. Parameters:
-```yaml
-# Optional storage UID, 1 - default.
-storageUid: 1
-# Relative folder path where file can be found. Skip "fileadmin" for default storage.
-folder: 'uploads'
-```
-- `Pixelant\PxaPmImporter\Processors\DateTimeProcessor` - DateTime values. Parameters:
-```yaml
-# Input format, the format to use when creating a DateTime object from value (DateTime::createFromFormat)
-inputFormat: 'd/m/Y h:i:s'
-# Output format, the format to store data in entity
-outputFormat: 'U'
-```
-- `Pixelant\PxaPmImporter\Processors\SlugProcessor` - Update slug field value. Parameters:
-```yaml
-# If DB field name doesn't match property name you need to provide DB field name in order to be able to update record
-fieldName: 'pxapm_slug'
-# Set to true in case your import source already has slug value for import and generation is not needed.
-# Otherwise(by default false) script will generate value using TCA configuration
-useImportValue: true
 ```
 
 **Important** that your custom classes implements required interface.
