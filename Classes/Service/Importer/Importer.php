@@ -728,13 +728,6 @@ class Importer implements ImporterInterface
             // @codingStandardsIgnoreEnd
         }
 
-        $this->logger->info(sprintf(
-            'New record created [ID-"%s", LANG-"%d", TABLE-"%s"].',
-            $id,
-            $language,
-            $this->dbTable
-        ));
-
         return $record;
     }
 
@@ -988,7 +981,17 @@ class Importer implements ImporterInterface
 
                 if ($record === null) {
                     $record = $this->tryCreateNewRecord($id, $idHash, $language);
-                    $isNew = $record !== null;
+                    if ($record !== null) {
+                        $this->logger->info(sprintf(
+                            'New record created [ID-"%s", UID-"%d", LANG-"%d", TABLE-"%s"].',
+                            $id,
+                            $record['uid'],
+                            $language,
+                            $this->dbTable
+                        ));
+
+                        $isNew = true;
+                    }
 
                     // Not allowed to create, go to next
                     if (!$isNew) {
