@@ -105,6 +105,9 @@ class ImportManager
 
             // Run importers for each source
             foreach ($importers as $importName => $importConfiguration) {
+                if ($importConfiguration['disable'] ?? false) {
+                    continue;
+                }
                 // Initialize importer
                 $importer = $this->importerDirector->build($importConfiguration);
 
