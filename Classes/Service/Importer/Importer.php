@@ -292,12 +292,14 @@ class Importer implements ImporterInterface
      */
     protected function initializeContextStorage(array $configuration): void
     {
-        $pids = GeneralUtility::intExplode(',', $configuration['storage']['pid'] ?? '');
-        $recursive = intval($configuration['storage']['recursive'] ?? 0);
-
-        if (empty($pids)) {
+        if (empty($configuration['storage']['pid'])) {
             throw new \UnexpectedValueException('Importer storage could not be empty', 1571379428146);
         }
+
+        $pids = is_array($configuration['storage']['pid'])
+            ? array_map('intval', $configuration['storage']['pid'])
+            : GeneralUtility::intExplode(',', $configuration['storage']['pid']);
+        $recursive = intval($configuration['storage']['recursive'] ?? 0);
 
         if ($recursive > 0) {
             $queryGenerator = GeneralUtility::makeInstance(QueryGenerator::class);
