@@ -1012,7 +1012,7 @@ class Importer implements ImporterInterface
                 } catch (\Exception $exception) {
                     $this->logger->error(sprintf(
                         'Failed import model [ID-"%s", UID-"%s", REASON-"%s"].',
-                        $record[self::DB_IMPORT_ID_FIELD],
+                        $id,
                         $record['uid'],
                         $exception->getMessage()
                     ));
