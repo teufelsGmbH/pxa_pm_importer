@@ -8,7 +8,7 @@ use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
-use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
+use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\Importer;
 use Pixelant\PxaPmImporter\Service\Source\CsvSource;
@@ -190,17 +190,16 @@ class ImporterTest extends UnitTestCase
     /**
      * @test
      */
-    public function getFieldMappingForMissingFieldThrowsException()
+    public function getFieldMappingValueForMissingFieldThrowsException()
     {
-        $mapping = [
+        $row = [
             'name' => [
 
             ]
         ];
-        $this->subject->_set('mapping', $mapping);
 
-        $this->expectException(MissingPropertyMappingException::class);
-        $this->subject->_call('getFieldMapping', 'none');
+        $this->expectException(MissingImportField::class);
+        $this->subject->_call('getFieldMappingValue', 'none', $row);
     }
 
     /**
@@ -208,15 +207,12 @@ class ImporterTest extends UnitTestCase
      */
     public function getFieldMappingReturnMappingField()
     {
-        $mapping = [
-            'name' => [
-                'property' => 'name'
-            ]
+        $row = [
+            'name' => 'John'
         ];
-        $expect = ['property' => 'name'];
-        $this->subject->_set('mapping', $mapping);
+        $expect = 'John';
 
-        $this->assertEquals($expect, $this->subject->_call('getFieldMapping', 'name'));
+        $this->assertEquals($expect, $this->subject->_call('getFieldMappingValue', 'name', $row));
     }
 
     /**
