@@ -9,7 +9,7 @@ use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Domain\Repository\ProgressRepository;
 use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
 use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
-use Pixelant\PxaPmImporter\Exception\MissingPropertyMappingException;
+use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
@@ -597,22 +597,11 @@ class Importer implements ImporterInterface
             );
         }
 
-        foreach ($importRow as $field => $value) {
-            try {
-                $mapping = $this->getFieldMapping($field);
-            } catch (MissingPropertyMappingException $exception) {
-                // If missing mapping for identifier just skip it.
-                // If mapping for identifier exist it'll process.
-                if ($field === $this->identifier) {
-                    continue;
-                } else {
-                    // If no mapping found and it's not identifier throw exception
-                    throw $exception;
-                }
-            }
+        foreach ($this->mapping as $field => $mapping) {
+            // Get value from import row
+            $value = $this->getFieldMappingValue($field, $importRow);
 
             $property = $mapping['property'];
-
             // If processor is set, it should set value for model property
             if (!empty($mapping['processor'])) {
                 $processor = $this->createProcessor($mapping);
@@ -668,20 +657,20 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Get mapping for single field
+     * Get value from import row
      *
      * @param string $field
+     * @param array $importRow
      * @return array
+     * @throws MissingImportField
      */
-    protected function getFieldMapping(string $field): array
+    protected function getFieldMappingValue(string $field, array $importRow)
     {
-        if (!isset($this->mapping[$field])) {
-            // @codingStandardsIgnoreStart
-            throw new MissingPropertyMappingException('Mapping configuration for field "' . $field . '" doesn\'t exist.', 1536062044810);
-            // @codingStandardsIgnoreEnd
+        if (!array_key_exists($field, $importRow)) {
+            throw new MissingImportField("Missing import data for mapping field '$field'", 1573197291335);
         }
 
-        return $this->mapping[$field];
+        return $importRow[$field];
     }
 
     /**

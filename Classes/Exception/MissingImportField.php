@@ -7,7 +7,7 @@ namespace Pixelant\PxaPmImporter\Exception;
  * Class MissingPropertyMappingException
  * @package Pixelant\PxaPmImporter\Exception
  */
-class MissingPropertyMappingException extends \Exception
+class MissingImportField extends \Exception
 {
 
 }
