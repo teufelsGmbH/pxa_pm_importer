@@ -1003,12 +1003,16 @@ class Importer implements ImporterInterface
 
                 $model = $this->mapRow($record);
 
+                // After it's ready for populating data it can be updated/deleted
+                $action = $this->detectImportEntityAction($model, $record, $row, $isNew);
+
                 try {
-                    $this->populateModelWithImportData($model, $record, $row);
+                    // By default 'updateEntityAction'
+                    $this->$action($model, $record, $row, $isNew);
                 } catch (\Exception $exception) {
                     $this->logger->error(sprintf(
                         'Failed import model [ID-"%s", UID-"%s", REASON-"%s"].',
-                        $id,
+                        $record[self::DB_IMPORT_ID_FIELD],
                         $record['uid'],
                         $exception->getMessage()
                     ));
@@ -1027,8 +1031,6 @@ class Importer implements ImporterInterface
                         throw $exception;
                     }
                 }
-
-                $this->persistSingleEntity($model, $id, $record, $isNew);
             }
 
             $this->persistAndClear();
@@ -1099,21 +1101,35 @@ class Importer implements ImporterInterface
     }
 
     /**
+     * Run update process for single entity
+     *
+     * @param AbstractEntity $model
+     * @param array $record
+     * @param array $importRow
+     * @param bool $isNew
+     * @throws \Exception
+     */
+    protected function updateEntityAction(AbstractEntity $model, array $record, array $importRow, bool $isNew): void
+    {
+        $this->populateModelWithImportData($model, $record, $importRow);
+        $this->persistSingleEntity($model, $record, $isNew);
+    }
+
+    /**
      * Save changes for single entity
      *
      * @param AbstractEntity $model
-     * @param string $id
      * @param array $record
      * @param bool $isNew
      */
-    protected function persistSingleEntity(AbstractEntity $model, string $id, array $record, bool $isNew): void
+    protected function persistSingleEntity(AbstractEntity $model, array $record, bool $isNew): void
     {
         $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
 
         if ($model->_isDirty()) {
             $this->logger->info(sprintf(
                 'Update record [ID-"%s", UID-"%s", TABLE-"%s"]',
-                $id,
+                $record[self::DB_IMPORT_ID_FIELD],
                 $record['uid'],
                 $this->dbTable
             ));
@@ -1152,5 +1168,24 @@ class Importer implements ImporterInterface
 
             return true;
         }
+    }
+
+    /**
+     * This method allow to change what action should apply to import entity.
+     * By default it's always update. This can be modify in child improters
+     *
+     * @param AbstractEntity $entity
+     * @param array $dbRow
+     * @param array $importRow
+     * @param bool $isNew
+     * @return string
+     */
+    protected function detectImportEntityAction(
+        AbstractEntity $entity,
+        array $dbRow,
+        array $importRow,
+        bool $isNew
+    ): string {
+        return 'updateEntityAction';
     }
 }
