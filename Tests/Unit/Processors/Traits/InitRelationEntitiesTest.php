@@ -56,7 +56,7 @@ class InitRelationEntitiesTest extends UnitTestCase
             false,
             false,
             true,
-            ['createNewEntity', 'getRecordByImportIdentifier', 'getTableName']
+            ['getRecordByImportIdentifier', 'getTableName']
         );
 
         $mock
@@ -64,12 +64,12 @@ class InitRelationEntitiesTest extends UnitTestCase
             ->method('getRecordByImportIdentifier')
             ->willReturn(null);
 
-        $mock
-            ->expects($this->once())
-            ->method('createNewEntity');
+        $closureNewEntity = function ($identifier) {
+            $this->assertEquals($identifier, 'entity');
+        };
 
         $this->expectException(FailedInitEntityException::class);
-        $this->callInaccessibleMethod($mock, 'initEntitiesForTable', 'entity', 'DomainDummyClass');
+        $this->callInaccessibleMethod($mock, 'initEntitiesForTable', 'entity', 'DomainDummyClass', $closureNewEntity);
     }
 
     /**
