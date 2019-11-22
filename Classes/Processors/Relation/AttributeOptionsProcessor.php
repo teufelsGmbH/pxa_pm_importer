@@ -31,7 +31,7 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
             $entities = $this->initEntitiesForTable(
                 $value,
                 Option::class,
-                function ($identifier) {
+                function (string $identifier) {
                     $this->createNewEntity($identifier);
                 }
             );
