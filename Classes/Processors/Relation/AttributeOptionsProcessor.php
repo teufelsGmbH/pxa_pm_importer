@@ -30,7 +30,10 @@ class AttributeOptionsProcessor extends AbstractRelationFieldProcessor
         try {
             $entities = $this->initEntitiesForTable(
                 $value,
-                Option::class
+                Option::class,
+                function ($identifier) {
+                    $this->createNewEntity($identifier);
+                }
             );
         } catch (FailedInitEntityException $exception) {
             $this->failedInit = true;

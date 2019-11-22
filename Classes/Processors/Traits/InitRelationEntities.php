@@ -24,11 +24,14 @@ trait InitRelationEntities
      *
      * @param string|array $value
      * @param string $domainModelClassName
+     * @param \Closure $createEntity
      * @return AbstractEntity[]
+     * @throws FailedInitEntityException
      */
     protected function initEntitiesForTable(
         $value,
-        string $domainModelClassName
+        string $domainModelClassName,
+        \Closure $createEntity = null
     ): array {
         $entities = [];
         $value = $this->convertListToArray($value);
@@ -42,8 +45,8 @@ trait InitRelationEntities
                 // If not uid find by import hash
                 $record = $this->getRecordByImportIdentifier($identifier, $table);
                 // If nothing found try to create?
-                if ($record === null && method_exists($this, 'createNewEntity')) {
-                    $this->createNewEntity($identifier);
+                if ($record === null && $createEntity !== null) {
+                    $createEntity($identifier);
                     $record = $this->getRecordByImportIdentifier($identifier, $table);
                 }
             }
