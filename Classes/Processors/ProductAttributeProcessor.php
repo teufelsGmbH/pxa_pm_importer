@@ -315,9 +315,9 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                     'sys_language_uid',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
                 ),
-                $queryBuilder->expr()->eq(
+                $queryBuilder->expr()->in(
                     'pid',
-                    $queryBuilder->createNamedParameter($this->context->getStoragePids(), Connection::PARAM_INT)
+                    $queryBuilder->createNamedParameter($this->context->getStoragePids(), Connection::PARAM_INT_ARRAY)
                 ),
                 $queryBuilder->expr()->eq(
                     'attribute',
