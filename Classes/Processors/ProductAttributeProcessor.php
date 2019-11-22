@@ -222,7 +222,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         }
 
         $attributeValue = $this->createAttributeValue();
-        $attributeValue->setPid($this->context->getNewRecordsPid());
+        $attributeValue->setPid($this->entity->getPid());
         $attributeValue->setValue($value);
         $attributeValue->setAttribute($this->attribute);
 
