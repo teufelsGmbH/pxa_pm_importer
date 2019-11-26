@@ -58,7 +58,7 @@ class ImportCommand extends Command
     {
         $this
             ->setDescription('Import "pxa_product_manager" extension related records.')
-            ->setHelp('This command import recods using preconfigured YAML configuration...')
+            ->setHelp('This command import records using preconfigured YAML configuration...')
             ->addArgument(
                 'configurations',
                 InputArgument::REQUIRED,
@@ -118,7 +118,7 @@ class ImportCommand extends Command
      * @param string $sender Sender email
      * @param string $subject Email subject
      * @param string $message Message
-     * @param string[] $receivers Email receivers
+     * @param string[] ...$receivers Email receivers
      */
     protected function sendEmail(string $sender, string $subject, string $message, string ...$receivers): void
     {
