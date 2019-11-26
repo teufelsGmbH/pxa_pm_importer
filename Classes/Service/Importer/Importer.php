@@ -844,6 +844,26 @@ class Importer implements ImporterInterface
     }
 
     /**
+     * Disable import record
+     *
+     * @param int $uid
+     */
+    protected function disableImportRecord(int $uid): void
+    {
+        $hiddenField = $GLOBALS['TCA'][$this->dbTable]['ctrl']['enablecolumns']['disabled'];
+        if ($hiddenField) {
+            GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getConnectionForTable($this->dbTable)
+                ->update(
+                    $this->dbTable,
+                    [$hiddenField => 1],
+                    ['uid' => $uid],
+                    [\PDO::PARAM_INT]
+                );
+        }
+    }
+
+    /**
      * Postpone processor for later execution
      *
      * @param FieldProcessorInterface $processor
@@ -1014,6 +1034,10 @@ class Importer implements ImporterInterface
 
                     // On failed mapping just skip it
                     if ($exception instanceof FailedImportModelData) {
+                        if (!$isNew) {
+                            $this->disableImportRecord($record['uid']);
+                        }
+
                         continue;
                     } else {
                         // On any other exception throw it
