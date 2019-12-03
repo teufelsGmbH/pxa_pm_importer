@@ -115,7 +115,7 @@ class ImportManager
                 $this->logger->info(sprintf(
                     'Start import using source "%s" and importer "%s", at %s',
                     $source,
-                    $importer,
+                    $importName,
                     date('G-i-s')
                 ));
 
@@ -146,7 +146,7 @@ class ImportManager
                 $this->logger->info(sprintf(
                     'End import using source "%s" and importer "%s", at %s',
                     $source,
-                    $importer,
+                    $importName,
                     date('G-i-s')
                 ));
             }
