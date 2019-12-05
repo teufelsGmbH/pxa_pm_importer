@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Service\Source;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class SourceFactory
@@ -11,6 +12,19 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  */
 class SourceFactory
 {
+    /**
+     * @var ObjectManager
+     */
+    protected $objectManager = null;
+
+    /**
+     * @param ObjectManager $objectManager
+     */
+    public function injectObjectManager(ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
+
     /**
      * Create source for import
      *
@@ -21,7 +35,7 @@ class SourceFactory
     public function createSource(string $source, array $configuration = null): SourceInterface
     {
         /** @var SourceInterface $sourceInstance */
-        $sourceInstance = GeneralUtility::makeInstance($source);
+        $sourceInstance = $this->objectManager->get($source);
 
         if (!$sourceInstance instanceof SourceInterface) {
             throw new \InvalidArgumentException(
