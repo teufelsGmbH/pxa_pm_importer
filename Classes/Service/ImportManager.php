@@ -97,7 +97,7 @@ class ImportManager
         $sources = $this->context->getConfigurationService()->getSourcesConfiguration();
         $importers = $this->context->getConfigurationService()->getImportersConfiguration();
 
-        $multipleSources = count($sources) > 1;
+        $multipleSources = count($sources) > 1 || count($importers) > 1;
 
         // Run import for every source
         foreach ($sources as $source => $sourceConfiguration) {
