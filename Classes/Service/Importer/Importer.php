@@ -957,7 +957,7 @@ class Importer implements ImporterInterface
                 // Persist if reach limit
                 $this->batchPersist();
 
-                if (!$this->adapter->includeRow($key, $rawRow)) {
+                if (!$this->adapter->includeRow($key, $rawRow, $language)) {
                     // Skip
                     continue;
                 }
