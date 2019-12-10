@@ -6,7 +6,7 @@ namespace Pixelant\PxaPmImporter\Adapter;
 use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class AbstractDefaultAdapter
@@ -41,6 +41,19 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      * @var array
      */
     protected $filters = [];
+
+    /**
+     * @var ObjectManager
+     */
+    protected $objectManager = null;
+
+    /**
+     * @param ObjectManager $objectManager
+     */
+    public function injectObjectManager(ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
 
     /**
      * Initialize default settings
@@ -188,11 +201,11 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
 
     /**
      * @param string $filter
-     * @return object
+     * @return FilterInterface
      */
     protected function getFilterInstance(string $filter): FilterInterface
     {
-        $filterObject = GeneralUtility::makeInstance($filter);
+        $filterObject = $this->objectManager->get($filter);
         if (!$filterObject instanceof FilterInterface) {
             $type = gettype($filterObject);
 
