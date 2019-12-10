@@ -36,9 +36,10 @@ interface AdapterInterface
      *
      * @param mixed $key Row key
      * @param mixed $rawData Raw data for single import item
+     * @param int $languageUid Current import language
      * @return bool
      */
-    public function includeRow($key, $rawData): bool;
+    public function includeRow($key, $rawData, int $languageUid): bool;
 
     /**
      * Array with UIDs of import languages

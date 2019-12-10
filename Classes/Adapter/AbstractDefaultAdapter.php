@@ -111,9 +111,10 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      *
      * @param mixed $key Row key
      * @param array $dataRow
+     * @param int $languageUid Current import language
      * @return boolean
      */
-    public function includeRow($key, $dataRow): bool
+    public function includeRow($key, $dataRow, int $languageUid): bool
     {
         if (is_array($this->filters) && count($this->filters) > 0) {
             foreach ($this->filters as $column => $filter) {
@@ -124,7 +125,7 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
                         throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
                         // @codingStandardsIgnoreEnd
                     }
-                    if (!$filterObject->includeRow($column, $key, $dataRow, $filter)) {
+                    if (!$filterObject->includeRow($column, $key, $dataRow, $languageUid, $filter)) {
                         return false;
                     }
                 }
