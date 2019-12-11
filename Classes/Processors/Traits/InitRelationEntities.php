@@ -34,7 +34,7 @@ trait InitRelationEntities
         \Closure $createEntity = null
     ): array {
         $entities = [];
-        $value = $this->convertListToArray($value);
+        $value = $this->convertListToArray($value, $this->delim());
         $table = $this->getTableName($domainModelClassName);
 
         foreach ($value as $identifier) {
@@ -71,6 +71,16 @@ trait InitRelationEntities
         }
 
         return $entities;
+    }
+
+    /**
+     * Return list value delim
+     *
+     * @return string
+     */
+    protected function delim(): string
+    {
+        return $this->configuration['delim'] ?? ',';
     }
 
     /**

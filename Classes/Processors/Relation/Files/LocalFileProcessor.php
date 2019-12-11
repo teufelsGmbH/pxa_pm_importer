@@ -29,7 +29,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
     protected function initEntities($value): array
     {
         $entities = [];
-        $value = $this->convertListToArray($value);
+        $value = $this->convertListToArray($value, $this->configuration['delim'] ?? ',');
 
         try {
             $folder = $this->getFolder();

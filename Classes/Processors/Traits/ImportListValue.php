@@ -15,9 +15,10 @@ trait ImportListValue
      * Convert comma-list import value to array or return original array
      *
      * @param array|string $list
+     * @param string $delim
      * @return array
      */
-    protected function convertListToArray($list): array
+    protected function convertListToArray($list, string $delim = ','): array
     {
         if (!is_array($list) && !is_string($list)) {
             $type = gettype($list);
@@ -27,7 +28,7 @@ trait ImportListValue
             );
         }
         if (is_string($list)) {
-            $list = GeneralUtility::trimExplode(',', $list, true);
+            $list = GeneralUtility::trimExplode($delim, $list, true);
         }
 
         return $list;
