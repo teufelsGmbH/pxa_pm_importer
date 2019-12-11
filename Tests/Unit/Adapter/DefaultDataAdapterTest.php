@@ -8,6 +8,7 @@ use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Adapter\AbstractDefaultAdapter;
 use Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter;
+use Pixelant\PxaPmImporter\Adapter\Filters\StringEqualsFilter;
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 
@@ -26,7 +27,7 @@ class DefaultDataAdapterTest extends UnitTestCase
     {
         $this->subject = $this->getAccessibleMock(
             DefaultDataAdapter::class,
-            ['dummy']
+            ['getFilterInstance']
         );
     }
 
@@ -412,7 +413,13 @@ class DefaultDataAdapterTest extends UnitTestCase
         ];
 
         $this->subject->initialize($configuration);
-        $this->assertEquals($expect, $this->subject->includeRow('dummy_key', $row));
+
+        $this->subject
+            ->expects($this->once())
+            ->method('getFilterInstance')
+            ->willReturn(new StringEqualsFilter());
+
+        $this->assertEquals($expect, $this->subject->includeRow('dummy_key', $row, 0));
     }
 
     /**
@@ -452,100 +459,13 @@ class DefaultDataAdapterTest extends UnitTestCase
         ];
 
         $this->subject->initialize($configuration);
-        $this->assertEquals($expect, $this->subject->includeRow('dummy_key', $row));
-    }
 
-    /**
-     * @test
-     */
-    public function includeRowWillThrowExceptionOnInvalidClass()
-    {
-        $configuration = [
-            'mapping' => [
-                'id' => 'ITEMID',
-                'languages' => [
-                    0 => [
-                        'title' => 'SE_TITLE',
-                        'description' => 'SE_DESC',
-                        'area' => 'AREA',
-                        'region' => 'REGION'
-                    ],
-                    1 => [
-                        'title' => 'UA_TITLE',
-                        'description' => 'UA_DESC',
-                        'area' => 'AREA',
-                        'region' => 'REGION'
-                    ],
-                ]
-            ],
-            'filters' => [
-                'AREA' => [
-                    'filter' => 'Pixelant\PxaPmImporter\Adapter\Filters\InvalidFilter',
-                    'value' => 'A'
-                ]
-            ]
-        ];
+        $this->subject
+            ->expects($this->atLeastOnce())
+            ->method('getFilterInstance')
+            ->willReturn(new StringEqualsFilter());
 
-        $row = [
-            'ITEMID' => 'ID1',
-            'UA_TITLE' => 'UA Title 1',
-            'SE_TITLE' => 'SE Title 1',
-            'UA_DESC' => 'UA Description 1',
-            'SE_DESC' => 'SE Description 1',
-            'AREA' => 'A',
-            'REGION' => 'A'
-        ];
-
-        $this->subject->initialize($configuration);
-        $this->expectException(\Error::class);
-        $this->subject->includeRow('dummy_key', $row);
-    }
-
-    /**
-     * @test
-     */
-    public function includeRowWillThrowExceptionOnNonFilterInterface()
-    {
-        $configuration = [
-            'mapping' => [
-                'id' => 'ITEMID',
-                'languages' => [
-                    0 => [
-                        'title' => 'SE_TITLE',
-                        'description' => 'SE_DESC',
-                        'area' => 'AREA',
-                        'region' => 'REGION'
-                    ],
-                    1 => [
-                        'title' => 'UA_TITLE',
-                        'description' => 'UA_DESC',
-                        'area' => 'AREA',
-                        'region' => 'REGION'
-                    ],
-                ]
-            ],
-            'filters' => [
-                'AREA' => [
-                    'filter' => 'stdClass',
-                    'value' => 'A'
-                ]
-            ]
-        ];
-
-        $row = [
-            'ITEMID' => 'ID1',
-            'UA_TITLE' => 'UA Title 1',
-            'SE_TITLE' => 'SE Title 1',
-            'UA_DESC' => 'UA Description 1',
-            'SE_DESC' => 'SE Description 1',
-            'AREA' => 'A',
-            'REGION' => 'A'
-        ];
-
-        $this->subject->initialize($configuration);
-        $this->expectException(\UnexpectedValueException::class);
-        $this->expectExceptionCode(1538142318);
-        $this->subject->includeRow('dummy_key', $row);
+        $this->assertEquals($expect, $this->subject->includeRow('dummy_key', $row, 0));
     }
 
     /**
