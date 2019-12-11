@@ -44,4 +44,15 @@ class ImportListValueTest extends UnitTestCase
 
         $this->assertEquals($expect, $this->convertListToArray($list));
     }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayConvertStringToArrayWithCustomDelim()
+    {
+        $list = 'path1;path2; path3';
+        $expect = ['path1', 'path2', 'path3'];
+
+        $this->assertEquals($expect, $this->convertListToArray($list, ';'));
+    }
 }
