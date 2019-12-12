@@ -814,7 +814,19 @@ class Importer implements ImporterInterface
                     $this->logger->error($error);
                 }
 
-                return self::LOCALIZATION_FAILED;
+                // Even if there are errors, check if localization was created.
+                // There might be errors about localization already exist,
+                // because of nested subcategories 1:n relation in product manager
+                $recordLocalizations = BackendUtility::getRecordLocalization(
+                    $this->dbTable,
+                    (int)$defaultLanguageRecord['uid'],
+                    $language,
+                    'AND pid=' . (int)$defaultLanguageRecord['pid']
+                );
+                // If there no localization record, return LOCALIZATION_FAILED
+                if (empty($recordLocalizations)) {
+                    return self::LOCALIZATION_FAILED;
+                }
             }
 
             // Assuming we are success
