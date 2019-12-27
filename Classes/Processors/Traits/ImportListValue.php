@@ -23,7 +23,7 @@ trait ImportListValue
         if (!is_array($list) && !is_string($list)) {
             $type = gettype($list);
             throw new \InvalidArgumentException(
-                "Expected to get array or string as files list. '{$type}' given.",
+                "Expected to get array or string as import list. '{$type}' given.",
                 1560319588819
             );
         }
