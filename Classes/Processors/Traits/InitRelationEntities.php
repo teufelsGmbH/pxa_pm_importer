@@ -28,7 +28,7 @@ trait InitRelationEntities
      * @return AbstractEntity[]
      * @throws FailedInitEntityException
      */
-    protected function initEntitiesForTable(
+    protected function getEntities(
         $value,
         string $domainModelClassName,
         \Closure $createEntity = null

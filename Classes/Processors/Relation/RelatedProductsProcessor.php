@@ -25,7 +25,7 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor
     protected function initEntities($value): array
     {
         try {
-            $entities = $this->initEntitiesForTable(
+            $entities = $this->getEntities(
                 $value,
                 Product::class
             );
