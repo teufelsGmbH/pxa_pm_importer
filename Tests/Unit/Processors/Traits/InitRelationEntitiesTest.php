@@ -35,19 +35,19 @@ class InitRelationEntitiesTest extends UnitTestCase
     /**
      * @test
      */
-    public function initEntitiesForTableThrownExceptionIfFailToFindEntity()
+    public function getEntitiesThrownExceptionIfFailToFindEntity()
     {
         $this->configuration = ['treatIdentifierAsUid' => false];
 
         $this->expectException(FailedInitEntityException::class);
 
-        $this->initEntitiesForTable('entity', 'DomainDummyClass');
+        $this->getEntities('entity', 'DomainDummyClass');
     }
 
     /**
      * @test
      */
-    public function initEntitiesForTableWillTryToCreateEntityIfMethodExist()
+    public function getEntitiesWillTryToCreateEntityIfMethodExist()
     {
         $mock = $this->getMockForTrait(
             'Pixelant\PxaPmImporter\Processors\Traits\InitRelationEntities',
@@ -69,7 +69,7 @@ class InitRelationEntitiesTest extends UnitTestCase
         };
 
         $this->expectException(FailedInitEntityException::class);
-        $this->callInaccessibleMethod($mock, 'initEntitiesForTable', 'entity', 'DomainDummyClass', $closureNewEntity);
+        $this->callInaccessibleMethod($mock, 'getEntities', 'entity', 'DomainDummyClass', $closureNewEntity);
     }
 
     /**
