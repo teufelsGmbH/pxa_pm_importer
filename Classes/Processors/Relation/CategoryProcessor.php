@@ -25,7 +25,7 @@ class CategoryProcessor extends AbstractRelationFieldProcessor
     protected function initEntities($value): array
     {
         try {
-            $entities = $this->initEntitiesForTable(
+            $entities = $this->getEntities(
                 $value,
                 Category::class
             );
