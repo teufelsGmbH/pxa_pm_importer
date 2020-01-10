@@ -7,12 +7,10 @@ use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Context\ImportContext;
-use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\Importer;
 use Pixelant\PxaPmImporter\Service\Source\CsvSource;
-use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
 
@@ -280,27 +278,6 @@ class ImporterTest extends UnitTestCase
             ->willReturn($dataHandler);
 
         $this->assertEquals(1, $this->subject->_call('handleLocalization', $hash, $language));
-    }
-
-    /**
-     * @test
-     */
-    public function postponeProcessorWillAddProcessorInQueueAndIncreaseAmountOfImportItems()
-    {
-        $this->subject->_set('postponedProcessors', []);
-        $this->subject->_set('amountOfImportItems', 1);
-
-        $processorInstance = $this->createMock(FieldProcessorInterface::class);
-        $value = 'test value';
-
-        $this->subject->_call('postponeProcessor', $processorInstance, $value);
-
-        $postponedProcessor = $this->subject->_get('postponedProcessors')[0];
-
-        $this->assertInstanceOf(PostponedProcessor::class, $postponedProcessor);
-        $this->assertEquals($value, $postponedProcessor->getValue());
-        $this->assertSame($postponedProcessor->getProcessor(), $processorInstance);
-        $this->assertEquals(2, $this->subject->_get('amountOfImportItems'));
     }
 
     /**

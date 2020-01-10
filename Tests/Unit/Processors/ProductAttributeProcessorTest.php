@@ -49,18 +49,18 @@ class ProductAttributeProcessorTest extends UnitTestCase
     /**
      * @test
      */
-    public function preProcessWithoutAttributeUidThrowsException()
+    public function processWithoutAttributeUidThrowsException()
     {
         $value = '';
 
         $this->expectException(InvalidProcessorConfigurationException::class);
-        $this->subject->preProcess($value);
+        $this->subject->process($value);
     }
 
     /**
      * @test
      */
-    public function preProcessThrowsExceptionIfAttributeNotFound()
+    public function processThrowsExceptionIfAttributeNotFound()
     {
         $repository = $this->createMock(AttributeRepository::class);
         $conf = [
@@ -72,22 +72,7 @@ class ProductAttributeProcessorTest extends UnitTestCase
         $this->expectException(\RuntimeException::class);
 
         $value = '';
-        $this->subject->preProcess($value);
-    }
-
-    /**
-     * @test
-     */
-    public function isValidReturnFalseForNotValidDateFormat()
-    {
-        $attribute = new Attribute();
-        $attribute->setType(Attribute::ATTRIBUTE_TYPE_DATETIME);
-
-        $this->subject->_set('attribute', $attribute);
-        $this->subject->_set('dbRow', [ImporterInterface::DB_IMPORT_ID_FIELD => 'id']);
-
-        $value = 'TEST';
-        $this->assertFalse($this->subject->isValid($value));
+        $this->subject->process($value);
     }
 
     /**
@@ -201,17 +186,17 @@ class ProductAttributeProcessorTest extends UnitTestCase
             ->method('getAttributeValue')
             ->willReturn(null);
 
-        $subject
-            ->expects($this->once())
-            ->method('createAttributeValue');
-
-
         $this->inject($subject, 'entity', $entity);
         $this->inject($subject, 'attribute', $attribute);
         $this->inject($subject, 'dbRow', $dbRow);
         $this->inject($subject, 'context', $this->createMock(ImportContext::class));
 
+        $this->assertCount(0, $entity->getAttributeValues());
 
-        $subject->_call('updateAttributeValue', 'New value');
+        $newValue = 'New value';
+        $subject->_call('updateAttributeValue', $newValue);
+
+        $this->assertCount(1, $entity->getAttributeValues());
+        $this->assertEquals($newValue, $entity->getAttributeValues()->current()->getValue());
     }
 }

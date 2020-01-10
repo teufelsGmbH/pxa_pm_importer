@@ -34,12 +34,11 @@ class FloatProcessorTest extends UnitTestCase
     /**
      * @test
      */
-    public function preProcessWillFormatStringForFloating()
+    public function processWillFormatStringForFloating()
     {
         $value = ' 12,36 ';
         $expect = '12.36';
 
-        $this->subject->preProcess($value);
-        $this->assertEquals($expect, $value);
+        $this->assertEquals($expect, $this->subject->preProcess($value));
     }
 }
