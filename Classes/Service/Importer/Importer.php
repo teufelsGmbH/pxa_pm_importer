@@ -7,7 +7,6 @@ use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRecordRepository;
 use Pixelant\PxaPmImporter\Domain\Repository\ProgressRepository;
-use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
 use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Logging\Logger;
@@ -578,26 +577,18 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Add import data to model
+     * Add import data to entity
      *
-     * @param AbstractEntity $model
+     * @param AbstractEntity $entity
      * @param array $record
      * @param array $importRow
      * @return void
      */
-    protected function populateModelWithImportData(
-        $model,
+    protected function populateEntityWithImportData(
+        AbstractEntity $entity,
         array $record,
         array $importRow
     ): void {
-        if (!is_object($model)) {
-            $type = gettype($model);
-            throw new FailedImportModelData(
-                "Expect model to be an object, '$type' given.",
-                1571387997402
-            );
-        }
-
         foreach ($this->mapping as $field => $mapping) {
             // Get value from import row
             try {
@@ -611,7 +602,7 @@ class Importer implements ImporterInterface
             // If processor is set, it should set value for model property
             if (!empty($mapping['processor'])) {
                 $processor = $this->createProcessor($mapping);
-                $processor->init($model, $record, $property, $mapping['configuration']);
+                $processor->init($entity, $record, $property, $mapping['configuration']);
 
                 if ($processor instanceof PreProcessorInterface) {
                     $value = $processor->preProcess($value);
@@ -620,9 +611,9 @@ class Importer implements ImporterInterface
                 $processor->process($value);
             } else {
                 // Just set it if no processor
-                $currentValue = ObjectAccess::getProperty($model, $property);
+                $currentValue = ObjectAccess::getProperty($entity, $property);
                 if ($currentValue != $value) {
-                    ObjectAccess::setProperty($model, $property, $value);
+                    ObjectAccess::setProperty($entity, $property, $value);
                 }
             }
         }
@@ -912,17 +903,19 @@ class Importer implements ImporterInterface
                     }
                 }
 
-                $model = $this->mapRow($record);
+                $entity = $this->mapRow($record);
 
+
+                $this->validate();
                 // After it's ready for populating data it can be updated/deleted
-                $action = $this->detectImportEntityAction($model, $record, $row, $isNew);
+                $action = $this->detectImportEntityAction($entity, $record, $row, $isNew);
 
                 try {
                     // By default 'updateEntityAction'
-                    $this->$action($model, $record, $row, $isNew);
+                    $this->$action($entity, $record, $row, $isNew);
                 } catch (\Exception $exception) {
                     $this->logger->error(sprintf(
-                        'Failed import model [ID-"%s", UID-"%s", REASON-"%s"].',
+                        'Failed import entity [ID-"%s", UID-"%s", REASON-"%s"].',
                         $id,
                         $record['uid'],
                         $exception->getMessage()
@@ -930,21 +923,13 @@ class Importer implements ImporterInterface
 
                     if ($isNew) {
                         $this->deleteNewRecord($record['uid']);
-                    }
-
-                    $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model, $isNew]);
-
-                    // On failed mapping just skip it
-                    if ($exception instanceof FailedImportModelData) {
-                        if (!$isNew) {
-                            $this->disableImportRecord($record['uid']);
-                        }
-
-                        continue;
                     } else {
-                        // On any other exception throw it
-                        throw $exception;
+                        $this->disableImportRecord($record['uid']);
                     }
+
+                    $this->emitSignal(__CLASS__, 'failedPopulating', [$entity, $isNew]);
+
+                    throw $exception;
                 }
             }
 
@@ -1016,35 +1001,35 @@ class Importer implements ImporterInterface
     /**
      * Run update process for single entity
      *
-     * @param AbstractEntity $model
+     * @param AbstractEntity $entity
      * @param array $record
      * @param array $importRow
      * @param bool $isNew
      * @throws \Exception
      */
-    protected function updateEntityAction(AbstractEntity $model, array $record, array $importRow, bool $isNew): void
+    protected function updateEntityAction(AbstractEntity $entity, array $record, array $importRow, bool $isNew): void
     {
-        $this->populateModelWithImportData($model, $record, $importRow);
-        $this->persistSingleEntity($model, $record, $isNew);
+        $this->populateEntityWithImportData($entity, $record, $importRow);
+        $this->persistSingleEntity($entity, $record, $isNew);
     }
 
     /**
      * Save changes for single entity
      *
-     * @param AbstractEntity $model
+     * @param AbstractEntity $entity
      * @param array $record
      * @param bool $isNew
      */
-    protected function persistSingleEntity(AbstractEntity $model, array $record, bool $isNew): void
+    protected function persistSingleEntity(AbstractEntity $entity, array $record, bool $isNew): void
     {
-        $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
+        $this->emitSignal(__CLASS__, 'beforePersist', [$entity]);
 
         // Enable if was disabled
-        if ($model->_getProperty('hidden')) {
-            $model->_setProperty('hidden', false);
+        if ($entity->_getProperty('hidden')) {
+            $entity->_setProperty('hidden', false);
         }
 
-        if ($model->_isDirty()) {
+        if ($entity->_isDirty()) {
             $this->logger->info(sprintf(
                 'Update record [ID-"%s", UID-"%s", TABLE-"%s"]',
                 $record[self::DB_IMPORT_ID_FIELD],
@@ -1052,7 +1037,7 @@ class Importer implements ImporterInterface
                 $this->dbTable
             ));
 
-            $this->repository->update($model);
+            $this->repository->update($entity);
 
             if ($isNew) {
                 $this->newUids[] = $record['uid'];
@@ -1060,7 +1045,7 @@ class Importer implements ImporterInterface
                 $this->updatedUids[] = $record['uid'];
             }
 
-            $this->emitSignal(__CLASS__, 'afterPersistImportModel', [$model]);
+            $this->emitSignal(__CLASS__, 'afterPersist', [$entity]);
         }
     }
 
@@ -1105,5 +1090,14 @@ class Importer implements ImporterInterface
         bool $isNew
     ): string {
         return 'updateEntityAction';
+    }
+
+    /**
+     * Validate single import row
+     */
+    protected function validate(): void
+    {
+       /* \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($this->configuration, 'Debug', 16);
+        die;*/
     }
 }
