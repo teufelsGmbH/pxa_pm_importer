@@ -5,14 +5,11 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
-use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Domain\Repository\ImportRecordRepository;
 use Pixelant\PxaPmImporter\Domain\Repository\ProgressRepository;
 use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
 use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
-use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Processors\PreProcessorInterface;
@@ -26,6 +23,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\QueryGenerator;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Utility\ClassNamingUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
@@ -92,13 +90,6 @@ class Importer implements ImporterInterface
      * @var ImportRecordRepository
      */
     protected $importRepository = null;
-
-    /**
-     * Array of import processor that should be run in postImport
-     *
-     * @var PostponedProcessor[]
-     */
-    protected $postponedProcessors = [];
 
     /**
      * Identifier field name
@@ -486,7 +477,7 @@ class Importer implements ImporterInterface
         $this->modelName = $domainModel;
 
         // Get repository using model name
-        $repository = str_replace('\\Model\\', '\\Repository\\', $domainModel) . 'Repository';
+        $repository = ClassNamingUtility::translateModelNameToRepositoryName($domainModel);
         if (!class_exists($repository)) {
             throw new \RuntimeException("Repository '$repository' doesn't exist", 1571382879964);
         }
@@ -621,21 +612,12 @@ class Importer implements ImporterInterface
             if (!empty($mapping['processor'])) {
                 $processor = $this->createProcessor($mapping);
                 $processor->init($model, $record, $property, $mapping['configuration']);
+
                 if ($processor instanceof PreProcessorInterface) {
                     $value = $processor->preProcess($value);
                 }
+
                 $processor->process($value);
-
-
-                /*try {
-                    $this->executeProcessor($processor, $value);
-                } catch (PostponeProcessorException $exception) {
-                    $this->postponeProcessor($processor, $value);
-                } catch (ErrorValidationException $errorValidationException) {
-                    $this->logProcessorValidationError($processor, $errorValidationException);
-
-                    throw new FailedImportModelData('Processor validation error', 1571387529039);
-                }*/
             } else {
                 // Just set it if no processor
                 $currentValue = ObjectAccess::getProperty($model, $property);
@@ -644,26 +626,6 @@ class Importer implements ImporterInterface
                 }
             }
         }
-    }
-
-    /**
-     * Log error about validation error
-     *
-     * @param FieldProcessorInterface $processor
-     * @param ErrorValidationException $exception
-     */
-    protected function logProcessorValidationError(
-        FieldProcessorInterface $processor,
-        ErrorValidationException $exception
-    ): void {
-        return;
-        $this->logger->error(sprintf(
-            'Error mapping property. Skipping record. [ID-"%s", UID-"%s", PROP-"%s", REASON-"%s"].',
-            $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
-            $processor->getProcessingDbRow()['uid'],
-            $processor->getProcessingProperty(),
-            $exception->getMessage()
-        ));
     }
 
     /**
@@ -692,23 +654,6 @@ class Importer implements ImporterInterface
         }
 
         return $importRow[$field];
-    }
-
-    /**
-     * Execute import field processor
-     *
-     * @param array $mapping
-     * @param $value
-     * @return void
-     */
-    protected function executeProcessor(array $mapping, $value): void
-    {
-        /* $processor = $this->createProcessor($mapping['processor']);
-         $processor->init($model, $record, $property, $mapping['configuration']);*/
-
-        /* if ($processor->isValid($value)) {
-             $processor->process($value);
-         }*/
     }
 
     /**
@@ -897,83 +842,6 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Postpone processor for later execution
-     *
-     * @param FieldProcessorInterface $processor
-     * @param mixed $value
-     */
-    protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
-    {
-        return;
-        // Increase amount of import items, since postponed processor means + 1 operation
-        $this->amountOfImportItems++;
-
-        $this->postponedProcessors[] = GeneralUtility::makeInstance(
-            PostponedProcessor::class,
-            $processor,
-            $value
-        );
-    }
-
-    /**
-     * Execute postponed processors
-     */
-    protected function executePostponedProcessors(): void
-    {
-        $batchCount = 0;
-        foreach ($this->postponedProcessors as $postponedProcessor) {
-            $value = $postponedProcessor->getValue();
-            $processor = $postponedProcessor->getProcessor();
-
-            $entityUid = (int)$processor->getProcessingDbRow()['uid'];
-            if ($entityUid === 0) {
-                // @codingStandardsIgnoreStart
-                throw new \UnexpectedValueException('Entity uid is not valid. Impossible to execute postponed processor', 1539935615795);// @codingStandardsIgnoreEnd
-            }
-
-            $record = BackendUtility::getRecord($this->dbTable, $entityUid);
-            // Most likely record was deleted because of validation
-            if ($record === null) {
-                $this->logger->error(
-                    'Failed executing postponed processor for record UID - ' . $entityUid . ', record not found.'
-                );
-
-                continue;
-            }
-            $model = $this->mapRow($record);
-
-            // Re-init processor
-            $processor->init(
-                $model,
-                $record,
-                $processor->getProcessingProperty(),
-                $processor->getConfiguration()
-            );
-
-            try {
-                $this->executeProcessor($processor, $value);
-                // Update again if something changed
-                if ($processor->getProcessingEntity()->_isDirty()) {
-                    $this->repository->update($processor->getProcessingEntity());
-                }
-                if ((++$batchCount % $this->batchSize) === 0) {
-                    $this->persistAndClear();
-                }
-            } catch (PostponeProcessorException | ErrorValidationException $exception) {
-                $this->logger->error(
-                    "Postponed processor failed [REASON-'{$exception->getMessage()}'] "
-                );
-            }
-
-            // If need to update progress status
-            $this->updateImportProgress();
-        }
-
-        $this->postponedProcessors = [];
-        $this->persistAndClear();
-    }
-
-    /**
      * Actual import
      */
     protected function runImport(): void
@@ -1081,13 +949,11 @@ class Importer implements ImporterInterface
             }
 
             $this->persistAndClear();
-            // Execute postponed processors and persist again
-            //$this->executePostponedProcessors();
         }
     }
 
     /**
-     * Persist all objects and clear persistance session
+     * Persist all objects and clear persistence session
      */
     protected function persistAndClear(): void
     {
