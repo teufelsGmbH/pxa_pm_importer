@@ -98,6 +98,7 @@ class RelationPropertyUpdater
 
     /**
      * Check if object storage has different items than import entities and need to be replaced
+     * Or if order changed
      *
      * @param ObjectStorage $objectStorage
      * @param array $entities
@@ -118,23 +119,7 @@ class RelationPropertyUpdater
             $entities
         );
 
-        // If different count then differs
-        if (count($storageUids) !== count($entitiesUids)) {
-            return true;
-        }
-
-        // Since it has only integer uids, sort it and compare
-        sort($storageUids, SORT_NUMERIC);
-        sort($entitiesUids, SORT_NUMERIC);
-
-        // If at least one entity has different UID storage need to be updated
-        foreach ($storageUids as $key => $uid) {
-            if ($uid !== $entitiesUids[$key]) {
-                return true;
-            }
-        }
-
-        // Storage and import array has same entities
-        return false;
+        // Since it has only integer uids - compare
+        return $storageUids !== $entitiesUids;
     }
 }
