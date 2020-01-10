@@ -55,6 +55,6 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
 
         $this->inject($this->subject, 'attribute', $attribute);
 
-        $this->assertEquals($expect, $this->subject->_call('getOptions', $values));
+        $this->assertEquals($expect, $this->callInaccessibleMethod($this->subject, 'getOptions', $values));
     }
 }
