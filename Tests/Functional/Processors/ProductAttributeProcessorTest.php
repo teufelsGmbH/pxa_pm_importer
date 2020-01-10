@@ -3,14 +3,12 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Tests\Functional\Processors;
 
-use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\FunctionalTestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
-use TYPO3\CMS\Core\Database\ConnectionPool;
+use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ProductAttributeProcessorTest
@@ -19,7 +17,7 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 class ProductAttributeProcessorTest extends FunctionalTestCase
 {
     /**
-     * @var ProductAttributeProcessor|MockObject|AccessibleMockObjectInterface
+     * @var ProductAttributeProcessor
      */
     protected $subject = null;
 
@@ -30,13 +28,7 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
         parent::setUp();
         $this->importDataSet(__DIR__ . '/../Fixtures/tx_pxaproductmanager_domain_model_option.xml');
 
-        $this->subject = $this->getAccessibleMock(
-            ProductAttributeProcessor::class,
-            ['dummy'],
-            [],
-            '',
-            false
-        );
+        $this->subject = GeneralUtility::makeInstance(ObjectManager::class)->get(ProductAttributeProcessor::class);
 
         $context = new ImportContext();
         $context->setNewRecordsPid(1);
@@ -60,31 +52,11 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
 
         $expect = [131, 141];
 
-        $mockedAttribute = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $mockedAttribute->_setProperty('uid', 3344);
+        $attribute = new Attribute();
+        $attribute->_setProperty('uid', 3344);
 
-        $this->subject->_set('attribute', $mockedAttribute);
+        $this->inject($this->subject, 'attribute', $attribute);
 
         $this->assertEquals($expect, $this->subject->_call('getOptions', $values));
-    }
-
-    protected function getAttributeRecordForProductAndAttribute($product, $attiribute)
-    {
-        $row = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_pxaproductmanager_domain_model_attributevalue')
-            ->select(
-                ['*'],
-                'tx_pxaproductmanager_domain_model_attributevalue',
-                [
-                    'product' => $product,
-                    'attribute' => $attiribute
-                ],
-                [],
-                [],
-                1
-            )
-            ->fetch();
-
-        return $row;
     }
 }
