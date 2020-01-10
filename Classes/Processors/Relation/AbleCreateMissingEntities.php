@@ -2,7 +2,6 @@
 
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
-
 /**
  * @package Pixelant\PxaPmImporter\Processors\Relation
  */
