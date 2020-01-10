@@ -3,39 +3,39 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
-use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
-use Pixelant\PxaPmImporter\Processors\Traits\InitRelationEntities;
 use Pixelant\PxaProductManager\Domain\Model\Category;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class CategoryProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class CategoryProcessor extends AbstractRelationFieldProcessor
+class CategoryProcessor extends AbstractRelationFieldProcessor implements AbleCreateMissingEntities
 {
-    use InitRelationEntities;
+    /**
+     * @inheritDoc
+     */
+    public function createMissingEntity(string $importId)
+    {
+        $fields = array_merge($this->defaultNewFields($importId), [
+            'title' => $importId,
+            $this->tcaHiddenField() => 1,
+        ]);
+
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('sys_category')
+            ->insert(
+                'sys_category',
+                $fields
+            );
+    }
 
     /**
-     * Set categories
-     *
-     * @param mixed $value
-     * @return array
+     * @inheritDoc
      */
-    protected function initEntities($value): array
+    protected function domainModel(): string
     {
-        try {
-            $entities = $this->getEntities(
-                $value,
-                Category::class
-            );
-        } catch (FailedInitEntityException $exception) {
-            throw new PostponeProcessorException(
-                'Related category not found [ID- "' . $exception->getIdentifier() . '"]',
-                1547190959260
-            );
-        }
-
-        return $entities;
+        return Category::class;
     }
 }

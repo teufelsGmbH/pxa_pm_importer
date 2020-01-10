@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Domain\Repository;
 
-use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
 use TYPO3\CMS\Core\Database\Connection;
@@ -17,22 +16,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @package Pixelant\PxaPmImporter\Domain\Repository
  */
-class ImportRecordRepository
+class ImportRecordRepository extends AbstractImportRepository
 {
-    /**
-     * @var ImportContext
-     */
-    protected $context = null;
-
-    /**
-     * @param ImportContext $context
-     */
-    public function __construct(ImportContext $context)
-    {
-        $this->context = $context;
-    }
-
-
     /**
      * Fetch records from DB by import Identifier
      *

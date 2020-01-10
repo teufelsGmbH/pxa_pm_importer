@@ -3,25 +3,22 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
+use Pixelant\PxaPmImporter\Domain\Repository\ImportOptionRepository;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
+use Pixelant\PxaPmImporter\Processors\Relation\Updater\RelationPropertyUpdater;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
-use Pixelant\PxaPmImporter\Processors\Traits\ImportListValue;
-use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
+use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\AttributeFalFile;
 use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
 use Pixelant\PxaProductManager\Utility\TCAUtility;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ProductAttributeProcessor
@@ -29,9 +26,7 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
  */
 class ProductAttributeProcessor extends AbstractFieldProcessor
 {
-    use UpdateRelationProperty;
     use FilesResources;
-    use ImportListValue;
 
     /**
      * @var Attribute
@@ -39,14 +34,14 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected $attribute = null;
 
     /**
-     * @var ObjectManager
-     */
-    protected $objectManager = null;
-
-    /**
      * @var AttributeRepository
      */
     protected $attributeRepository = null;
+
+    /**
+     * @var ImportOptionRepository
+     */
+    protected $optionsRepository = null;
 
     /**
      * @var Product
@@ -54,11 +49,19 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected $entity = null;
 
     /**
-     * @param ObjectManager $objectManager
+     * @var RelationPropertyUpdater
      */
-    public function injectObjectManager(ObjectManager $objectManager)
+    protected $propertyUpdater = null;
+
+    /**
+     * Initialize
+     * @param RelationPropertyUpdater $propertyUpdater
+     * @param ImportOptionRepository $optionRepository
+     */
+    public function __construct(RelationPropertyUpdater $propertyUpdater, ImportOptionRepository $optionRepository)
     {
-        $this->objectManager = $objectManager;
+        $this->propertyUpdater = $propertyUpdater;
+        $this->optionsRepository = $optionRepository;
     }
 
     /**
@@ -70,79 +73,14 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Prepare for process
-     *
-     * @param mixed $value
-     */
-    public function preProcess(&$value): void
-    {
-        if (empty($this->configuration['attributeUid'])) {
-            // @codingStandardsIgnoreStart
-            throw new InvalidProcessorConfigurationException('Missing "attributeUid" of processor configuration. Name - "' . $this->property . '"', 1536325707731);
-            // @codingStandardsIgnoreEnd
-        }
-
-        if (isset($this->configuration['treatAttributeUidAsImportUid'])
-            && (bool)$this->configuration['treatAttributeUidAsImportUid'] === true
-        ) {
-            $record = $this->findRecordByImportIdentifier(
-                $this->configuration['attributeUid'],
-                'tx_pxaproductmanager_domain_model_attribute'
-            );
-
-            if ($record !== null) {
-                $this->attribute = ExtbaseUtility::mapRecord($record, Attribute::class);
-            }
-        } else {
-            $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);
-        }
-
-        if ($this->attribute === null) {
-            // @codingStandardsIgnoreStart
-            throw new \RuntimeException('Could not find attribute with UID "' . $this->configuration['attributeUid'] . '"', 1536325896431);
-            // @codingStandardsIgnoreEnd
-        }
-
-        parent::preProcess($value);
-    }
-
-    /**
-     * Additional validation
-     *
-     * @param $value
-     * @return bool
-     */
-    public function isValid($value): bool
-    {
-        if ($this->attribute->getType() === Attribute::ATTRIBUTE_TYPE_DATETIME && !empty($value)) {
-            try {
-                $date = $this->parseDateTime($value);
-            } catch (\Exception $exception) {
-                $date = null;
-            }
-
-            if ($date === null) {
-                $this->logger->error(sprintf(
-                    'Could not parse date [ID-"%s", ATTR-"%s", VALUE-"%s"]',
-                    $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
-                    $this->attribute->getIdentifier(),
-                    $value
-                ));
-
-                return false;
-            }
-        }
-
-        return parent::isValid($value);
-    }
-
-    /**
      * Process attribute value
      *
      * @param $value
      */
     public function process($value): void
     {
+        $this->initAttribute();
+
         $attributeValues = unserialize($this->entity->getSerializedAttributesValues()) ?: [];
         $currentValue = $attributeValues[$this->attribute->getUid()] ?? '';
 
@@ -155,8 +93,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         switch ($this->attribute->getType()) {
             case Attribute::ATTRIBUTE_TYPE_DROPDOWN:
             case Attribute::ATTRIBUTE_TYPE_MULTISELECT:
-                $options = $this->getOptions($value);
-                $attributeValues[$this->attribute->getUid()] = implode(',', $options);
+                $attributeValues[$this->attribute->getUid()] = $this->getOptions($value);
                 break;
             case Attribute::ATTRIBUTE_TYPE_CHECKBOX:
                 $attributeValues[$this->attribute->getUid()] = ((bool)$value) ? 1 : 0;
@@ -168,18 +105,17 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 $attributeValues[$this->attribute->getUid()] = (string)$value;
                 break;
             case Attribute::ATTRIBUTE_TYPE_DATETIME:
-                $attributeValues[$this->attribute->getUid()] = empty($value)
-                    ? ''
-                    : $this->parseDateTime($value)->format('Y-m-d\TH:i:s\Z');
+                $attributeValues[$this->attribute->getUid()] = $this->importDateTimeString($value);
                 break;
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:
                 $this->updateAttributeFilesReference($value);
                 break;
             default:
-                // @codingStandardsIgnoreStart
-                throw new \UnexpectedValueException('Attribute import with type "' . $this->attribute->getType() . '" is not supported', 1536566015842);
-            // @codingStandardsIgnoreEnd
+                throw new \UnexpectedValueException(
+                    "Attribute import with type '{$this->attribute->getType()}' is not supported",
+                    1536566015842
+                );
         }
 
         // We don't need to save value for fal attribute, since fal reference is already set
@@ -222,22 +158,12 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             return;
         }
 
-        $attributeValue = $this->createAttributeValue();
+        $attributeValue = GeneralUtility::makeInstance(AttributeValue::class);
         $attributeValue->setPid($this->entity->getPid());
         $attributeValue->setValue($value);
         $attributeValue->setAttribute($this->attribute);
 
         $this->entity->addAttributeValue($attributeValue);
-    }
-
-    /**
-     * Create empty attribute value
-     *
-     * @return AttributeValue
-     */
-    protected function createAttributeValue(): AttributeValue
-    {
-        return $this->objectManager->get(AttributeValue::class);
     }
 
     /**
@@ -255,6 +181,38 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         }
 
         return null;
+    }
+
+    /**
+     * Return string date for attribute
+     *
+     * @param $value
+     * @return string
+     */
+    protected function importDateTimeString($value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        try {
+            $date = $this->parseDateTime($value);
+        } catch (\Exception $exception) {
+            $date = null;
+        }
+
+        if ($date === null) {
+            $this->logger->error(sprintf(
+                'Could not parse date [ID-"%s", ATTR-"%s", VALUE-"%s"]',
+                $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
+                $this->attribute->getIdentifier(),
+                $value
+            ));
+
+            return '';
+        }
+
+        return $date->format('Y-m-d\TH:i:s\Z');
     }
 
     /**
@@ -276,119 +234,55 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
 
     /**
      * Fetch options uids
-     * Use this query method, since we can fetch it also with hash values
      *
      * @param string|array $value
-     * @return array
+     * @return string
      */
-    protected function getOptions($value): array
+    protected function getOptions($value): string
     {
-        $values = $this->convertListToArray($value);
-        $hashes = array_map(
-            function ($value) {
+        $values = MainUtility::convertListToArray($value);
+
+        $options = $this->optionsRepository->findByHashesAttribute(
+            array_map(function ($value) {
                 return HashUtility::hashImportId($value);
-            },
-            $values
+            }, $values),
+            $this->attribute->getUid()
         );
 
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getQueryBuilderForTable('tx_pxaproductmanager_domain_model_option');
-        $queryBuilder
-            ->getRestrictions()
-            ->removeAll()
-            ->add(GeneralUtility::makeInstance(DeletedRestriction::class));
-
-        $result = $queryBuilder
-            ->select('uid')
-            ->from('tx_pxaproductmanager_domain_model_option')
-            ->where(
-                $queryBuilder->expr()->orX(
-                    $queryBuilder->expr()->in(
-                        'value',
-                        $queryBuilder->createNamedParameter($values, Connection::PARAM_STR_ARRAY)
-                    ),
-                    $queryBuilder->expr()->in(
-                        ImporterInterface::DB_IMPORT_ID_HASH_FIELD,
-                        $queryBuilder->createNamedParameter($hashes, Connection::PARAM_STR_ARRAY)
-                    )
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT)
-                ),
-                $queryBuilder->expr()->in(
-                    'pid',
-                    $queryBuilder->createNamedParameter($this->context->getStoragePids(), Connection::PARAM_INT_ARRAY)
-                ),
-                $queryBuilder->expr()->eq(
-                    'attribute',
-                    $queryBuilder->createNamedParameter($this->attribute->getUid(), Connection::PARAM_INT)
-                )
-            )
-            ->execute()
-            ->fetchAll(\PDO::FETCH_COLUMN);
-
-        return is_array($result) ? $result : [];
+        return implode(',', array_column($options, 'uid'));
     }
 
     /**
      * Update attribute file reference
      *
      * @param string|array $value Array of file list or comma separated list
-     * @return array Values(files) there were attached to the product
+     * @return void
      */
-    protected function updateAttributeFilesReference($value): array
+    protected function updateAttributeFilesReference($value): void
     {
-        $value = $this->convertListToArray($value);
+        $value = MainUtility::convertListToArray($value);
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {
             $this->logger->error($exception->getMessage());
-            return [];
+            return;
         }
 
-        $attributeFiles = [];
-        /**
-         * Collect all other attributes values. Since all attributes files are attached to one product field,
-         * but distinguish by pxa_attribute, all files should be present on update process for every attribute
-         */
-        /** @var AttributeFalFile $falReference */
-        foreach ($this->entity->getAttributeFiles() as $falReference) {
-            // Add all other files that doesn't belong to current attribute, so doesn't get removed on update
-            if ($falReference->getAttribute() !== $this->attribute->getUid()) {
-                $attributeFiles[] = $falReference;
-            }
-        }
-
-        /**
-         * Collect all existing attribute files
-         * in order to be able to reuse existing file reference
-         */
-        // File uid => to File reference
-        $existingAttributeFiles = [];
-
-        /** @var AttributeFalFile $attributeFile */
-        foreach ($this->entity->getAttributeFiles() as $attributeFile) {
-            if ($attributeFile->getAttribute() === $this->attribute->getUid()) {
-                $existingAttributeFiles[$this->getEntityUidForCompare($attributeFile)] = $attributeFile;
-            }
-        }
+        list($currentAttributeFiles, $attributesFiles) = $this->distinguishCurrentAttributeFilesFromRest();
 
         /**
          * Go thought all import files and create new file reference if files doesn't exist
-         * in "$existingAttributeFiles", this means it need to be attached to product as attribute file.
+         * in "$currentAttributeFiles", this means it need to be attached to product as attribute file.
          * If file already has file reference - use it
          */
         // Found files to attach
-        $attachFiles = $this->collectFilesFromList($folder, $value, $this->logger);
-        // Found given values
-        $foundValues = array_keys($attachFiles);
-        foreach ($attachFiles as $file) {
+        $importFiles = $this->collectFilesFromList($folder, $value, $this->logger);
+        foreach ($importFiles as $importFile) {
             // Create new file reference
-            if (!array_key_exists($file->getUid(), $existingAttributeFiles)) {
+            if (!array_key_exists($importFile->getUid(), $currentAttributeFiles)) {
                 /** @var AttributeFalFile $fileReference */
                 $fileReference = $this->createFileReference(
-                    $file,
+                    $importFile,
                     $this->entity->getUid(),
                     $this->context->getNewRecordsPid(),
                     $this->entity->_getProperty('_languageUid'),
@@ -396,20 +290,75 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 );
                 $fileReference->setAttribute($this->attribute->getUid());
 
-                $attributeFiles[] = $fileReference;
+                $attributesFiles[] = $fileReference;
             } else {
                 // Use existing file reference
-                $attributeFiles[] = $existingAttributeFiles[$file->getUid()];
+                $attributesFiles[] = $currentAttributeFiles[$importFile->getUid()];
             }
         }
 
         // Finally ready to update
-        $this->updateRelationProperty(
+        $this->propertyUpdater->update(
             $this->entity,
             GeneralUtility::underscoredToLowerCamelCase(TCAUtility::ATTRIBUTE_FAL_FIELD_NAME),
-            $attributeFiles
+            $attributesFiles
         );
+    }
 
-        return $foundValues;
+    /**
+     * Collect files that belong to current attribute and rest of the files
+     *
+     * @return array Array of current attribute files and other attributes
+     */
+    protected function distinguishCurrentAttributeFilesFromRest(): array
+    {
+        $currentAttributeFiles = [];
+        $attributesFiles = [];
+
+        /** @var AttributeFalFile $attributeFile */
+        foreach ($this->entity->getAttributeFiles() as $attributeFile) {
+            if ($attributeFile->getAttribute() === $this->attribute->getUid()) {
+                $fileUid = $this->propertyUpdater->getEntityUidForCompare($attributeFile);
+                // File uid => to File reference
+                $currentAttributeFiles[$fileUid] = $attributeFile;
+            } else {
+                $attributesFiles[] = $attributeFile;
+            }
+        }
+
+        return [$currentAttributeFiles, $attributesFiles];
+    }
+
+    /**
+     * Init processing attribute
+     */
+    protected function initAttribute(): void
+    {
+        if (empty($this->configuration['attributeUid'])) {
+            throw new InvalidProcessorConfigurationException(
+                "Missing 'attributeUid' of processor configuration. Name - '{$this->property}'",
+                1536325707731
+            );
+        }
+
+        if ((bool)($this->configuration['treatAttributeUidAsImportUid'] ?? false)) {
+            $record = $this->findRecordByImportIdentifier(
+                $this->configuration['attributeUid'],
+                'tx_pxaproductmanager_domain_model_attribute'
+            );
+
+            if ($record !== null) {
+                $this->attribute = ExtbaseUtility::mapRecord($record, Attribute::class);
+            }
+        } else {
+            $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);
+        }
+
+        if ($this->attribute === null) {
+            throw new \RuntimeException(
+                "Could not find attribute with UID '{$this->configuration['attributeUid']}'",
+                1536325896431
+            );
+        }
     }
 }

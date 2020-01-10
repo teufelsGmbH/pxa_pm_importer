@@ -7,27 +7,20 @@ namespace Pixelant\PxaPmImporter\Processors;
  * Class FloatProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class FloatProcessor extends AbstractFieldProcessor
+class FloatProcessor extends AbstractFieldProcessor implements PreProcessorInterface
 {
     /**
      * Remove comma
      *
      * @param mixed $value
+     * @return float
      */
-    public function preProcess(&$value): void
+    public function preProcess($value)
     {
         if (is_string($value)) {
             $value = str_replace(',', '.', trim($value));
         }
-    }
 
-    /**
-     * Set as float
-     *
-     * @param $value
-     */
-    public function process($value): void
-    {
-        $this->simplePropertySet((float)$value);
+        return (float)$value;
     }
 }

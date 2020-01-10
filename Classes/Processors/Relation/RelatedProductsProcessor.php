@@ -3,39 +3,39 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
-use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
-use Pixelant\PxaPmImporter\Processors\Traits\InitRelationEntities;
 use Pixelant\PxaProductManager\Domain\Model\Product;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class RelatedProductsProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class RelatedProductsProcessor extends AbstractRelationFieldProcessor
+class RelatedProductsProcessor extends AbstractRelationFieldProcessor implements AbleCreateMissingEntities
 {
-    use InitRelationEntities;
+    /**
+     * @inheritDoc
+     */
+    public function createMissingEntity(string $importId)
+    {
+        $fields = array_merge($this->defaultNewFields($importId), [
+            $this->tcaHiddenField() => 1,
+            $this->tcaLabelField() => $importId,
+        ]);
+
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tx_pxaproductmanager_domain_model_product')
+            ->insert(
+                'tx_pxaproductmanager_domain_model_product',
+                $fields
+            );
+    }
 
     /**
-     * Set categories
-     *
-     * @param mixed $value
-     * @return array
+     * @inheritDoc
      */
-    protected function initEntities($value): array
+    protected function domainModel(): string
     {
-        try {
-            $entities = $this->getEntities(
-                $value,
-                Product::class
-            );
-        } catch (FailedInitEntityException $exception) {
-            throw new PostponeProcessorException(
-                'Related product not found [ID- "' . $exception->getIdentifier() . '"]',
-                1536148407513
-            );
-        }
-
-        return $entities;
+        return Product::class;
     }
 }

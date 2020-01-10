@@ -3,12 +3,37 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Utility;
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Class MainUtility
  * @package Pixelant\PxaPmImporter\Utility
  */
 class MainUtility
 {
+    /**
+     * Convert comma-list import value to array or return original array
+     *
+     * @param array|string $list
+     * @param string $delim
+     * @return array
+     */
+    public static function convertListToArray($list, string $delim = ','): array
+    {
+        if (!is_array($list) && !is_string($list)) {
+            $type = gettype($list);
+            throw new \InvalidArgumentException(
+                "Expected to get array or string as import list. '{$type}' given.",
+                1560319588819
+            );
+        }
+        if (is_string($list)) {
+            $list = GeneralUtility::trimExplode($delim, $list, true);
+        }
+
+        return $list;
+    }
+
     /**
      * Convert A to 0, B to 1 and so on
      *

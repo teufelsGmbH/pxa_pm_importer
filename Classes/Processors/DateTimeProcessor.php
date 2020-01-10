@@ -12,11 +12,25 @@ use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 class DateTimeProcessor extends AbstractFieldProcessor
 {
     /**
-     * Prepare for process
+     * Set property according the "outputFormat"
      *
-     * @param mixed $value
+     * @param $value
      */
-    public function preProcess(&$value): void
+    public function process($value): void
+    {
+        $this->checkConfiguration();
+
+        $inputFormat = $this->configuration['inputFormat'];
+        $outputFormat = $this->configuration['outputFormat'];
+        $inputDate = \DateTime::createFromFormat($inputFormat . '|', $value);
+
+        $this->simplePropertySet($inputDate->format($outputFormat));
+    }
+
+    /**
+     * Checks if configuration is valid
+     */
+    protected function checkConfiguration(): void
     {
         if (empty($this->configuration['inputFormat'])) {
             // @codingStandardsIgnoreStart
@@ -29,19 +43,5 @@ class DateTimeProcessor extends AbstractFieldProcessor
             throw new InvalidProcessorConfigurationException('Missing "outputFormat" of processor configuration. Name - "' . $this->property . '"', 1538032831);
             // @codingStandardsIgnoreEnd
         }
-    }
-
-    /**
-     * Set property according the "outputFormat"
-     *
-     * @param $value
-     */
-    public function process($value): void
-    {
-        $inputFormat = $this->configuration['inputFormat'];
-        $outputFormat = $this->configuration['outputFormat'];
-        $inputDate = \DateTime::createFromFormat($inputFormat . '|', $value);
-
-        $this->simplePropertySet($inputDate->format($outputFormat));
     }
 }

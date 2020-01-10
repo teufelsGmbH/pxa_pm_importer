@@ -15,6 +15,7 @@ use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
+use Pixelant\PxaPmImporter\Processors\PreProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
@@ -608,15 +609,25 @@ class Importer implements ImporterInterface
 
         foreach ($this->mapping as $field => $mapping) {
             // Get value from import row
-            $value = $this->getFieldMappingValue($field, $importRow);
+            try {
+                $value = $this->getFieldMappingValue($field, $importRow);
+            } catch (MissingImportField $exception) {
+                $this->logger->warning("Missing import value for field '$field'");
+                continue;
+            }
 
             $property = $mapping['property'];
             // If processor is set, it should set value for model property
             if (!empty($mapping['processor'])) {
                 $processor = $this->createProcessor($mapping);
                 $processor->init($model, $record, $property, $mapping['configuration']);
+                if ($processor instanceof PreProcessorInterface) {
+                    $value = $processor->preProcess($value);
+                }
+                $processor->process($value);
 
-                try {
+
+                /*try {
                     $this->executeProcessor($processor, $value);
                 } catch (PostponeProcessorException $exception) {
                     $this->postponeProcessor($processor, $value);
@@ -624,7 +635,7 @@ class Importer implements ImporterInterface
                     $this->logProcessorValidationError($processor, $errorValidationException);
 
                     throw new FailedImportModelData('Processor validation error', 1571387529039);
-                }
+                }*/
             } else {
                 // Just set it if no processor
                 $currentValue = ObjectAccess::getProperty($model, $property);
@@ -645,6 +656,7 @@ class Importer implements ImporterInterface
         FieldProcessorInterface $processor,
         ErrorValidationException $exception
     ): void {
+        return;
         $this->logger->error(sprintf(
             'Error mapping property. Skipping record. [ID-"%s", UID-"%s", PROP-"%s", REASON-"%s"].',
             $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
@@ -685,17 +697,18 @@ class Importer implements ImporterInterface
     /**
      * Execute import field processor
      *
-     * @param FieldProcessorInterface $processor
+     * @param array $mapping
      * @param $value
      * @return void
      */
-    protected function executeProcessor(FieldProcessorInterface $processor, $value): void
+    protected function executeProcessor(array $mapping, $value): void
     {
-        $processor->preProcess($value);
+        /* $processor = $this->createProcessor($mapping['processor']);
+         $processor->init($model, $record, $property, $mapping['configuration']);*/
 
-        if ($processor->isValid($value)) {
-            $processor->process($value);
-        }
+        /* if ($processor->isValid($value)) {
+             $processor->process($value);
+         }*/
     }
 
     /**
@@ -891,6 +904,7 @@ class Importer implements ImporterInterface
      */
     protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
     {
+        return;
         // Increase amount of import items, since postponed processor means + 1 operation
         $this->amountOfImportItems++;
 
@@ -1068,7 +1082,7 @@ class Importer implements ImporterInterface
 
             $this->persistAndClear();
             // Execute postponed processors and persist again
-            $this->executePostponedProcessors();
+            //$this->executePostponedProcessors();
         }
     }
 
@@ -1158,6 +1172,11 @@ class Importer implements ImporterInterface
     protected function persistSingleEntity(AbstractEntity $model, array $record, bool $isNew): void
     {
         $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
+
+        // Enable if was disabled
+        if ($model->_getProperty('hidden')) {
+            $model->_setProperty('hidden', false);
+        }
 
         if ($model->_isDirty()) {
             $this->logger->info(sprintf(

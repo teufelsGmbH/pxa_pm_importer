@@ -7,23 +7,14 @@ namespace Pixelant\PxaPmImporter\Processors;
  * Class IntegerProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class IntegerProcessor extends AbstractFieldProcessor
+class IntegerProcessor extends AbstractFieldProcessor implements PreProcessorInterface
 {
     /**
      * @param mixed $value
+     * @return int
      */
-    public function preProcess(&$value): void
+    public function preProcess($value)
     {
-        $value = intval($value);
-    }
-
-    /**
-     * Set as int
-     *
-     * @param $value
-     */
-    public function process($value): void
-    {
-        $this->simplePropertySet($value);
+        return (int)$value;
     }
 }
