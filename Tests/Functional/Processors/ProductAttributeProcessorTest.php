@@ -28,13 +28,11 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
         parent::setUp();
         $this->importDataSet(__DIR__ . '/../Fixtures/tx_pxaproductmanager_domain_model_option.xml');
 
-        $this->subject = GeneralUtility::makeInstance(ObjectManager::class)->get(ProductAttributeProcessor::class);
-
-        $context = new ImportContext();
+        $context = GeneralUtility::makeInstance(ImportContext::class);
         $context->setNewRecordsPid(1);
         $context->setStoragePids([1]);
 
-        $this->subject->_set('context', $context);
+        $this->subject = GeneralUtility::makeInstance(ObjectManager::class)->get(ProductAttributeProcessor::class);
     }
 
     protected function tearDown()

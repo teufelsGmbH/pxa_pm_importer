@@ -914,6 +914,7 @@ class Importer implements ImporterInterface
 
                 $model = $this->mapRow($record);
 
+                $this->configuration
                 // After it's ready for populating data it can be updated/deleted
                 $action = $this->detectImportEntityAction($model, $record, $row, $isNew);
 
