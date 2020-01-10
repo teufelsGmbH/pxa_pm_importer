@@ -48,7 +48,7 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
     {
         $values = 'BWM,Tesla';
 
-        $expect = [131, 141];
+        $expect = ['131,141'];
 
         $attribute = new Attribute();
         $attribute->_setProperty('uid', 3344);
