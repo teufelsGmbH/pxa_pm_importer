@@ -8,6 +8,7 @@ use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
 use Pixelant\PxaPmImporter\Processors\Traits\ImportListValue;
 use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\AttributeFalFile;
@@ -285,7 +286,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $values = $this->convertListToArray($value);
         $hashes = array_map(
             function ($value) {
-                return MainUtility::getImportIdHash($value);
+                return HashUtility::hashImportId($value);
             },
             $values
         );

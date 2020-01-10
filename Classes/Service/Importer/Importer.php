@@ -16,6 +16,7 @@ use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
@@ -545,7 +546,7 @@ class Importer implements ImporterInterface
      */
     protected function getImportIdHash(string $id): string
     {
-        return MainUtility::getImportIdHash($id);
+        return HashUtility::hashImportId($id);
     }
 
     /**
