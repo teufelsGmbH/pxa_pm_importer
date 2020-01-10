@@ -43,11 +43,11 @@ trait InitRelationEntities
                 $record = BackendUtility::getRecord($table, $identifier);
             } else {
                 // If not uid find by import hash
-                $record = $this->getRecordByImportIdentifier($identifier, $table);
+                $record = $this->findRecordByImportIdentifier($identifier, $table);
                 // If nothing found try to create?
                 if ($record === null && $createEntity !== null) {
                     $createEntity($identifier);
-                    $record = $this->getRecordByImportIdentifier($identifier, $table);
+                    $record = $this->findRecordByImportIdentifier($identifier, $table);
                 }
             }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Context\ImportContext;
+use Pixelant\PxaPmImporter\Domain\Repository\ImportRecordRepository;
 use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
 use Pixelant\PxaPmImporter\Domain\Validation\Validator\ValidatorFactory;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
@@ -59,9 +60,14 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     protected $context = null;
 
     /**
+     * @var ImportRecordRepository
+     */
+    protected $repository = null;
+
+    /**
      * Initialize
      */
-    public function __construct()
+    public function initializeObject()
     {
         $this->logger = Logger::getInstance(get_class($this));
     }
@@ -72,6 +78,14 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     public function injectImportContext(ImportContext $importContext)
     {
         $this->context = $importContext;
+    }
+
+    /**
+     * @param ImportRecordRepository $repository
+     */
+    public function injectImportRecordRepository(ImportRecordRepository $repository)
+    {
+        $this->repository = $repository;
     }
 
     /**
@@ -216,9 +230,9 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      * @param int $language
      * @return array|null
      */
-    protected function getRecordByImportIdentifier(string $identifier, string $table, int $language = 0): ?array
+    protected function findRecordByImportIdentifier(string $identifier, string $table, int $language = 0): ?array
     {
-        return MainUtility::getRecordByImportId($identifier, $table, $this->context->getStoragePids(), $language);
+        return $this->repository->findByImportIdHash($identifier, $table, $language);
     }
 
     /**

@@ -85,7 +85,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         if (isset($this->configuration['treatAttributeUidAsImportUid'])
             && (bool)$this->configuration['treatAttributeUidAsImportUid'] === true
         ) {
-            $record = $this->getRecordByImportIdentifier(
+            $record = $this->findRecordByImportIdentifier(
                 $this->configuration['attributeUid'],
                 'tx_pxaproductmanager_domain_model_attribute'
             );

@@ -6,6 +6,7 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
+use Pixelant\PxaPmImporter\Domain\Repository\ImportRecordRepository;
 use Pixelant\PxaPmImporter\Domain\Repository\ProgressRepository;
 use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
 use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
@@ -84,6 +85,11 @@ class Importer implements ImporterInterface
      * @var ImportContext
      */
     protected $context = null;
+
+    /**
+     * @var ImportRecordRepository
+     */
+    protected $importRepository = null;
 
     /**
      * Array of import processor that should be run in postImport
@@ -207,9 +213,11 @@ class Importer implements ImporterInterface
      * Initialize
      *
      * @param ProgressRepository $progressRepository
+     * @param ImportRecordRepository $importRecordRepository
      */
-    public function __construct(ProgressRepository $progressRepository)
+    public function __construct(ProgressRepository $progressRepository, ImportRecordRepository $importRecordRepository)
     {
+        $this->importRepository = $importRecordRepository;
         $this->progressRepository = $progressRepository;
         $this->logger = Logger::getInstance(__CLASS__);
     }
@@ -552,16 +560,15 @@ class Importer implements ImporterInterface
     /**
      * Return DB row with record by import ID and language
      *
-     * @param string $idHash
+     * @param string $hash
      * @param int $language
      * @return array|null
      */
-    protected function getRecordByImportIdHash(string $idHash, int $language = 0): ?array
+    protected function findRecordByImportIdHash(string $hash, int $language = 0): ?array
     {
-        return MainUtility::getRecordByImportIdHash(
-            $idHash,
+        return $this->importRepository->findByImportIdHash(
+            $hash,
             $this->dbTable,
-            $this->context->getStoragePids(),
             $language
         );
     }
@@ -712,7 +719,7 @@ class Importer implements ImporterInterface
         $this->createNewEmptyRecord($id, $hash, $language);
 
         // Get new empty record
-        $record = $this->getRecordByImportIdHash($hash, $language);
+        $record = $this->findRecordByImportIdHash($hash, $language);
 
         if ($record === null) {
             // @codingStandardsIgnoreStart
@@ -771,7 +778,7 @@ class Importer implements ImporterInterface
                 throw new LocalizationImpossibleException('Localization went with errors', 1571384846222);
             case self::LOCALIZATION_SUCCESS:
                 // If localization was created, fetch it.
-                $record = $this->getRecordByImportIdHash($hash, $language);
+                $record = $this->findRecordByImportIdHash($hash, $language);
 
                 $this->logger->info(sprintf(
                     'Localized record [UID-"%s", ID-"%s", LANG-"%s"]',
@@ -801,7 +808,7 @@ class Importer implements ImporterInterface
      */
     protected function handleLocalization(string $hash, int $language): int
     {
-        $defaultLanguageRecord = $this->getRecordByImportIdHash($hash, 0);
+        $defaultLanguageRecord = $this->findRecordByImportIdHash($hash, 0);
         if ($defaultLanguageRecord !== null) {
             $cmd = [];
             $cmd[$this->dbTable][(string)$defaultLanguageRecord['uid']]['localize'] = $language;
@@ -990,7 +997,7 @@ class Importer implements ImporterInterface
                 $this->checkIfIdentifierUnique($idHash, $id);
 
                 $isNew = false;
-                $record = $this->getRecordByImportIdHash($idHash, $language);
+                $record = $this->findRecordByImportIdHash($idHash, $language);
 
                 // Try to create localization if doesn't exist
                 if ($record === null && $language > 0) {
