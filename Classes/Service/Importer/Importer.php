@@ -17,6 +17,7 @@ use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -492,7 +493,7 @@ class Importer implements ImporterInterface
         $this->repository = $this->objectManager->get($repository);
 
         // Set table of domain model
-        $this->dbTable = MainUtility::getTableNameByModelName($domainModel);
+        $this->dbTable = ExtbaseUtility::convertClassNameToTableName($domainModel);
     }
 
     /**
@@ -581,7 +582,7 @@ class Importer implements ImporterInterface
      */
     protected function mapRow(array $row): AbstractEntity
     {
-        return MainUtility::convertRecordArrayToModel($row, $this->modelName);
+        return ExtbaseUtility::mapRecord($row, $this->modelName);
     }
 
     /**

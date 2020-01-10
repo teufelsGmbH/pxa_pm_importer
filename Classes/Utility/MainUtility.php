@@ -3,74 +3,12 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Utility;
 
-use TYPO3\CMS\Core\Utility\ArrayUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
-use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
-use TYPO3\CMS\Extbase\DomainObject\AbstractValueObject;
-use TYPO3\CMS\Extbase\Object\ObjectManager;
-use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
-
 /**
  * Class MainUtility
  * @package Pixelant\PxaPmImporter\Utility
  */
 class MainUtility
 {
-    /**
-     * Keep extbase class mapping
-     *
-     * @var array
-     */
-    protected static $classColumnsMappingConfiguration = [];
-
-    /**
-     * Convert db raw row to extbase model
-     *
-     * @param array $row
-     * @param string $model
-     * @return null|AbstractEntity
-     */
-    public static function convertRecordArrayToModel(array $row, string $model): AbstractEntity
-    {
-        $dataMapper = GeneralUtility::makeInstance(ObjectManager::class)->get(DataMapper::class);
-
-        $result = $dataMapper->map($model, [$row]);
-
-        return $result[0];
-    }
-
-    /**
-     * Return table name where model is mapped
-     *
-     * @param string $model
-     * @return string
-     */
-    public static function getTableNameByModelName(string $model): string
-    {
-        $dataMapper = GeneralUtility::makeInstance(ObjectManager::class)->get(DataMapper::class);
-
-        return $dataMapper->convertClassNameToTableName($model);
-    }
-
-    /**
-     * Get property name by DB column name
-     *
-     * @param string $className Model class name
-     * @param string $columnName DB column name
-     * @return string Property name
-     */
-    public static function convertColumnNameToPropertyName(string $className, string $columnName): string
-    {
-        $mapping = static::getClassColumnsMappingConfiguration($className);
-
-        if (!empty($mapping[$columnName]['mapOnProperty'])) {
-            return $mapping[$columnName]['mapOnProperty'];
-        }
-
-        return GeneralUtility::underscoredToLowerCamelCase($columnName);
-    }
-
     /**
      * Convert A to 0, B to 1 and so on
      *
@@ -112,49 +50,5 @@ class MainUtility
         $unit = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
 
         return @round($size / pow(1024, ($i = floor(log($size, 1024)))), 2) . ' ' . $unit[(int)$i];
-    }
-
-    /**
-     * Return extbase model class mapping
-     *
-     * @param string $className
-     * @return array
-     */
-    protected static function getClassColumnsMappingConfiguration(string $className): array
-    {
-        if (isset(static::$classColumnsMappingConfiguration[$className])) {
-            return static::$classColumnsMappingConfiguration[$className];
-        }
-
-        $frameworkConfiguration = GeneralUtility::makeInstance(ObjectManager::class)
-            ->get(ConfigurationManagerInterface::class)
-            ->getConfiguration(ConfigurationManagerInterface::CONFIGURATION_TYPE_FRAMEWORK);
-
-        $columnMapping = [];
-        $classSettings = $frameworkConfiguration['persistence']['classes'][$className] ?? null;
-        if ($classSettings !== null) {
-            $classHierarchy = array_merge([$className], class_parents($className));
-            foreach ($classHierarchy as $currentClassName) {
-                if (in_array($currentClassName, [AbstractEntity::class, AbstractValueObject::class])) {
-                    break;
-                }
-                $currentClassSettings = $frameworkConfiguration['persistence']['classes'][$currentClassName];
-                if ($currentClassSettings !== null) {
-                    if (isset($currentClassSettings['mapping']['columns'])
-                        && is_array($currentClassSettings['mapping']['columns'])
-                    ) {
-                        ArrayUtility::mergeRecursiveWithOverrule(
-                            $columnMapping,
-                            $currentClassSettings['mapping']['columns'],
-                            true,
-                            false
-                        );
-                    }
-                }
-            }
-        }
-
-        static::$classColumnsMappingConfiguration[$className] = $columnMapping;
-        return $columnMapping;
     }
 }

@@ -4,10 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Traits;
 
 use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
-use Pixelant\PxaPmImporter\Utility\MainUtility;
+use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Log\Logger;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
@@ -35,7 +33,7 @@ trait InitRelationEntities
     ): array {
         $entities = [];
         $value = $this->convertListToArray($value, $this->delim());
-        $table = $this->getTableName($domainModelClassName);
+        $table = $this->convertClassNameToTableName($domainModelClassName);
 
         foreach ($value as $identifier) {
             // If identifier is UID from DB
@@ -52,7 +50,7 @@ trait InitRelationEntities
             }
 
             if ($record !== null) {
-                $model = MainUtility::convertRecordArrayToModel($record, $domainModelClassName);
+                $model = ExtbaseUtility::mapRecord($record, $domainModelClassName);
             }
 
             if (isset($model) && is_object($model)) {
@@ -107,8 +105,8 @@ trait InitRelationEntities
      * @param string $domainModelClassName
      * @return string
      */
-    protected function getTableName(string $domainModelClassName): string
+    protected function convertClassNameToTableName(string $domainModelClassName): string
     {
-        return MainUtility::getTableNameByModelName($domainModelClassName);
+        return ExtbaseUtility::convertClassNameToTableName($domainModelClassName);
     }
 }

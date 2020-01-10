@@ -8,8 +8,8 @@ use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
 use Pixelant\PxaPmImporter\Processors\Traits\ImportListValue;
 use Pixelant\PxaPmImporter\Processors\Traits\UpdateRelationProperty;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
-use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\AttributeFalFile;
 use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
@@ -91,7 +91,7 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
             );
 
             if ($record !== null) {
-                $this->attribute = MainUtility::convertRecordArrayToModel($record, Attribute::class);
+                $this->attribute = ExtbaseUtility::mapRecord($record, Attribute::class);
             }
         } else {
             $this->attribute = $this->attributeRepository->findByUid((int)$this->configuration['attributeUid']);

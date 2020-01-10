@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Exception\Processors\SlugFieldNotFoundException;
-use Pixelant\PxaPmImporter\Utility\MainUtility;
+use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\Model\RecordStateFactory;
 use TYPO3\CMS\Core\DataHandling\SlugHelper;
@@ -30,7 +30,7 @@ class SlugProcessor extends AbstractFieldProcessor
             throw new SlugFieldNotFoundException("Could not find slug field with name '{$slugField}'", 1557407283555);
         }
 
-        $table = MainUtility::getTableNameByModelName(get_class($this->entity));
+        $table = ExtbaseUtility::convertClassNameToTableName(get_class($this->entity));
         if (!array_key_exists($slugField, $GLOBALS['TCA'][$table]['columns'])
             && is_array($GLOBALS['TCA'][$table]['columns'][$slugField]['config'])
         ) {
@@ -109,7 +109,7 @@ class SlugProcessor extends AbstractFieldProcessor
                 $fieldNameParts = GeneralUtility::trimExplode(',', $fieldNameParts);
             }
             foreach ($fieldNameParts as $fieldName) {
-                $propertyName = MainUtility::convertColumnNameToPropertyName(
+                $propertyName = ExtbaseUtility::convertColumnNameToPropertyName(
                     get_class($this->entity),
                     $fieldName
                 );
