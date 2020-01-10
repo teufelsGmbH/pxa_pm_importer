@@ -31,7 +31,7 @@ class ImporterTest extends UnitTestCase
     {
         $this->subject = $this->getAccessibleMock(
             Importer::class,
-            ['emitSignal', 'getDataHandler', 'getRecordByImportIdHash', 'createNewEmptyRecord'],
+            ['emitSignal', 'getDataHandler', 'findRecordByImportIdHash', 'createNewEmptyRecord'],
             [],
             '',
             false
@@ -225,7 +225,7 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->with($hash, 0)
             ->willReturn(null);
 
@@ -242,9 +242,9 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->with($hash, 0)
-            ->willReturn(['uid' => 12]);
+            ->willReturn(['uid' => 12, 'pid' => 1]);
 
         $dataHandler = $this->createMock(DataHandler::class);
         $dataHandler->errorLog = ['Error'];
@@ -267,7 +267,7 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->with($hash, 0)
             ->willReturn(['uid' => 12]);
 
@@ -352,7 +352,7 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->willReturn([]);
 
         $this->subject->_call('tryCreateNewRecord', 1, 'test', 0);

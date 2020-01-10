@@ -13,16 +13,6 @@ use Pixelant\PxaPmImporter\Utility\MainUtility;
 class MainUtilityTest extends UnitTestCase
 {
     /**
-     * @test
-     */
-    public function getImportIdHashReturnImportHash()
-    {
-        $id = 'test';
-
-        $this->assertEquals(md5($id), MainUtility::getImportIdHash($id));
-    }
-
-    /**
      * Convert excel columns A to 0, B to 1 and so on
      * @test
      */

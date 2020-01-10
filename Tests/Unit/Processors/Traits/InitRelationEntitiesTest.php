@@ -56,12 +56,12 @@ class InitRelationEntitiesTest extends UnitTestCase
             false,
             false,
             true,
-            ['getRecordByImportIdentifier', 'getTableName']
+            ['findRecordByImportIdentifier', 'convertClassNameToTableName']
         );
 
         $mock
             ->expects($this->atLeastOnce())
-            ->method('getRecordByImportIdentifier')
+            ->method('findRecordByImportIdentifier')
             ->willReturn(null);
 
         $closureNewEntity = function ($identifier) {
@@ -77,7 +77,7 @@ class InitRelationEntitiesTest extends UnitTestCase
      *
      * @return null
      */
-    protected function getRecordByImportIdentifier()
+    protected function findRecordByImportIdentifier()
     {
         return null;
     }
@@ -87,7 +87,7 @@ class InitRelationEntitiesTest extends UnitTestCase
      *
      * @return null
      */
-    protected function getTableName(string $domainName)
+    protected function convertClassNameToTableName(string $domainName)
     {
         return 'null';
     }

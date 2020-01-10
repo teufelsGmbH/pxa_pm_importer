@@ -842,7 +842,6 @@ class Importer implements ImporterInterface
             return self::LOCALIZATION_SUCCESS;
         }
 
-
         return self::LOCALIZATION_DEFAULT_NOT_FOUND;
     }
 
