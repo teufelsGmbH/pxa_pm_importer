@@ -110,25 +110,6 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     }
 
     /**
-     * Array of default fields of empty new entity
-     *
-     * @param string $importId
-     * @return array
-     */
-    protected function defaultNewFields(string $importId): array
-    {
-        $time = time();
-
-        return [
-            'pid' => $this->entity->getPid(),
-            ImporterInterface::DB_IMPORT_ID_FIELD => $importId,
-            ImporterInterface::DB_IMPORT_ID_HASH_FIELD => HashUtility::hashImportId($importId),
-            'tstamp' => $time,
-            'crdate' => $time,
-        ];
-    }
-
-    /**
      * @return string
      */
     protected function tcaHiddenField(): string
@@ -144,6 +125,18 @@ abstract class AbstractRelationFieldProcessor extends AbstractFieldProcessor
     {
         $table = $this->convertClassNameToTableName($this->domainModel());
         return $GLOBALS['TCA'][$table]['ctrl']['label'];
+    }
+
+    /**
+     * Add placeholder field to new record fields
+     *
+     * @param array $fields
+     * @return array
+     */
+    protected function newRecordFieldsWithPlaceHolder(array $fields): array
+    {
+        $fields[ImporterInterface::DB_IMPORT_PLACEHOLDER] = 1;
+        return $fields;
     }
 
     /**

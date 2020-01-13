@@ -4,8 +4,6 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
 use Pixelant\PxaProductManager\Domain\Model\Product;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class RelatedProductsProcessor
@@ -18,17 +16,17 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor implements
      */
     public function createMissingEntity(string $importId)
     {
-        $fields = array_merge($this->defaultNewFields($importId), [
+        $fields = [
             $this->tcaHiddenField() => 1,
-            $this->tcaLabelField() => $importId,
-        ]);
+            $this->tcaLabelField() => $importId
+        ];
 
-        GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_pxaproductmanager_domain_model_product')
-            ->insert(
-                'tx_pxaproductmanager_domain_model_product',
-                $fields
-            );
+        $this->repository->createEmpty(
+            $importId,
+            'tx_pxaproductmanager_domain_model_product',
+            0,
+            $this->newRecordFieldsWithPlaceHolder($fields)
+        );
     }
 
     /**

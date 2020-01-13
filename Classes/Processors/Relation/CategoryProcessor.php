@@ -4,8 +4,6 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
 use Pixelant\PxaProductManager\Domain\Model\Category;
-use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class CategoryProcessor
@@ -18,17 +16,9 @@ class CategoryProcessor extends AbstractRelationFieldProcessor implements AbleCr
      */
     public function createMissingEntity(string $importId)
     {
-        $fields = array_merge($this->defaultNewFields($importId), [
-            'title' => $importId,
-            $this->tcaHiddenField() => 1,
-        ]);
+        $fields = ['title' => $importId, $this->tcaHiddenField() => 1];
 
-        GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('sys_category')
-            ->insert(
-                'sys_category',
-                $fields
-            );
+        $this->repository->createEmpty($importId, 'sys_category', 0, $this->newRecordFieldsWithPlaceHolder($fields));
     }
 
     /**
