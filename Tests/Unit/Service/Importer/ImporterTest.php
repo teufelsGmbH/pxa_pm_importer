@@ -10,6 +10,7 @@ use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\Importer;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\CsvSource;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
@@ -428,5 +429,14 @@ class ImporterTest extends UnitTestCase
         $this->subject->_call('setSource', $source);
 
         $this->assertSame($source, $this->subject->_get('source'));
+    }
+
+    /**
+     * @test
+     */
+    public function isPlaceholderRecordReturnTrueIfFlagIsSet()
+    {
+        $row = [ImporterInterface::DB_IMPORT_PLACEHOLDER => 1];
+        $this->assertTrue($this->subject->_call('isPlaceholderRecord', $row));
     }
 }
