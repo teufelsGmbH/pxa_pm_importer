@@ -39,8 +39,6 @@ class IntegerProcessorTest extends UnitTestCase
         $value = '14';
         $expect = (int)$value;
 
-        $this->subject->preProcess($value);
-
-        $this->assertEquals($expect, $value);
+        $this->assertEquals($expect, $this->subject->preProcess($value));
     }
 }

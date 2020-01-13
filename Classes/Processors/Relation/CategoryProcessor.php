@@ -3,39 +3,29 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Relation;
 
-use Pixelant\PxaPmImporter\Exception\FailedInitEntityException;
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
-use Pixelant\PxaPmImporter\Processors\Traits\InitRelationEntities;
 use Pixelant\PxaProductManager\Domain\Model\Category;
 
 /**
  * Class CategoryProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class CategoryProcessor extends AbstractRelationFieldProcessor
+class CategoryProcessor extends AbstractRelationFieldProcessor implements AbleCreateMissingEntities
 {
-    use InitRelationEntities;
+    /**
+     * @inheritDoc
+     */
+    public function createMissingEntity(string $importId)
+    {
+        $fields = ['title' => $importId, $this->tcaHiddenField() => 1];
+
+        $this->repository->createEmpty($importId, 'sys_category', 0, $this->newRecordFieldsWithPlaceHolder($fields));
+    }
 
     /**
-     * Set categories
-     *
-     * @param mixed $value
-     * @return array
+     * @inheritDoc
      */
-    protected function initEntities($value): array
+    protected function domainModel(): string
     {
-        try {
-            $entities = $this->getEntities(
-                $value,
-                Category::class
-            );
-        } catch (FailedInitEntityException $exception) {
-            throw new PostponeProcessorException(
-                'Related category not found [ID- "' . $exception->getIdentifier() . '"]',
-                1547190959260
-            );
-        }
-
-        return $entities;
+        return Category::class;
     }
 }

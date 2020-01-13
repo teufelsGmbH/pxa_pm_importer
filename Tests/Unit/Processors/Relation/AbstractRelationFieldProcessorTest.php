@@ -4,11 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Tests\Unit\Processors\Relation;
 
 use Nimut\TestingFramework\TestCase\UnitTestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor;
-use Pixelant\PxaProductManager\Domain\Model\Category;
-use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
-use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * Class AbstractRelationFieldProcessorTest
@@ -17,73 +13,48 @@ use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 class AbstractRelationFieldProcessorTest extends UnitTestCase
 {
     /**
-     * @test
+     * @var \Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface|\PHPUnit\Framework\MockObject\MockObject|AbstractRelationFieldProcessor
      */
-    public function preProcessWillCallInitEntities()
+    protected $subject;
+
+    protected function setUp()
     {
-        /** @var AbstractRelationFieldProcessor|MockObject $subject */
-        $subject = $this
-            ->getMockBuilder(AbstractRelationFieldProcessor::class)
-            ->setMethods(['initEntities'])
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $subject
-            ->expects($this->once())
-            ->method('initEntities');
-
-        $value = '';
-        $subject->preProcess($value);
+        $this->subject = $this->getAccessibleMock(AbstractRelationFieldProcessor::class, ['domainModel'], [], '', false);
+        parent::setUp();
     }
 
     /**
      * @test
      */
-    public function preProcessThrowExceptionIfEntitiesNotValud()
+    public function treatIdentifierAsUidReturnFalseIfNotSetInConfiguration()
     {
-        /** @var AbstractRelationFieldProcessor|MockObject $subject */
-        $subject = $this
-            ->getMockBuilder(AbstractRelationFieldProcessor::class)
-            ->setMethods(['initEntities'])
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $subject
-            ->expects($this->once())
-            ->method('initEntities')
-            ->willReturn(['test', 123]);
-
-        $this->expectException(\UnexpectedValueException::class);
-
-        $value = '';
-        $subject->preProcess($value);
+        $this->assertFalse($this->subject->_call('treatIdentifierAsUid'));
     }
 
     /**
      * @test
      */
-    public function initValueOfFailedInitIsFalse()
+    public function treatIdentifierAsUidReturnTrueIfSetInConfiguration()
     {
-        /** @var AbstractRelationFieldProcessor|MockObject $subject */
-        $subject = $this
-            ->getMockBuilder(AbstractRelationFieldProcessor::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->assertFalse($this->getObjectAttribute($subject, 'failedInit'));
+        $this->inject($this->subject, 'configuration', ['treatIdentifierAsUid' => true]);
+        $this->assertTrue($this->subject->_call('treatIdentifierAsUid'));
     }
 
     /**
      * @test
      */
-    public function validationFailsIfFailedInit()
+    public function delimReturnDelimFromConfiguration()
     {
-        /** @var AbstractRelationFieldProcessor|MockObject $subject */
-        $subject = $this
-            ->getMockBuilder(AbstractRelationFieldProcessor::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $delim = '--';
+        $this->inject($this->subject, 'configuration', ['delim' => $delim]);
+        $this->assertEquals($delim, $this->subject->_call('delim'));
+    }
 
-        $this->assertFalse($subject->isValid('test'));
+    /**
+     * @test
+     */
+    public function delimReturnDefaultValueIfNoConfig()
+    {
+        $this->assertEquals(',', $this->subject->_call('delim'));
     }
 }

@@ -23,10 +23,11 @@ trait EmitSignalTrait
      * @param string $className
      * @param string $signalName
      * @param array $signalArguments
+     * @return array
      */
-    protected function emitSignal(string $className, string $signalName, array $signalArguments): void
+    protected function emitSignal(string $className, string $signalName, array $signalArguments): array
     {
-        $this->getSignalSlotDispatcher()->dispatch(
+        return $this->getSignalSlotDispatcher()->dispatch(
             $className,
             $signalName,
             $signalArguments

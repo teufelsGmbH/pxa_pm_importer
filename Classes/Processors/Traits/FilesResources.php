@@ -115,18 +115,17 @@ trait FilesResources
         /** @var File[] $files */
         $files = [];
 
-        foreach ($list as $filePath) {
-            $fileIdentifier = $folder->getIdentifier() . ltrim($filePath, '/');
-
+        foreach ($list as $file) {
             // Emit signal
-            $this->emitSignal(__CLASS__, 'beforeImportFileGet', [$fileIdentifier, $this->configuration]);
+            $this->emitSignal(__CLASS__, 'beforeImportFileGet', [$folder, $file, $this->configuration]);
 
-            if ($storage->hasFile($fileIdentifier)) {
-                $files[$filePath] = $storage->getFile($fileIdentifier);
+            if ($folder->hasFile($file)) {
+                $files[] = $storage->getFileInFolder($file, $folder);
             } elseif ($logger !== null) {
                 $logger->error(sprintf(
-                    'File "%s" doesn\'t exist',
-                    $fileIdentifier
+                    'File "%s" doesn\'t exist in folder %s',
+                    $file,
+                    $folder->getCombinedIdentifier()
                 ));
             }
         }

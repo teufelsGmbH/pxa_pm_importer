@@ -1,29 +1,42 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Domain\Validation\Validator;
+namespace Pixelant\PxaPmImporter\Validation\Validator;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ValidatorFactory
  * @package Pixelant\PxaPmImporter\Domain\Validation\Validator
  */
-final class ValidatorFactory
+class ValidatorFactory
 {
+    /**
+     * @var ObjectManager
+     */
+    protected $objectManager;
+
+    /**
+     */
+    public function __construct(ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
+
     /**
      * Validator factory
      *
      * @param string $validatorName
-     * @return ProcessorFieldValueValidatorInterface
+     * @return ValidatorInterface
      */
-    public static function factory(string $validatorName): ProcessorFieldValueValidatorInterface
+    public function create(string $validatorName): ValidatorInterface
     {
         if (class_exists($validatorName)) {
             $className = $validatorName;
         } else {
             $className = sprintf(
-                'Pixelant\\PxaPmImporter\\Domain\\Validation\\Validator\\%sValidator',
+                'Pixelant\\PxaPmImporter\\Validation\\Validator\\%sValidator',
                 ucfirst($validatorName)
             );
         }
@@ -32,8 +45,8 @@ final class ValidatorFactory
             throw new \InvalidArgumentException("Validator '{$className}' doesn't exist.", 1550064722323);
         }
 
-        $validatorInstance = GeneralUtility::makeInstance($className);
-        if (!($validatorInstance instanceof ProcessorFieldValueValidatorInterface)) {
+        $validator = $this->objectManager->get($className);
+        if (!($validator instanceof ValidatorInterface)) {
             throw new \UnexpectedValueException(
                 sprintf(
                     'Validator "%s", should be instance of ProcessorFieldValueValidatorInterface',
@@ -43,6 +56,6 @@ final class ValidatorFactory
             );
         }
 
-        return $validatorInstance;
+        return $validator;
     }
 }

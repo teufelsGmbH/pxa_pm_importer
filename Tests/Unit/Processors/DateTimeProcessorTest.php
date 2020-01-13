@@ -6,8 +6,6 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Processors;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Processors\DateTimeProcessor;
-use Pixelant\PxaProductManager\Domain\Model\Product;
-use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 
 /**
  * Class DateTimeProcessorTest
@@ -25,55 +23,45 @@ class DateTimeProcessorTest extends UnitTestCase
         parent::setUp();
         $this->subject = $this->getAccessibleMock(
             DateTimeProcessor::class,
-            ['getOptions'],
+            ['simplePropertySet'],
             [],
             '',
             false
         );
     }
 
-    protected function tearDown()
-    {
-        parent::tearDown();
-        unset($this->subject);
-    }
-
     /**
      * @test
      */
-    public function preProcessWithoutInputFormatThrowsException()
+    public function checkConfigurationWithoutInputFormatThrowsException()
     {
-        $value = '2018-09-27';
-
         $configuration = [
             'outputFormat' => 'Y-m-d'
         ];
 
         $this->subject->_set('configuration', $configuration);
         $this->expectException(InvalidProcessorConfigurationException::class);
-        $this->subject->preProcess($value);
+        $this->subject->_call('checkConfiguration');
     }
 
     /**
      * @test
      */
-    public function preProcessWithoutOutputFormatThrowsException()
+    public function checkConfigurationWithoutOutputFormatThrowsException()
     {
-        $value = '2018-09-27';
-
         $configuration = [
             'inputFormat' => 'Y-m-d',
         ];
 
         $this->subject->_set('configuration', $configuration);
         $this->expectException(InvalidProcessorConfigurationException::class);
-        $this->subject->preProcess($value);
+        $this->subject->_call('checkConfiguration');
     }
 
     /**
      * @test
      */
-    public function preProcessWillReturnExpectedValueFromIntegerProperty()
+    public function processWillTryToUpdateWithExpectedValueFromIntegerProperty()
     {
         $value = '09/26/2018 02:00:32';
         $expect = '1537927232';
@@ -83,23 +71,21 @@ class DateTimeProcessorTest extends UnitTestCase
             'outputFormat' => 'U'
         ];
 
-        $entity = new Product();
-        $entity->_setProperty('crdate', 0);
 
         $this->subject->_set('configuration', $configuration);
-        $this->subject->_set('entity', $entity);
-        $this->subject->_set('property', 'crdate');
 
-        $this->subject->preProcess($value);
-        $this->assertTrue($this->subject->isValid($value));
+        $this->subject
+            ->expects($this->once())
+            ->method('simplePropertySet')
+            ->with($expect);
+
         $this->subject->process($value);
-        $this->assertEquals($expect, $entity->getCrdate());
     }
 
     /**
      * @test
      */
-    public function preProcessWillReturnExpectedValueFromStringProperty()
+    public function processWillTryToUpdateWithExpectedValueFromStringProperty()
     {
         $value = '1538117523';
         $expect = '2018-09-28T06:52:03+00:00';
@@ -109,23 +95,21 @@ class DateTimeProcessorTest extends UnitTestCase
             'outputFormat' => 'c'
         ];
 
-        $entity = new Product();
-        $entity->_setProperty('name', '');
 
         $this->subject->_set('configuration', $configuration);
-        $this->subject->_set('entity', $entity);
-        $this->subject->_set('property', 'name');
 
-        $this->subject->preProcess($value);
-        $this->assertTrue($this->subject->isValid($value));
+        $this->subject
+            ->expects($this->once())
+            ->method('simplePropertySet')
+            ->with($expect);
+
         $this->subject->process($value);
-        $this->assertEquals($expect, $entity->getName());
     }
 
     /**
      * @test
      */
-    public function preProcessWillReturnExpectedValueFromIntegerPropertyWithNoTimeSet()
+    public function processWillTryToUpdateWithExpectedValueFromIntegerPropertyWithNoTimeSet()
     {
         $value = '2000-06-10';
         $expect = '960595200';
@@ -135,23 +119,20 @@ class DateTimeProcessorTest extends UnitTestCase
             'outputFormat' => 'U'
         ];
 
-        $entity = new Product();
-        $entity->_setProperty('crdate', 0);
-
         $this->subject->_set('configuration', $configuration);
-        $this->subject->_set('entity', $entity);
-        $this->subject->_set('property', 'crdate');
 
-        $this->subject->preProcess($value);
-        $this->assertTrue($this->subject->isValid($value));
+        $this->subject
+            ->expects($this->once())
+            ->method('simplePropertySet')
+            ->with($expect);
+
         $this->subject->process($value);
-        $this->assertEquals($expect, $entity->getCrdate());
     }
 
     /**
      * @test
      */
-    public function preProcessWillReturnExpectedValueFromStringPropertyWithNoTimeSet()
+    public function processWillTryToUpdateWithExpectedValueFromStringPropertyWithNoTimeSet()
     {
         $value = '2000-06-10';
         $expect = '2000-06-10T00:00:00+00:00';
@@ -161,16 +142,14 @@ class DateTimeProcessorTest extends UnitTestCase
             'outputFormat' => 'c'
         ];
 
-        $entity = new Product();
-        $entity->_setProperty('name', '');
 
         $this->subject->_set('configuration', $configuration);
-        $this->subject->_set('entity', $entity);
-        $this->subject->_set('property', 'name');
 
-        $this->subject->preProcess($value);
-        $this->assertTrue($this->subject->isValid($value));
+        $this->subject
+            ->expects($this->once())
+            ->method('simplePropertySet')
+            ->with($expect);
+
         $this->subject->process($value);
-        $this->assertEquals($expect, $entity->getName());
     }
 }

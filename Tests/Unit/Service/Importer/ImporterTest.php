@@ -7,12 +7,11 @@ use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Context\ImportContext;
-use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Importer\Importer;
+use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Service\Source\CsvSource;
-use TYPO3\CMS\Core\Cache\Frontend\VariableFrontend;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
 
@@ -31,7 +30,7 @@ class ImporterTest extends UnitTestCase
     {
         $this->subject = $this->getAccessibleMock(
             Importer::class,
-            ['emitSignal', 'getDataHandler', 'getRecordByImportIdHash', 'createNewEmptyRecord'],
+            ['emitSignal', 'getDataHandler', 'findRecordByImportIdHash', 'createNewEmptyRecord'],
             [],
             '',
             false
@@ -225,7 +224,7 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->with($hash, 0)
             ->willReturn(null);
 
@@ -242,9 +241,9 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->with($hash, 0)
-            ->willReturn(['uid' => 12]);
+            ->willReturn(['uid' => 12, 'pid' => 1]);
 
         $dataHandler = $this->createMock(DataHandler::class);
         $dataHandler->errorLog = ['Error'];
@@ -267,7 +266,7 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->with($hash, 0)
             ->willReturn(['uid' => 12]);
 
@@ -280,27 +279,6 @@ class ImporterTest extends UnitTestCase
             ->willReturn($dataHandler);
 
         $this->assertEquals(1, $this->subject->_call('handleLocalization', $hash, $language));
-    }
-
-    /**
-     * @test
-     */
-    public function postponeProcessorWillAddProcessorInQueueAndIncreaseAmountOfImportItems()
-    {
-        $this->subject->_set('postponedProcessors', []);
-        $this->subject->_set('amountOfImportItems', 1);
-
-        $processorInstance = $this->createMock(FieldProcessorInterface::class);
-        $value = 'test value';
-
-        $this->subject->_call('postponeProcessor', $processorInstance, $value);
-
-        $postponedProcessor = $this->subject->_get('postponedProcessors')[0];
-
-        $this->assertInstanceOf(PostponedProcessor::class, $postponedProcessor);
-        $this->assertEquals($value, $postponedProcessor->getValue());
-        $this->assertSame($postponedProcessor->getProcessor(), $processorInstance);
-        $this->assertEquals(2, $this->subject->_get('amountOfImportItems'));
     }
 
     /**
@@ -352,7 +330,7 @@ class ImporterTest extends UnitTestCase
 
         $this->subject
             ->expects($this->once())
-            ->method('getRecordByImportIdHash')
+            ->method('findRecordByImportIdHash')
             ->willReturn([]);
 
         $this->subject->_call('tryCreateNewRecord', 1, 'test', 0);
@@ -451,5 +429,14 @@ class ImporterTest extends UnitTestCase
         $this->subject->_call('setSource', $source);
 
         $this->assertSame($source, $this->subject->_get('source'));
+    }
+
+    /**
+     * @test
+     */
+    public function isPlaceholderRecordReturnTrueIfFlagIsSet()
+    {
+        $row = [ImporterInterface::DB_IMPORT_PLACEHOLDER => 1];
+        $this->assertTrue($this->subject->_call('isPlaceholderRecord', $row));
     }
 }

@@ -5,23 +5,23 @@ namespace Pixelant\PxaPmImporter\Service\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
-use Pixelant\PxaPmImporter\Domain\Model\DTO\PostponedProcessor;
+use Pixelant\PxaPmImporter\Domain\Repository\ImportRecordRepository;
 use Pixelant\PxaPmImporter\Domain\Repository\ProgressRepository;
-use Pixelant\PxaPmImporter\Exception\Importer\FailedImportModelData;
 use Pixelant\PxaPmImporter\Exception\Importer\LocalizationImpossibleException;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
-use Pixelant\PxaPmImporter\Exception\PostponeProcessorException;
-use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
+use Pixelant\PxaPmImporter\Processors\PreProcessorInterface;
 use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
+use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
+use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use Pixelant\PxaPmImporter\Validation\ValidationManager;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\QueryGenerator;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Utility\ClassNamingUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
@@ -85,11 +85,14 @@ class Importer implements ImporterInterface
     protected $context = null;
 
     /**
-     * Array of import processor that should be run in postImport
-     *
-     * @var PostponedProcessor[]
+     * @var ImportRecordRepository
      */
-    protected $postponedProcessors = [];
+    protected $importRecordRepository = null;
+
+    /**
+     * @var ValidationManager
+     */
+    protected $validator = null;
 
     /**
      * Identifier field name
@@ -206,9 +209,11 @@ class Importer implements ImporterInterface
      * Initialize
      *
      * @param ProgressRepository $progressRepository
+     * @param ImportRecordRepository $importRecordRepository
      */
-    public function __construct(ProgressRepository $progressRepository)
+    public function __construct(ProgressRepository $progressRepository, ImportRecordRepository $importRecordRepository)
     {
+        $this->importRecordRepository = $importRecordRepository;
         $this->progressRepository = $progressRepository;
         $this->logger = Logger::getInstance(__CLASS__);
     }
@@ -237,15 +242,35 @@ class Importer implements ImporterInterface
         $this->context = $importContext;
     }
 
+    /**
+     * Execute import
+     *
+     * @param SourceInterface $source
+     * @param array $configuration
+     * @throws \Exception
+     */
+    public function execute(SourceInterface $source, array $configuration): void
+    {
+        $this->initialize($source, $configuration);
+
+        try {
+            $this->runImport();
+            $this->deleteProgress();
+        } catch (\Exception $exception) {
+            // If fail mark as done
+            $this->deleteProgress();
+
+            throw $exception;
+        }
+    }
 
     /**
      * Initialize importer
      *
      * @param SourceInterface $source
      * @param array $configuration
-     * @return ImporterInterface
      */
-    public function initialize(SourceInterface $source, array $configuration): ImporterInterface
+    public function initialize(SourceInterface $source, array $configuration): void
     {
         $this->setConfiguration($configuration);
         $this->setSource($source);
@@ -266,23 +291,7 @@ class Importer implements ImporterInterface
 
         $this->initProgress();
 
-        return $this;
-    }
-
-    /**
-     * Execute import
-     */
-    public function execute(): void
-    {
-        try {
-            $this->runImport();
-            $this->deleteProgress();
-        } catch (\Exception $exception) {
-            // If fail mark as done
-            $this->deleteProgress();
-
-            throw $exception;
-        }
+        $this->initializeValidator($configuration);
     }
 
     /**
@@ -475,7 +484,7 @@ class Importer implements ImporterInterface
         $this->modelName = $domainModel;
 
         // Get repository using model name
-        $repository = str_replace('\\Model\\', '\\Repository\\', $domainModel) . 'Repository';
+        $repository = ClassNamingUtility::translateModelNameToRepositoryName($domainModel);
         if (!class_exists($repository)) {
             throw new \RuntimeException("Repository '$repository' doesn't exist", 1571382879964);
         }
@@ -483,7 +492,7 @@ class Importer implements ImporterInterface
         $this->repository = $this->objectManager->get($repository);
 
         // Set table of domain model
-        $this->dbTable = MainUtility::getTableNameByModelName($domainModel);
+        $this->dbTable = ExtbaseUtility::convertClassNameToTableName($domainModel);
     }
 
     /**
@@ -545,22 +554,21 @@ class Importer implements ImporterInterface
      */
     protected function getImportIdHash(string $id): string
     {
-        return MainUtility::getImportIdHash($id);
+        return HashUtility::hashImportId($id);
     }
 
     /**
      * Return DB row with record by import ID and language
      *
-     * @param string $idHash
+     * @param string $hash
      * @param int $language
      * @return array|null
      */
-    protected function getRecordByImportIdHash(string $idHash, int $language = 0): ?array
+    protected function findRecordByImportIdHash(string $hash, int $language = 0): ?array
     {
-        return MainUtility::getRecordByImportIdHash(
-            $idHash,
+        return $this->importRecordRepository->findByImportIdHash(
+            $hash,
             $this->dbTable,
-            $this->context->getStoragePids(),
             $language
         );
     }
@@ -573,76 +581,50 @@ class Importer implements ImporterInterface
      */
     protected function mapRow(array $row): AbstractEntity
     {
-        return MainUtility::convertRecordArrayToModel($row, $this->modelName);
+        return ExtbaseUtility::mapRecord($row, $this->modelName);
     }
 
     /**
-     * Add import data to model
+     * Add import data to entity
      *
-     * @param AbstractEntity $model
+     * @param AbstractEntity $entity
      * @param array $record
      * @param array $importRow
      * @return void
      */
-    protected function populateModelWithImportData(
-        $model,
+    protected function populateEntityWithImportData(
+        AbstractEntity $entity,
         array $record,
         array $importRow
     ): void {
-        if (!is_object($model)) {
-            $type = gettype($model);
-            throw new FailedImportModelData(
-                "Expect model to be an object, '$type' given.",
-                1571387997402
-            );
-        }
-
         foreach ($this->mapping as $field => $mapping) {
             // Get value from import row
-            $value = $this->getFieldMappingValue($field, $importRow);
+            try {
+                $value = $this->getFieldMappingValue($field, $importRow);
+            } catch (MissingImportField $exception) {
+                $this->logger->warning("Missing import value for field '$field'");
+                continue;
+            }
 
             $property = $mapping['property'];
             // If processor is set, it should set value for model property
             if (!empty($mapping['processor'])) {
                 $processor = $this->createProcessor($mapping);
-                $processor->init($model, $record, $property, $mapping['configuration']);
+                $processor->init($entity, $record, $property, $mapping['configuration']);
 
-                try {
-                    $this->executeProcessor($processor, $value);
-                } catch (PostponeProcessorException $exception) {
-                    $this->postponeProcessor($processor, $value);
-                } catch (ErrorValidationException $errorValidationException) {
-                    $this->logProcessorValidationError($processor, $errorValidationException);
-
-                    throw new FailedImportModelData('Processor validation error', 1571387529039);
+                if ($processor instanceof PreProcessorInterface) {
+                    $value = $processor->preProcess($value);
                 }
+
+                $processor->process($value);
             } else {
                 // Just set it if no processor
-                $currentValue = ObjectAccess::getProperty($model, $property);
+                $currentValue = ObjectAccess::getProperty($entity, $property);
                 if ($currentValue != $value) {
-                    ObjectAccess::setProperty($model, $property, $value);
+                    ObjectAccess::setProperty($entity, $property, $value);
                 }
             }
         }
-    }
-
-    /**
-     * Log error about validation error
-     *
-     * @param FieldProcessorInterface $processor
-     * @param ErrorValidationException $exception
-     */
-    protected function logProcessorValidationError(
-        FieldProcessorInterface $processor,
-        ErrorValidationException $exception
-    ): void {
-        $this->logger->error(sprintf(
-            'Error mapping property. Skipping record. [ID-"%s", UID-"%s", PROP-"%s", REASON-"%s"].',
-            $processor->getProcessingDbRow()[self::DB_IMPORT_ID_FIELD],
-            $processor->getProcessingDbRow()['uid'],
-            $processor->getProcessingProperty(),
-            $exception->getMessage()
-        ));
     }
 
     /**
@@ -674,22 +656,6 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Execute import field processor
-     *
-     * @param FieldProcessorInterface $processor
-     * @param $value
-     * @return void
-     */
-    protected function executeProcessor(FieldProcessorInterface $processor, $value): void
-    {
-        $processor->preProcess($value);
-
-        if ($processor->isValid($value)) {
-            $processor->process($value);
-        }
-    }
-
-    /**
      * Try to import(create) new record
      *
      * @param string $id
@@ -708,10 +674,10 @@ class Importer implements ImporterInterface
             return null;
         }
 
-        $this->createNewEmptyRecord($id, $hash, $language);
+        $this->createNewEmptyRecord($id, $language);
 
         // Get new empty record
-        $record = $this->getRecordByImportIdHash($hash, $language);
+        $record = $this->findRecordByImportIdHash($hash, $language);
 
         if ($record === null) {
             // @codingStandardsIgnoreStart
@@ -726,30 +692,11 @@ class Importer implements ImporterInterface
      * Create new empty record
      *
      * @param string $id
-     * @param string $idHash
      * @param int $language
      */
-    protected function createNewEmptyRecord(string $id, string $idHash, int $language): void
+    protected function createNewEmptyRecord(string $id, int $language): void
     {
-        $time = time();
-        $values = array_merge(
-            [
-                self::DB_IMPORT_ID_FIELD => $id,
-                self::DB_IMPORT_ID_HASH_FIELD => $idHash,
-                'sys_language_uid' => $language,
-                'pid' => $this->context->getNewRecordsPid(),
-                'crdate' => $time,
-                'tstamp' => $time,
-            ],
-            $this->defaultNewRecordFields
-        );
-
-        GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable($this->dbTable)
-            ->insert(
-                $this->dbTable,
-                $values
-            );
+        $this->importRecordRepository->createEmpty($id, $this->dbTable, $language, $this->defaultNewRecordFields);
     }
 
     /**
@@ -770,7 +717,7 @@ class Importer implements ImporterInterface
                 throw new LocalizationImpossibleException('Localization went with errors', 1571384846222);
             case self::LOCALIZATION_SUCCESS:
                 // If localization was created, fetch it.
-                $record = $this->getRecordByImportIdHash($hash, $language);
+                $record = $this->findRecordByImportIdHash($hash, $language);
 
                 $this->logger->info(sprintf(
                     'Localized record [UID-"%s", ID-"%s", LANG-"%s"]',
@@ -800,7 +747,7 @@ class Importer implements ImporterInterface
      */
     protected function handleLocalization(string $hash, int $language): int
     {
-        $defaultLanguageRecord = $this->getRecordByImportIdHash($hash, 0);
+        $defaultLanguageRecord = $this->findRecordByImportIdHash($hash, 0);
         if ($defaultLanguageRecord !== null) {
             $cmd = [];
             $cmd[$this->dbTable][(string)$defaultLanguageRecord['uid']]['localize'] = $language;
@@ -833,7 +780,6 @@ class Importer implements ImporterInterface
             return self::LOCALIZATION_SUCCESS;
         }
 
-
         return self::LOCALIZATION_DEFAULT_NOT_FOUND;
     }
 
@@ -846,109 +792,7 @@ class Importer implements ImporterInterface
     {
         $this->logger->info(sprintf('Delete record[UID-"%d"]', $uid));
 
-        GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable($this->dbTable)
-            ->delete(
-                $this->dbTable,
-                ['uid' => $uid],
-                [Connection::PARAM_INT]
-            );
-    }
-
-    /**
-     * Disable import record
-     *
-     * @param int $uid
-     */
-    protected function disableImportRecord(int $uid): void
-    {
-        $hiddenField = $GLOBALS['TCA'][$this->dbTable]['ctrl']['enablecolumns']['disabled'];
-        if ($hiddenField) {
-            GeneralUtility::makeInstance(ConnectionPool::class)
-                ->getConnectionForTable($this->dbTable)
-                ->update(
-                    $this->dbTable,
-                    [$hiddenField => 1],
-                    ['uid' => $uid],
-                    [\PDO::PARAM_INT]
-                );
-        }
-    }
-
-    /**
-     * Postpone processor for later execution
-     *
-     * @param FieldProcessorInterface $processor
-     * @param mixed $value
-     */
-    protected function postponeProcessor(FieldProcessorInterface $processor, $value): void
-    {
-        // Increase amount of import items, since postponed processor means + 1 operation
-        $this->amountOfImportItems++;
-
-        $this->postponedProcessors[] = GeneralUtility::makeInstance(
-            PostponedProcessor::class,
-            $processor,
-            $value
-        );
-    }
-
-    /**
-     * Execute postponed processors
-     */
-    protected function executePostponedProcessors(): void
-    {
-        $batchCount = 0;
-        foreach ($this->postponedProcessors as $postponedProcessor) {
-            $value = $postponedProcessor->getValue();
-            $processor = $postponedProcessor->getProcessor();
-
-            $entityUid = (int)$processor->getProcessingDbRow()['uid'];
-            if ($entityUid === 0) {
-                // @codingStandardsIgnoreStart
-                throw new \UnexpectedValueException('Entity uid is not valid. Impossible to execute postponed processor', 1539935615795);// @codingStandardsIgnoreEnd
-            }
-
-            $record = BackendUtility::getRecord($this->dbTable, $entityUid);
-            // Most likely record was deleted because of validation
-            if ($record === null) {
-                $this->logger->error(
-                    'Failed executing postponed processor for record UID - ' . $entityUid . ', record not found.'
-                );
-
-                continue;
-            }
-            $model = $this->mapRow($record);
-
-            // Re-init processor
-            $processor->init(
-                $model,
-                $record,
-                $processor->getProcessingProperty(),
-                $processor->getConfiguration()
-            );
-
-            try {
-                $this->executeProcessor($processor, $value);
-                // Update again if something changed
-                if ($processor->getProcessingEntity()->_isDirty()) {
-                    $this->repository->update($processor->getProcessingEntity());
-                }
-                if ((++$batchCount % $this->batchSize) === 0) {
-                    $this->persistAndClear();
-                }
-            } catch (PostponeProcessorException | ErrorValidationException $exception) {
-                $this->logger->error(
-                    "Postponed processor failed [REASON-'{$exception->getMessage()}'] "
-                );
-            }
-
-            // If need to update progress status
-            $this->updateImportProgress();
-        }
-
-        $this->postponedProcessors = [];
-        $this->persistAndClear();
+        $this->importRecordRepository->delete($uid, $this->dbTable);
     }
 
     /**
@@ -989,7 +833,7 @@ class Importer implements ImporterInterface
                 $this->checkIfIdentifierUnique($idHash, $id);
 
                 $isNew = false;
-                $record = $this->getRecordByImportIdHash($idHash, $language);
+                $record = $this->findRecordByImportIdHash($idHash, $language);
 
                 // Try to create localization if doesn't exist
                 if ($record === null && $language > 0) {
@@ -1022,17 +866,32 @@ class Importer implements ImporterInterface
                     }
                 }
 
-                $model = $this->mapRow($record);
+                $entity = $this->mapRow($record);
+
+                // Validate import row
+                if (!$this->validator->isValid($row)) {
+                    $validationResult = $this->validator->getLastValidationResult();
+                    $this->logger->error(sprintf(
+                        '%s [ID-"%s", UID-"%s"].',
+                        $validationResult->getError(),
+                        $id,
+                        $record['uid']
+                    ));
+
+                    $this->emitSignal(__CLASS__, 'failedValidation', [$entity, $record, $row]);
+
+                    continue;
+                }
 
                 // After it's ready for populating data it can be updated/deleted
-                $action = $this->detectImportEntityAction($model, $record, $row, $isNew);
+                $action = $this->detectImportEntityAction($entity, $record, $row, $isNew);
 
                 try {
                     // By default 'updateEntityAction'
-                    $this->$action($model, $record, $row, $isNew);
+                    $this->$action($entity, $record, $row, $isNew);
                 } catch (\Exception $exception) {
                     $this->logger->error(sprintf(
-                        'Failed import model [ID-"%s", UID-"%s", REASON-"%s"].',
+                        'Failed import entity [ID-"%s", UID-"%s", REASON-"%s"].',
                         $id,
                         $record['uid'],
                         $exception->getMessage()
@@ -1042,30 +901,18 @@ class Importer implements ImporterInterface
                         $this->deleteNewRecord($record['uid']);
                     }
 
-                    $this->emitSignal(__CLASS__, 'failedPopulatingImportModel', [$model, $isNew]);
+                    $this->emitSignal(__CLASS__, 'failedPopulating', [$entity, $record, $isNew]);
 
-                    // On failed mapping just skip it
-                    if ($exception instanceof FailedImportModelData) {
-                        if (!$isNew) {
-                            $this->disableImportRecord($record['uid']);
-                        }
-
-                        continue;
-                    } else {
-                        // On any other exception throw it
-                        throw $exception;
-                    }
+                    throw $exception;
                 }
             }
 
             $this->persistAndClear();
-            // Execute postponed processors and persist again
-            $this->executePostponedProcessors();
         }
     }
 
     /**
-     * Persist all objects and clear persistance session
+     * Persist all objects and clear persistence session
      */
     protected function persistAndClear(): void
     {
@@ -1128,30 +975,36 @@ class Importer implements ImporterInterface
     /**
      * Run update process for single entity
      *
-     * @param AbstractEntity $model
+     * @param AbstractEntity $entity
      * @param array $record
      * @param array $importRow
      * @param bool $isNew
      * @throws \Exception
      */
-    protected function updateEntityAction(AbstractEntity $model, array $record, array $importRow, bool $isNew): void
+    protected function updateEntityAction(AbstractEntity $entity, array $record, array $importRow, bool $isNew): void
     {
-        $this->populateModelWithImportData($model, $record, $importRow);
-        $this->persistSingleEntity($model, $record, $isNew);
+        $this->populateEntityWithImportData($entity, $record, $importRow);
+        $this->persistSingleEntity($entity, $record, $isNew);
     }
 
     /**
      * Save changes for single entity
      *
-     * @param AbstractEntity $model
+     * @param AbstractEntity $entity
      * @param array $record
      * @param bool $isNew
      */
-    protected function persistSingleEntity(AbstractEntity $model, array $record, bool $isNew): void
+    protected function persistSingleEntity(AbstractEntity $entity, array $record, bool $isNew): void
     {
-        $this->emitSignal(__CLASS__, 'beforePersistImportModel', [$model]);
+        $this->emitSignal(__CLASS__, 'beforePersist', [$entity]);
 
-        if ($model->_isDirty()) {
+        // Enable if is placeholder
+        if ($this->isPlaceholderRecord($record) && $entity->_getProperty('hidden')) {
+            $this->removePlaceholderFlag($record['uid']);
+            $entity->_setProperty('hidden', false);
+        }
+
+        if ($entity->_isDirty()) {
             $this->logger->info(sprintf(
                 'Update record [ID-"%s", UID-"%s", TABLE-"%s"]',
                 $record[self::DB_IMPORT_ID_FIELD],
@@ -1159,7 +1012,7 @@ class Importer implements ImporterInterface
                 $this->dbTable
             ));
 
-            $this->repository->update($model);
+            $this->repository->update($entity);
 
             if ($isNew) {
                 $this->newUids[] = $record['uid'];
@@ -1167,8 +1020,29 @@ class Importer implements ImporterInterface
                 $this->updatedUids[] = $record['uid'];
             }
 
-            $this->emitSignal(__CLASS__, 'afterPersistImportModel', [$model]);
+            $this->emitSignal(__CLASS__, 'afterPersist', [$entity]);
         }
+    }
+
+    /**
+     * Check if record was created as placeholder
+     *
+     * @param array $record
+     * @return bool
+     */
+    protected function isPlaceholderRecord(array $record): bool
+    {
+        return (bool)$record[self::DB_IMPORT_PLACEHOLDER];
+    }
+
+    /**
+     * Mark as non placeholder
+     *
+     * @param int $uid
+     */
+    protected function removePlaceholderFlag(int $uid): void
+    {
+        $this->importRecordRepository->update($uid, $this->dbTable, [self::DB_IMPORT_PLACEHOLDER => 0]);
     }
 
     /**
@@ -1197,7 +1071,7 @@ class Importer implements ImporterInterface
 
     /**
      * This method allow to change what action should apply to import entity.
-     * By default it's always update. This can be modify in child improters
+     * By default it's always update. This can be modify in child importers
      *
      * @param AbstractEntity $entity
      * @param array $dbRow
@@ -1212,5 +1086,13 @@ class Importer implements ImporterInterface
         bool $isNew
     ): string {
         return 'updateEntityAction';
+    }
+
+    /**
+     * @param array $configuration
+     */
+    protected function initializeValidator(array $configuration): void
+    {
+        $this->validator = $this->objectManager->get(ValidationManager::class, $configuration['validation'] ?? []);
     }
 }

@@ -7,15 +7,13 @@ namespace Pixelant\PxaPmImporter\Processors;
  * Class BooleanProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class BooleanProcessor extends AbstractFieldProcessor
+class BooleanProcessor extends AbstractFieldProcessor implements PreProcessorInterface
 {
     /**
-     * Set boolean value
-     *
-     * @param $value
+     * @inheritDoc
      */
-    public function process($value): void
+    public function preProcess($value)
     {
-        $this->simplePropertySet((bool)$value);
+        return (bool)$value;
     }
 }

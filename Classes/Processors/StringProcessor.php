@@ -3,22 +3,17 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors;
 
-use Pixelant\PxaPmImporter\Command\ImportCommand;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-
 /**
  * Class StringProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class StringProcessor extends AbstractFieldProcessor
+class StringProcessor extends AbstractFieldProcessor implements PreProcessorInterface
 {
     /**
-     * Set as string always
-     *
-     * @param $value
+     * @inheritDoc
      */
-    public function process($value): void
+    public function preProcess($value)
     {
-        $this->simplePropertySet((string)$value);
+        return (string)$value;
     }
 }

@@ -4,13 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors;
 
 use Pixelant\PxaPmImporter\Context\ImportContext;
-use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
-use Pixelant\PxaPmImporter\Domain\Validation\Validator\ValidatorFactory;
-use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
-use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
+use Pixelant\PxaPmImporter\Domain\Repository\ImportRecordRepository;
 use Pixelant\PxaPmImporter\Logging\Logger;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
-use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
@@ -59,9 +54,14 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     protected $context = null;
 
     /**
+     * @var ImportRecordRepository
+     */
+    protected $repository = null;
+
+    /**
      * Initialize
      */
-    public function __construct()
+    public function initializeObject()
     {
         $this->logger = Logger::getInstance(get_class($this));
     }
@@ -72,6 +72,14 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     public function injectImportContext(ImportContext $importContext)
     {
         $this->context = $importContext;
+    }
+
+    /**
+     * @param ImportRecordRepository $repository
+     */
+    public function injectImportRecordRepository(ImportRecordRepository $repository)
+    {
+        $this->repository = $repository;
     }
 
     /**
@@ -95,103 +103,13 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
     }
 
     /**
-     * If something is need to be done before process, override in child class
-     *
-     * @param mixed &$value
-     */
-    public function preProcess(&$value): void
-    {
-    }
-
-    /**
-     * Check if required
+     * Sets value
      *
      * @param $value
-     * @return bool
      */
-    public function isValid($value): bool
+    public function process($value): void
     {
-        $validators = isset($this->configuration['validation']) && is_array($this->configuration['validation'])
-            ? $this->configuration['validation']
-            : [];
-
-        foreach ($validators as $validatorName) {
-            $validator = $this->resolveValidator($validatorName);
-
-            // Failed validation
-            if (!$validator->validate($value, $this)) {
-                switch ($validator->getSeverity()) {
-                    case ProcessorFieldValueValidatorInterface::WARNING:
-                        $this->logger->error(sprintf(
-                            'Error mapping property. Skipping property. [ID-"%s", UID-"%s", PROP-"%s", REASON-"%s"].',
-                            $this->dbRow[ImporterInterface::DB_IMPORT_ID_FIELD],
-                            $this->dbRow['uid'],
-                            $this->property,
-                            $validator->getValidationError()
-                        ));
-
-                        // on warnings just return false
-                        return false;
-                        break;
-                    case ProcessorFieldValueValidatorInterface::ERROR:
-                        throw new ErrorValidationException(
-                            $validator->getValidationError(),
-                            1550065854955
-                        );
-                        break;
-                    case ProcessorFieldValueValidatorInterface::CRITICAL:
-                        throw new CriticalErrorValidationException(
-                            $validator->getValidationError(),
-                            1550065854955
-                        );
-                        break;
-                }
-            }
-        }
-
-        // All passed
-        return true;
-    }
-
-    /**
-     * @return AbstractEntity
-     */
-    public function getProcessingEntity(): AbstractEntity
-    {
-        return $this->entity;
-    }
-
-    /**
-     * @return array
-     */
-    public function getProcessingDbRow(): array
-    {
-        return $this->dbRow;
-    }
-
-    /**
-     * @return array
-     */
-    public function getConfiguration(): array
-    {
-        return $this->configuration;
-    }
-
-    /**
-     * @return string
-     */
-    public function getProcessingProperty(): string
-    {
-        return $this->property;
-    }
-
-    /**
-     * Tear down
-     */
-    public function tearDown(): void
-    {
-        $this->entity = null;
-        $this->dbRow = ['uid' => $this->dbRow['uid']]; // Leave only UID for later re-init of processor
+        $this->simplePropertySet($value);
     }
 
     /**
@@ -216,19 +134,8 @@ abstract class AbstractFieldProcessor implements FieldProcessorInterface
      * @param int $language
      * @return array|null
      */
-    protected function getRecordByImportIdentifier(string $identifier, string $table, int $language = 0): ?array
+    protected function findRecordByImportIdentifier(string $identifier, string $table, int $language = 0): ?array
     {
-        return MainUtility::getRecordByImportId($identifier, $table, $this->context->getStoragePids(), $language);
-    }
-
-    /**
-     * Wrapper for testing
-     *
-     * @param string $validator
-     * @return ProcessorFieldValueValidatorInterface
-     */
-    protected function resolveValidator(string $validator): ProcessorFieldValueValidatorInterface
-    {
-        return ValidatorFactory::factory($validator);
+        return $this->repository->findByImportId($identifier, $table, $language);
     }
 }
