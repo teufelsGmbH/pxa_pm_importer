@@ -67,9 +67,9 @@ class ValidationManager
     }
 
     /**
-     * @return ValidationResult
+     * @return ValidationResult|null
      */
-    public function getLastValidationResult(): ValidationResult
+    public function getLastValidationResult(): ?ValidationResult
     {
         return $this->validationResult;
     }
