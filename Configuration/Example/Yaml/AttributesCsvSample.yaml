@@ -27,6 +27,11 @@ importers:
       # Recursive level
       recursive: 0
 
+    # Validation settings
+    validation:
+      name:
+        - required
+
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
@@ -45,9 +50,6 @@ importers:
     mapping:
       name:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-          - required
       label:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
       type:

@@ -46,14 +46,16 @@ importers:
             # Or use column letter
             title: 'C'
 
+    # Validation settings
+    validation:
+      title:
+        - required
+
     # Mapping fields, data adapter should return array with associative array
     mapping:
       title:
         # Property name is necessary only if it differ from field name
         property: 'title'
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-          - required
       parent:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'

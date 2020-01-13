@@ -60,13 +60,15 @@ importers:
             falLinks: 'Q'
             metaDescription: 'R'
 
+    # Validation settings
+    validation:
+      name:
+        - required
+
     # Mapping fields, data adapter should return array with associative array
     mapping:
       name:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-          - required
       sku:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
       teaser:
