@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Tests\Unit\Domain\Validation\Validator;
 
 use Nimut\TestingFramework\TestCase\UnitTestCase;
-use Pixelant\PxaPmImporter\Domain\Validation\Validator\AbstractProcessorFieldValueValidator;
-use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\AbstractValidator;
+use Pixelant\PxaPmImporter\Domain\Validation\Validator\ValidatorInterface;
 
 /**
  * Class AbstractProcessorFieldValueValidatorTest
@@ -14,14 +14,14 @@ use Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValida
 class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
 {
     /**
-     * @var AbstractProcessorFieldValueValidator
+     * @var AbstractValidator
      */
     protected $subject = null;
 
     protected function setUp()
     {
         $this->subject = $this->getAccessibleMock(
-            AbstractProcessorFieldValueValidator::class,
+            AbstractValidator::class,
             ['validate']
         );
     }
@@ -61,7 +61,7 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
         $this->subject->_call('error', $value);
 
         $this->assertEquals($value, $this->subject->getValidationError());
-        $this->assertEquals(ProcessorFieldValueValidatorInterface::ERROR, $this->subject->getSeverity());
+        $this->assertEquals(ValidatorInterface::ERROR, $this->subject->getSeverity());
     }
 
     /**
@@ -74,7 +74,7 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
         $this->subject->_call('warning', $value);
 
         $this->assertEquals($value, $this->subject->getValidationError());
-        $this->assertEquals(ProcessorFieldValueValidatorInterface::WARNING, $this->subject->getSeverity());
+        $this->assertEquals(ValidatorInterface::WARNING, $this->subject->getSeverity());
     }
 
     /**
@@ -87,6 +87,6 @@ class AbstractProcessorFieldValueValidatorTest extends UnitTestCase
         $this->subject->_call('critical', $value);
 
         $this->assertEquals($value, $this->subject->getValidationError());
-        $this->assertEquals(ProcessorFieldValueValidatorInterface::CRITICAL, $this->subject->getSeverity());
+        $this->assertEquals(ValidatorInterface::CRITICAL, $this->subject->getSeverity());
     }
 }

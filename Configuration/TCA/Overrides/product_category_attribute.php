@@ -17,7 +17,15 @@ call_user_func(function () {
                 'type' => 'input',
                 'readOnly' => true
             ]
-        ]
+        ],
+        'pm_importer_placeholder' => [
+            'config' => [
+                'exclude' => false,
+                'type' => 'check',
+                'readOnly' => true,
+                'default' => 0,
+            ]
+        ],
     ];
 
     $importTables = [

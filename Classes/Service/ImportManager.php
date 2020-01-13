@@ -6,7 +6,6 @@ namespace Pixelant\PxaPmImporter\Service;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationServiceFactory;
-use Pixelant\PxaPmImporter\Service\Importer\Builder\ImporterBuilderInterface;
 use Pixelant\PxaPmImporter\Service\Importer\ImporterDirector;
 use Pixelant\PxaPmImporter\Service\Source\SourceFactory;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
@@ -131,9 +130,7 @@ class ImportManager
                 );
 
                 // Execute importer
-                $importer
-                    ->initialize($sourceInstance, $importConfiguration)
-                    ->execute();
+                $importer->execute($sourceInstance, $importConfiguration);
 
                 // Reset context info about source and importer
                 $this->context->resetCurrentImportInfo();

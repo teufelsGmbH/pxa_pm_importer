@@ -17,9 +17,8 @@ use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
+use Pixelant\PxaPmImporter\Validation\ValidationManager;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
-use TYPO3\CMS\Core\Database\Connection;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\QueryGenerator;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Utility\ClassNamingUtility;
@@ -88,7 +87,12 @@ class Importer implements ImporterInterface
     /**
      * @var ImportRecordRepository
      */
-    protected $importRepository = null;
+    protected $importRecordRepository = null;
+
+    /**
+     * @var ValidationManager
+     */
+    protected $validator = null;
 
     /**
      * Identifier field name
@@ -209,7 +213,7 @@ class Importer implements ImporterInterface
      */
     public function __construct(ProgressRepository $progressRepository, ImportRecordRepository $importRecordRepository)
     {
-        $this->importRepository = $importRecordRepository;
+        $this->importRecordRepository = $importRecordRepository;
         $this->progressRepository = $progressRepository;
         $this->logger = Logger::getInstance(__CLASS__);
     }
@@ -238,15 +242,35 @@ class Importer implements ImporterInterface
         $this->context = $importContext;
     }
 
+    /**
+     * Execute import
+     *
+     * @param SourceInterface $source
+     * @param array $configuration
+     * @throws \Exception
+     */
+    public function execute(SourceInterface $source, array $configuration): void
+    {
+        $this->initialize($source, $configuration);
+
+        try {
+            $this->runImport();
+            $this->deleteProgress();
+        } catch (\Exception $exception) {
+            // If fail mark as done
+            $this->deleteProgress();
+
+            throw $exception;
+        }
+    }
 
     /**
      * Initialize importer
      *
      * @param SourceInterface $source
      * @param array $configuration
-     * @return ImporterInterface
      */
-    public function initialize(SourceInterface $source, array $configuration): ImporterInterface
+    public function initialize(SourceInterface $source, array $configuration): void
     {
         $this->setConfiguration($configuration);
         $this->setSource($source);
@@ -267,23 +291,7 @@ class Importer implements ImporterInterface
 
         $this->initProgress();
 
-        return $this;
-    }
-
-    /**
-     * Execute import
-     */
-    public function execute(): void
-    {
-        try {
-            $this->runImport();
-            $this->deleteProgress();
-        } catch (\Exception $exception) {
-            // If fail mark as done
-            $this->deleteProgress();
-
-            throw $exception;
-        }
+        $this->initializeValidator($configuration);
     }
 
     /**
@@ -558,7 +566,7 @@ class Importer implements ImporterInterface
      */
     protected function findRecordByImportIdHash(string $hash, int $language = 0): ?array
     {
-        return $this->importRepository->findByImportIdHash(
+        return $this->importRecordRepository->findByImportIdHash(
             $hash,
             $this->dbTable,
             $language
@@ -666,7 +674,7 @@ class Importer implements ImporterInterface
             return null;
         }
 
-        $this->createNewEmptyRecord($id, $hash, $language);
+        $this->createNewEmptyRecord($id, $language);
 
         // Get new empty record
         $record = $this->findRecordByImportIdHash($hash, $language);
@@ -684,30 +692,11 @@ class Importer implements ImporterInterface
      * Create new empty record
      *
      * @param string $id
-     * @param string $idHash
      * @param int $language
      */
-    protected function createNewEmptyRecord(string $id, string $idHash, int $language): void
+    protected function createNewEmptyRecord(string $id, int $language): void
     {
-        $time = time();
-        $values = array_merge(
-            [
-                self::DB_IMPORT_ID_FIELD => $id,
-                self::DB_IMPORT_ID_HASH_FIELD => $idHash,
-                'sys_language_uid' => $language,
-                'pid' => $this->context->getNewRecordsPid(),
-                'crdate' => $time,
-                'tstamp' => $time,
-            ],
-            $this->defaultNewRecordFields
-        );
-
-        GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable($this->dbTable)
-            ->insert(
-                $this->dbTable,
-                $values
-            );
+        $this->importRecordRepository->createEmpty($id, $this->dbTable, $language, $this->defaultNewRecordFields);
     }
 
     /**
@@ -803,33 +792,7 @@ class Importer implements ImporterInterface
     {
         $this->logger->info(sprintf('Delete record[UID-"%d"]', $uid));
 
-        GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable($this->dbTable)
-            ->delete(
-                $this->dbTable,
-                ['uid' => $uid],
-                [Connection::PARAM_INT]
-            );
-    }
-
-    /**
-     * Disable import record
-     *
-     * @param int $uid
-     */
-    protected function disableImportRecord(int $uid): void
-    {
-        $hiddenField = $GLOBALS['TCA'][$this->dbTable]['ctrl']['enablecolumns']['disabled'];
-        if ($hiddenField) {
-            GeneralUtility::makeInstance(ConnectionPool::class)
-                ->getConnectionForTable($this->dbTable)
-                ->update(
-                    $this->dbTable,
-                    [$hiddenField => 1],
-                    ['uid' => $uid],
-                    [\PDO::PARAM_INT]
-                );
-        }
+        $this->importRecordRepository->delete($uid, $this->dbTable);
     }
 
     /**
@@ -905,8 +868,21 @@ class Importer implements ImporterInterface
 
                 $entity = $this->mapRow($record);
 
+                // Validate import row
+                if (!$this->validator->isValid($row)) {
+                    $validationResult = $this->validator->getLastValidationResult();
+                    $this->logger->error(sprintf(
+                        '%s [ID-"%s", UID-"%s"].',
+                        $validationResult->getError(),
+                        $id,
+                        $record['uid']
+                    ));
 
-                $this->validate();
+                    $this->emitSignal(__CLASS__, 'failedValidation', [$entity, $record, $row]);
+
+                    continue;
+                }
+
                 // After it's ready for populating data it can be updated/deleted
                 $action = $this->detectImportEntityAction($entity, $record, $row, $isNew);
 
@@ -923,11 +899,9 @@ class Importer implements ImporterInterface
 
                     if ($isNew) {
                         $this->deleteNewRecord($record['uid']);
-                    } else {
-                        $this->disableImportRecord($record['uid']);
                     }
 
-                    $this->emitSignal(__CLASS__, 'failedPopulating', [$entity, $isNew]);
+                    $this->emitSignal(__CLASS__, 'failedPopulating', [$entity, $record, $isNew]);
 
                     throw $exception;
                 }
@@ -1024,8 +998,9 @@ class Importer implements ImporterInterface
     {
         $this->emitSignal(__CLASS__, 'beforePersist', [$entity]);
 
-        // Enable if was disabled
-        if ($entity->_getProperty('hidden')) {
+        // Enable if is placeholder
+        if ($this->isPlaceholderRecord($record) && $entity->_getProperty('hidden')) {
+            $this->removePlaceholderFlag($record['uid']);
             $entity->_setProperty('hidden', false);
         }
 
@@ -1047,6 +1022,27 @@ class Importer implements ImporterInterface
 
             $this->emitSignal(__CLASS__, 'afterPersist', [$entity]);
         }
+    }
+
+    /**
+     * Check if record was created as placeholder
+     *
+     * @param array $record
+     * @return bool
+     */
+    protected function isPlaceholderRecord(array $record): bool
+    {
+        return (bool)$record[self::DB_IMPORT_PLACEHOLDER];
+    }
+
+    /**
+     * Mark as non placeholder
+     *
+     * @param int $uid
+     */
+    protected function removePlaceholderFlag(int $uid): void
+    {
+        $this->importRecordRepository->update($uid, $this->dbTable, [self::DB_IMPORT_PLACEHOLDER => 0]);
     }
 
     /**
@@ -1075,7 +1071,7 @@ class Importer implements ImporterInterface
 
     /**
      * This method allow to change what action should apply to import entity.
-     * By default it's always update. This can be modify in child improters
+     * By default it's always update. This can be modify in child importers
      *
      * @param AbstractEntity $entity
      * @param array $dbRow
@@ -1093,11 +1089,10 @@ class Importer implements ImporterInterface
     }
 
     /**
-     * Validate single import row
+     * @param array $configuration
      */
-    protected function validate(): void
+    protected function initializeValidator(array $configuration): void
     {
-       /* \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($this->configuration, 'Debug', 16);
-        die;*/
+        $this->validator = $this->objectManager->get(ValidationManager::class, $configuration['validation'] ?? []);
     }
 }
