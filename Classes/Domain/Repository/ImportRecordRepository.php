@@ -19,6 +19,92 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class ImportRecordRepository extends AbstractImportRepository
 {
     /**
+     * Create empty record for further import process
+     *
+     * @param string $id
+     * @param string $table
+     * @param int $language
+     * @param array $additionalFields
+     * @return int
+     */
+    public function createEmpty(string $id, string $table, int $language = 0, array $additionalFields = []): int
+    {
+        $time = time();
+        $values = array_merge(
+            [
+                ImporterInterface::DB_IMPORT_ID_FIELD => $id,
+                ImporterInterface::DB_IMPORT_ID_HASH_FIELD => HashUtility::hashImportId($id),
+                'sys_language_uid' => $language,
+                'pid' => $this->context->getNewRecordsPid(),
+                'crdate' => $time,
+                'tstamp' => $time,
+            ],
+            $additionalFields
+        );
+
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($table);
+
+        $connection->insert(
+            $table,
+            $values
+        );
+
+        return (int)$connection->lastInsertId($table);
+    }
+
+    /**
+     * Update import record
+     *
+     * @param int $uid
+     * @param string $table
+     * @param array $fieldsValues
+     */
+    public function update(int $uid, string $table, array $fieldsValues): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($table)
+            ->update(
+                $table,
+                $fieldsValues,
+                ['uid' => $uid]
+            );
+    }
+
+    /**
+     * Disable import record
+     *
+     * @param int $uid
+     * @param string $table
+     */
+    public function disable(int $uid, string $table): void
+    {
+        $hiddenField = $GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'];
+        $this->update(
+            $uid,
+            $table,
+            [$hiddenField => 1]
+        );
+    }
+
+    /**
+     * Delete record by uid
+     *
+     * @param int $uid
+     * @param string $table
+     */
+    public function delete(int $uid, string $table): void
+    {
+        GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($table)
+            ->delete(
+                $table,
+                ['uid' => $uid],
+                [Connection::PARAM_INT]
+            );
+    }
+
+    /**
      * Fetch records from DB by import Identifier
      *
      * @param string $id
