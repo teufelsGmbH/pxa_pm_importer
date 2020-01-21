@@ -17,7 +17,7 @@ class CacheServiceTest extends UnitTestCase
     
     protected function setUp()
     {
-        parent::setUp(); 
+        parent::setUp();
         
         $this->subject = $this->getAccessibleMock(CacheService::class, null, [], '', false);
     }
