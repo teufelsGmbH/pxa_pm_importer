@@ -10,6 +10,7 @@ use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Importer\Importer;
 use Pixelant\PxaPmImporter\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Service\Cache\CacheService;
 use Pixelant\PxaPmImporter\Source\CsvSource;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
@@ -29,7 +30,7 @@ class ImporterTest extends UnitTestCase
     {
         $this->subject = $this->getAccessibleMock(
             Importer::class,
-            ['emitSignal', 'getDataHandler', 'findRecordByImportIdHash', 'createNewEmptyRecord'],
+            ['emitSignal', 'getDataHandler', 'findRecordByImportIdHash', 'createNewEmptyRecord', 'getCacheService'],
             [],
             '',
             false
@@ -437,5 +438,71 @@ class ImporterTest extends UnitTestCase
     {
         $row = [ImporterInterface::DB_IMPORT_PLACEHOLDER => 1];
         $this->assertTrue($this->subject->_call('isPlaceholderRecord', $row));
+    }
+
+    /**
+     * @test
+     */
+    public function changesWereMadeByImportReturnTrueIfNewRecordsWereAdded()
+    {
+        $this->subject->_set('newUids', [10, 11]);
+        $this->assertTrue($this->subject->_call('changesWereMadeByImport'));
+    }
+
+    /**
+     * @test
+     */
+    public function changesWereMadeByImportReturnTrueIfNewRecordsWereUpdated()
+    {
+        $this->subject->_set('updatedUids', [19]);
+        $this->assertTrue($this->subject->_call('changesWereMadeByImport'));
+    }
+
+    /**
+     * @test
+     */
+    public function changesWereMadeByImportReturnFalseIfNoChangesWereDone()
+    {
+        $this->subject->_set('updatedUids', []);
+        $this->subject->_set('newUids', []);
+        $this->assertFalse($this->subject->_call('changesWereMadeByImport'));
+    }
+
+    /**
+     * @test
+     */
+    public function clearCacheFlushTagsOnlyIfTagsNotEmptyAndChangesWereDone()
+    {
+        $tags = ['test', 'tag2'];
+        $this->subject->_set('updatedUids', [19]);
+        $this->subject->_set('configuration', ['cacheTags' => $tags]);
+
+        $mockedCacheService = $this->createPartialMock(CacheService::class, ['flushByTags']);
+        $this->subject
+            ->expects($this->once())
+            ->method('getCacheService')
+            ->willReturn($mockedCacheService);
+
+        $mockedCacheService
+            ->expects($this->once())
+            ->method('flushByTags')
+            ->with($tags);
+
+        $this->subject->_call('clearCache');
+    }
+
+    /**
+     * @test
+     */
+    public function clearCacheNeverFlushTagsIfTagsEmpty()
+    {
+        $this->subject->_set('updatedUids', [19]);
+        $this->subject->_set('configuration', ['cacheTags' => null]);
+
+        $this->subject
+            ->expects($this->never())
+            ->method('getCacheService');
+
+        $this->subject->_call('clearCache');
     }
 }
