@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Tests\Unit\Service\Source;
+namespace Pixelant\PxaPmImporter\Tests\Unit\Source;
 
 use Nimut\TestingFramework\TestCase\UnitTestCase;
-use Pixelant\PxaPmImporter\Service\Source\AbstractSource;
+use Pixelant\PxaPmImporter\Source\AbstractSource;
 
 /**
  * Class AbstractSourceTest
- * @package Pixelant\PxaPmImporter\Tests\Unit\Service\Source
+ * @package Pixelant\PxaPmImporter\Tests\Unit\Source
  */
 class AbstractSourceTest extends UnitTestCase
 {

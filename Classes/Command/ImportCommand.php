@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Command;
 
-use Pixelant\PxaPmImporter\Service\ImportManager;
+use Pixelant\PxaPmImporter\Service\ImportService;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Traits\TranslateBeTrait;
 use Symfony\Component\Console\Command\Command;
@@ -47,7 +47,7 @@ class ImportCommand extends Command
     protected $objectManager = null;
 
     /**
-     * @var ImportManager
+     * @var ImportService
      */
     protected $importManager = null;
 
@@ -109,7 +109,7 @@ class ImportCommand extends Command
         Bootstrap::initializeBackendAuthentication();
         // Extbase
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
-        $this->importManager = $this->objectManager->get(ImportManager::class);
+        $this->importManager = $this->objectManager->get(ImportService::class);
     }
 
     /**

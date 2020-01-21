@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Adapter;
 
 use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 

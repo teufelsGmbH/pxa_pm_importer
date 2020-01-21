@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Adapter;
 
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 
 /**
  * Interface AdapterInterface

@@ -5,9 +5,9 @@ namespace Pixelant\PxaPmImporter\Tests\Unit\Context;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\ContextDataAlreadyExistException;
-use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationInterface;
-use Pixelant\PxaPmImporter\Service\Importer\Importer;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Configuration\ConfigurationInterface;
+use Pixelant\PxaPmImporter\Importer\Importer;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 
 
 class ImportContextTest extends UnitTestCase

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Domain\Repository;
 
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;

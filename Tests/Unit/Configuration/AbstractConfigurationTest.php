@@ -1,17 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Tests\Unit\Service\Configuration;
+namespace Pixelant\PxaPmImporter\Tests\Unit\Configuration;
 
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
-use Pixelant\PxaPmImporter\Service\Configuration\AbstractConfiguration;
+use Pixelant\PxaPmImporter\Configuration\AbstractConfiguration;
 
 /**
  * Class AbstractConfigurationTest
- * @package Pixelant\PxaPmImporter\Tests\Unit\Service\Configuration
+ * @package Pixelant\PxaPmImporter\Tests\Unit\Configuration
  */
 class AbstractConfigurationTest extends UnitTestCase
 {

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Controller;
 
-use Pixelant\PxaPmImporter\Service\ImportManager;
+use Pixelant\PxaPmImporter\Service\ImportService;
 use Pixelant\PxaPmImporter\Utility\ImportersRegistry;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
@@ -85,7 +85,7 @@ class ImportModuleController extends ActionController
      */
     public function importAction(string $configuration)
     {
-        $importManager = $this->objectManager->get(ImportManager::class);
+        $importManager = $this->objectManager->get(ImportService::class);
 
         try {
             $importManager->execute($configuration);

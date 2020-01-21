@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Configuration;
+namespace Pixelant\PxaPmImporter\Configuration;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 
 /**
  * Class ConfigurationProvider
- * @package Pixelant\PxaPmImporter\Service\Configuration
+ * @package Pixelant\PxaPmImporter\Configuration
  */
 class ConfigurationServiceFactory
 {

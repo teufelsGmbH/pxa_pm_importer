@@ -10,7 +10,7 @@ use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;

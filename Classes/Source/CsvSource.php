@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Source;
+namespace Pixelant\PxaPmImporter\Source;
 
 use Pixelant\PxaPmImporter\Exception\InvalidSourceFileException;
 
 /**
  * Class CsvSource
- * @package Pixelant\PxaPmImporter\Service\Source
+ * @package Pixelant\PxaPmImporter\Source
  */
 class CsvSource extends AbstractFileSource
 {

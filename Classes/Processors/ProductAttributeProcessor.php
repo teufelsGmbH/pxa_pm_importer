@@ -7,7 +7,7 @@ use Pixelant\PxaPmImporter\Domain\Repository\ImportOptionRepository;
 use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 use Pixelant\PxaPmImporter\Processors\Relation\Updater\RelationPropertyUpdater;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;

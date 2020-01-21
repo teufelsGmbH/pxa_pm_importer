@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Source;
+namespace Pixelant\PxaPmImporter\Source;
 
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class AbstractFileSource
- * @package Pixelant\PxaPmImporter\Service\Source
+ * @package Pixelant\PxaPmImporter\Source
  */
 abstract class AbstractFileSource implements SourceInterface
 {

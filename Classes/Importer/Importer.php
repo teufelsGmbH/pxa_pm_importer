@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Importer;
+namespace Pixelant\PxaPmImporter\Importer;
 
 use Pixelant\PxaPmImporter\Adapter\AdapterInterface;
 use Pixelant\PxaPmImporter\Context\ImportContext;
@@ -12,7 +12,7 @@ use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Processors\PreProcessorInterface;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
@@ -31,7 +31,7 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
 
 /**
  * Class AbstractImporter
- * @package Pixelant\PxaPmImporter\Service\Importer
+ * @package Pixelant\PxaPmImporter\Importer
  */
 class Importer implements ImporterInterface
 {

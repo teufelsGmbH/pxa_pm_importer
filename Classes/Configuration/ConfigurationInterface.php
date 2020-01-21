@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Configuration;
+namespace Pixelant\PxaPmImporter\Configuration;
 
 /**
  * Interface ConfigurationReaderInterface

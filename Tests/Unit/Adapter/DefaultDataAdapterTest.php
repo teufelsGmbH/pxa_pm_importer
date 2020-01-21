@@ -10,7 +10,7 @@ use Pixelant\PxaPmImporter\Adapter\AbstractDefaultAdapter;
 use Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter;
 use Pixelant\PxaPmImporter\Adapter\Filters\StringEqualsFilter;
 use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 
 /**
  * Class AbstractDefaultAdapterTest

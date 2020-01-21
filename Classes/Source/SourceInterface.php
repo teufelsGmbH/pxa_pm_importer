@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Source;
+namespace Pixelant\PxaPmImporter\Source;
 
 /**
  * Class SourceInterface
- * @package Pixelant\PxaPmImporter\Service\Source
+ * @package Pixelant\PxaPmImporter\Source
  */
 interface SourceInterface extends \Iterator, \Countable
 {

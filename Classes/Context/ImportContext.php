@@ -4,9 +4,9 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Context;
 
 use Pixelant\PxaPmImporter\Exception\ContextDataAlreadyExistException;
-use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationInterface;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Configuration\ConfigurationInterface;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 use TYPO3\CMS\Core\SingletonInterface;
 
 /**

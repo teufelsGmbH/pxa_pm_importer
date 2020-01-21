@@ -5,9 +5,9 @@ namespace Pixelant\PxaPmImporter\Service;
 
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Logging\Logger;
-use Pixelant\PxaPmImporter\Service\Configuration\ConfigurationServiceFactory;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterDirector;
-use Pixelant\PxaPmImporter\Service\Source\SourceFactory;
+use Pixelant\PxaPmImporter\Configuration\ConfigurationServiceFactory;
+use Pixelant\PxaPmImporter\Importer\ImporterDirector;
+use Pixelant\PxaPmImporter\Source\SourceFactory;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
@@ -16,7 +16,7 @@ use TYPO3\CMS\Extbase\Object\ObjectManager;
  * Class Importer
  * @package Pixelant\PxaPmImporter\Service
  */
-class ImportManager
+class ImportService
 {
     use EmitSignalTrait;
 

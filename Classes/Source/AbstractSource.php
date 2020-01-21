@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Source;
+namespace Pixelant\PxaPmImporter\Source;
 
 /**
  * Source simple abstract class to work with simple array
  *
- * @package Pixelant\PxaPmImporter\Service\Source
+ * @package Pixelant\PxaPmImporter\Source
  */
 abstract class AbstractSource implements SourceInterface
 {

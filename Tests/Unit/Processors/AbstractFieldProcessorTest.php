@@ -10,7 +10,7 @@ use Pixelant\PxaPmImporter\Domain\Validation\Validator\ValidatorInterface;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\CriticalErrorValidationException;
 use Pixelant\PxaPmImporter\Exception\ProcessorValidation\ErrorValidationException;
 use Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 

@@ -1,14 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Source;
+namespace Pixelant\PxaPmImporter\Source;
 
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class SourceFactory
- * @package Pixelant\PxaPmImporter\Service\Source
+ * @package Pixelant\PxaPmImporter\Source
  */
 class SourceFactory
 {

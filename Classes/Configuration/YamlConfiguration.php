@@ -1,13 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Configuration;
+namespace Pixelant\PxaPmImporter\Configuration;
 
 use Pixelant\PxaPmImporter\Exception\InvalidConfigurationSourceException;
 use Pixelant\PxaPmImporter\Exception\YamlResourceInvalidException;
 use Symfony\Component\Yaml\Yaml;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
+/**
+ * @package Pixelant\PxaPmImporter\Configuration
+ */
 class YamlConfiguration extends AbstractConfiguration
 {
     /**

@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Importer;
+namespace Pixelant\PxaPmImporter\Importer;
 
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 
 /**
  * Interface ImporterInterface
- * @package Pixelant\PxaPmImporter\Service\Importer
+ * @package Pixelant\PxaPmImporter\Importer
  */
 interface ImporterInterface
 {

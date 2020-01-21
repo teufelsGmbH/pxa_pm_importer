@@ -1,7 +1,7 @@
 #log:
   #path: 'fileadmin/custom_path/test.log'
 sources:
-  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+  Pixelant\PxaPmImporter\Source\ExcelSource:
     skipRows: 1
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/products.xlsx
 importers:

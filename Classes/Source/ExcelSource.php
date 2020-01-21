@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Source;
+namespace Pixelant\PxaPmImporter\Source;
 
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -9,7 +9,7 @@ use Pixelant\PxaPmImporter\Exception\InvalidSourceFileException;
 
 /**
  * Class ExcelSource
- * @package Pixelant\PxaPmImporter\Service\Source
+ * @package Pixelant\PxaPmImporter\Source
  */
 class ExcelSource extends AbstractFileSource
 {

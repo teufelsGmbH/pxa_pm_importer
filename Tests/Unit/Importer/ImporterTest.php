@@ -1,23 +1,22 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Tests\Unit\Service\Importer;
+namespace Pixelant\PxaPmImporter\Tests\Unit\Importer;
 
 use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\MissingImportField;
-use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
-use Pixelant\PxaPmImporter\Service\Importer\Importer;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
-use Pixelant\PxaPmImporter\Service\Source\CsvSource;
+use Pixelant\PxaPmImporter\Importer\Importer;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Source\CsvSource;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Log\Logger;
 
 /**
  * Class AbstractImporterTest
- * @package Pixelant\PxaPmImporter\Tests\Unit\Service\Importer
+ * @package Pixelant\PxaPmImporter\Tests\Unit\Importer
  */
 class ImporterTest extends UnitTestCase
 {

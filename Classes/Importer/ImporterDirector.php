@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Pixelant\PxaPmImporter\Service\Importer;
+namespace Pixelant\PxaPmImporter\Importer;
 
 use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ImporterDirector
- * @package Pixelant\PxaPmImporter\Service\Importer
+ * @package Pixelant\PxaPmImporter\Importer
  */
 class ImporterDirector
 {

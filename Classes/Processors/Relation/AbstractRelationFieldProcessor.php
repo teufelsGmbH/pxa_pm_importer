@@ -5,7 +5,7 @@ namespace Pixelant\PxaPmImporter\Processors\Relation;
 
 use Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor;
 use Pixelant\PxaPmImporter\Processors\Relation\Updater\RelationPropertyUpdater;
-use Pixelant\PxaPmImporter\Service\Importer\ImporterInterface;
+use Pixelant\PxaPmImporter\Importer\ImporterInterface;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;

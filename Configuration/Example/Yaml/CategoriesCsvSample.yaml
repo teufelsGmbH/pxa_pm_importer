@@ -1,5 +1,5 @@
 sources:
-  Pixelant\PxaPmImporter\Service\Source\CsvSource:
+  Pixelant\PxaPmImporter\Source\CsvSource:
     skipRows: 1
     delimiter: ,
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/categories.csv

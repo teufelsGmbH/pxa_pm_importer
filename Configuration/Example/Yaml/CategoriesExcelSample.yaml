@@ -1,5 +1,5 @@
 sources:
-  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+  Pixelant\PxaPmImporter\Source\ExcelSource:
     skipRows: 1
     sheet: -1
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/categoriesxls.xlsx
