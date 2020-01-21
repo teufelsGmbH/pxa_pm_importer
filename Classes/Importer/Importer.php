@@ -12,6 +12,7 @@ use Pixelant\PxaPmImporter\Exception\MissingImportField;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Processors\FieldProcessorInterface;
 use Pixelant\PxaPmImporter\Processors\PreProcessorInterface;
+use Pixelant\PxaPmImporter\Service\Cache\CacheService;
 use Pixelant\PxaPmImporter\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
@@ -254,7 +255,13 @@ class Importer implements ImporterInterface
         $this->initialize($source, $configuration);
 
         try {
+            // Run import
             $this->runImport();
+
+            // Clear cache
+            $this->clearCache();
+
+            // Clean progress
             $this->deleteProgress();
         } catch (\Exception $exception) {
             // If fail mark as done
@@ -1094,5 +1101,35 @@ class Importer implements ImporterInterface
     protected function initializeValidator(array $configuration): void
     {
         $this->validator = $this->objectManager->get(ValidationManager::class, $configuration['validation'] ?? []);
+    }
+
+    /**
+     * Clear cache if tags were provided and import made changes
+     */
+    protected function clearCache(): void
+    {
+        $cacheTags = $this->configuration['cacheTags'] ?? [];
+
+        if (!empty($cacheTags) && $this->changesWereMadeByImport()) {
+            $this->getCacheService()->flushByTags($cacheTags);
+        }
+    }
+
+    /**
+     * Check if new/update items exist
+     *
+     * @return bool
+     */
+    protected function changesWereMadeByImport(): bool
+    {
+        return !empty($this->newUids) || !empty($this->updatedUids);
+    }
+
+    /**
+     * @return CacheService
+     */
+    protected function getCacheService(): CacheService
+    {
+        return $this->objectManager->get(CacheService::class);
     }
 }
