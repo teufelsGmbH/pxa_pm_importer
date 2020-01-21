@@ -32,8 +32,6 @@ class CacheService
     public function flushByTags(array $tags): void
     {
         $tags = $this->tagsToCacheManagerTags($tags);
-        \TYPO3\CMS\Extbase\Utility\DebuggerUtility::var_dump($tags,'Debug',16);
-        die;
         if (!empty($tags)) {
             $this->cacheManager->flushCachesInGroupByTags('pages', $tags);
         }
