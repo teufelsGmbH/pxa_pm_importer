@@ -17,8 +17,14 @@ class CategoryProcessor extends AbstractRelationFieldProcessor implements AbleCr
     public function createMissingEntity(string $importId)
     {
         $fields = ['title' => $importId, $this->tcaHiddenField() => 1];
+        $sysLanguageUid = 0;
 
-        $this->repository->createEmpty($importId, 'sys_category', 0, $this->newRecordFieldsWithPlaceHolder($fields));
+        $this->repository->createEmpty(
+            $importId,
+            'sys_category',
+            $sysLanguageUid,
+            $this->newRecordFieldsWithPlaceHolder($fields)
+        );
     }
 
     /**
