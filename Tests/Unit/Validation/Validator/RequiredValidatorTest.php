@@ -32,7 +32,7 @@ class RequiredValidatorTest extends UnitTestCase
      */
     public function validateWillFailOnEmptyValue()
     {
-        $value = '';
+        $row = ['field' => ''];
 
         $result = $this->createMock(ValidationResult::class);
         $result
@@ -41,7 +41,7 @@ class RequiredValidatorTest extends UnitTestCase
             ->with(false);
         $this->inject($this->subject, 'result', $result);
 
-        $this->subject->validate($value);
+        $this->subject->validate($row, 'field');
     }
 
     /**
@@ -49,7 +49,7 @@ class RequiredValidatorTest extends UnitTestCase
      */
     public function validateWillPassOnNonEmptyValue()
     {
-        $value = '123';
+        $row = ['title' => '123'];
 
         $result = $this->createMock(ValidationResult::class);
         $result
@@ -57,6 +57,6 @@ class RequiredValidatorTest extends UnitTestCase
             ->method('setPassed');
         $this->inject($this->subject, 'result', $result);
 
-        $this->subject->validate($value);
+        $this->subject->validate($row, 'title');
     }
 }

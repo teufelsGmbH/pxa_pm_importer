@@ -14,8 +14,9 @@ interface ValidatorInterface
     /**
      * Validate given value and return result
      *
-     * @param $value
+     * @param array $importRow Full import row
+     * @param string $property Validation property
      * @return ValidationResult
      */
-    public function validate($value): ValidationResult;
+    public function validate(array $importRow, string $property): ValidationResult;
 }

@@ -14,12 +14,13 @@ class RequiredValidator extends AbstractValidator
     /**
      * Validate given value
      *
-     * @param $value
+     * @param array $importRow
+     * @param string $property
      * @return ValidationResult
      */
-    public function validate($value): ValidationResult
+    public function validate(array $importRow, string $property): ValidationResult
     {
-        if (empty($value)) {
+        if (empty($importRow[$property] ?? null)) {
             $this->result->setPassed(false);
             $this->result->setError('Value could not be empty');
         }

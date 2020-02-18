@@ -49,11 +49,9 @@ class ValidationManager
         $this->validationResult = null;
 
         foreach ($this->configuration as $property => $validators) {
-            $value = $row[$property] ?? null;
-
-            foreach ($validators as $validatorName) {
+            foreach ($validators as $key => $validatorName) {
                 $validator = $this->factory->create($validatorName);
-                $validationResult = $validator->validate($value);
+                $validationResult = $validator->validate($row, $property);
 
                 if (!$validationResult->passed()) {
                     $this->wrapErrorMessage($validationResult, $property);
