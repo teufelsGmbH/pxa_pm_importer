@@ -885,7 +885,7 @@ class Importer implements ImporterInterface
                         $record['uid']
                     ));
 
-                    $this->emitSignal(__CLASS__, 'failedValidation', [$entity, $record, $row]);
+                    $this->emitSignal(__CLASS__, 'failedValidation', [$entity, $record, $row, $validationResult]);
 
                     continue;
                 }

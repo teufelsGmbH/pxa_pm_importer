@@ -22,5 +22,6 @@ abstract class AbstractValidator implements ValidatorInterface
     public function __construct(ValidationResult $result)
     {
         $this->result = $result;
+        $this->result->setValidatedBy(get_class($this));
     }
 }

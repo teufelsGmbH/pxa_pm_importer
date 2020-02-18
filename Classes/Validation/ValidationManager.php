@@ -56,7 +56,7 @@ class ValidationManager
                 $validationResult = $validator->validate($value);
 
                 if (!$validationResult->passed()) {
-                    $this->addPropertyToError($validationResult, $property);
+                    $this->wrapErrorMessage($validationResult, $property);
                     $this->validationResult = $validationResult;
                     return false;
                 }
@@ -78,7 +78,7 @@ class ValidationManager
      * @param ValidationResult $validationResult
      * @param $property
      */
-    protected function addPropertyToError(ValidationResult $validationResult, $property): void
+    protected function wrapErrorMessage(ValidationResult $validationResult, $property): void
     {
         $validationResult->setError(sprintf(
             'Validation of property "%s" failed with message "%s"',

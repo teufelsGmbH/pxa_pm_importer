@@ -56,4 +56,39 @@ class ValidationResultTest extends UnitTestCase
 
         $this->assertEquals($error, $this->subject->getError());
     }
+
+    /**
+     * @test
+     */
+    public function canSetProperty()
+    {
+        $property = 'test';
+
+        $this->subject->setProperty($property);
+        $this->assertEquals($property, $this->subject->getProperty());
+    }
+
+    /**
+     * @test
+     */
+    public function canSetValidateBy()
+    {
+        $validateBy = 'test';
+        
+        $this->subject->setValidatedBy($validateBy);
+        
+        $this->assertEquals($validateBy, $this->subject->getValidatedBy());
+    }
+
+    /**
+     * @test
+     */
+    public function validateByReturnTrueIfGivenValidatorMuchValidatedBy()
+    {
+        $validateBy = 'test';
+
+        $this->subject->setValidatedBy($validateBy);
+
+        $this->assertTrue($this->subject->isValidateBy($validateBy));
+    }
 }
