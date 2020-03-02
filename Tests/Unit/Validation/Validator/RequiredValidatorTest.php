@@ -21,10 +21,7 @@ class RequiredValidatorTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->subject = $this->getMockBuilder(RequiredValidator::class)
-            ->setMethods(null)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $this->subject = new RequiredValidator($this->createMock(ValidationResult::class));
     }
 
     /**
@@ -33,6 +30,23 @@ class RequiredValidatorTest extends UnitTestCase
     public function validateWillFailOnEmptyValue()
     {
         $row = ['field' => ''];
+
+        $result = $this->createMock(ValidationResult::class);
+        $result
+            ->expects($this->once())
+            ->method('setPassed')
+            ->with(false);
+        $this->inject($this->subject, 'result', $result);
+
+        $this->subject->validate($row, 'field');
+    }
+
+    /**
+     * @test
+     */
+    public function validateWillFailOnNullValue()
+    {
+        $row = [];
 
         $result = $this->createMock(ValidationResult::class);
         $result
