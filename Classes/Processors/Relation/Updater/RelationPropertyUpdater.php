@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Relation\Updater;
 
+use Pixelant\PxaPmImporter\Domain\Repository\FileReferenceRepository;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
@@ -16,6 +17,19 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  */
 class RelationPropertyUpdater
 {
+    /**
+     * @var FileReferenceRepository
+     */
+    protected $referenceRepository;
+
+    /**
+     * @param FileReferenceRepository $referenceRepository
+     */
+    public function __construct(FileReferenceRepository $referenceRepository)
+    {
+        $this->referenceRepository = $referenceRepository;
+    }
+
     /**
      * Update property value that has relation 1:1 or object storage
      *
@@ -48,6 +62,11 @@ class RelationPropertyUpdater
                 // If entity is null we need to use direct access, because it's high risk that
                 // setter method except only objects, but we need to reset value
                 ObjectAccess::setProperty($entity, $property, $firstEntity, $firstEntity === null);
+
+                // If old value is file reference, we need to delete it, extbase won't do it.
+                if ($propertyValue instanceof FileReference) {
+                    $this->referenceRepository->remove($propertyValue);
+                }
             }
         } elseif ($firstEntity !== null) {
             ObjectAccess::setProperty($entity, $property, $firstEntity);
