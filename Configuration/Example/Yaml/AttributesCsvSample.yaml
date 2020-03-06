@@ -1,10 +1,37 @@
-source:
-  Pixelant\PxaPmImporter\Service\Source\CsvSource:
+sources:
+  Pixelant\PxaPmImporter\Source\CsvSource:
     skipRows: 1
     delimiter: ,
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/attributes.csv
 importers:
-  Pixelant\PxaPmImporter\Service\Importer\AttributesImporter:
+  AttributesImport:
+    # Unique identifier field provided by Adapter
+    identifierField: 'id'
+
+    # Domain model name
+    domainModel: Pixelant\PxaProductManager\Domain\Model\Attribute
+
+    # Allowed import operations
+    # default is 'create,localize,createLocalize'
+    allowedOperations: 'create'
+
+    # Settings for new records
+    importNewRecords:
+      # Storage of new records
+      pid: 22
+
+    # Storage of records. Import will check storage for records
+    storage:
+      # Comma-separated list of folders
+      pid: 22
+      # Recursive level
+      recursive: 0
+
+    # Validation settings
+    validation:
+      name:
+        - required
+
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
@@ -18,18 +45,11 @@ importers:
             label: 1
             type: 2
             options: 3
-    # Default
-    identifierField: 'id'
-    # Storage
-    pid: 706
 
     # Mapping fields, data adapter should return array with associative array
     mapping:
       name:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-          - required
       label:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
       type:

@@ -19,45 +19,26 @@ class FloatProcessorTest extends UnitTestCase
 
     protected function setUp()
     {
-        parent::setUp();
-        $this->subject = new FloatProcessor();
+        $this->subject = $this
+            ->getMockBuilder(FloatProcessor::class)
+            ->disableOriginalConstructor()
+            ->setMethods(null)
+            ->getMock();
     }
 
     protected function tearDown()
     {
-        parent::tearDown();
         unset($this->subject);
     }
 
     /**
      * @test
      */
-    public function preProcessWillFormatStringForFloating()
+    public function processWillFormatStringForFloating()
     {
         $value = ' 12,36 ';
         $expect = '12.36';
 
-        $this->subject->preProcess($value);
-        $this->assertEquals($expect, $value);
-    }
-
-    /**
-     * @test
-     */
-    public function notNumericValuesWillNotPassValidation()
-    {
-        $value = '12test';
-
-        $this->assertFalse($this->subject->isValid($value));
-    }
-
-    /**
-     * @test
-     */
-    public function numericValueWillPassValidation()
-    {
-        $value = '12';
-
-        $this->assertTrue($this->subject->isValid($value));
+        $this->assertEquals($expect, $this->subject->preProcess($value));
     }
 }

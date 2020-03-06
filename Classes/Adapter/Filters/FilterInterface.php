@@ -14,9 +14,10 @@ interface FilterInterface
      *
      * @param mixed $column Column identifier
      * @param mixed $key Row data key
-     * @param array $rowData Raw data from source
+     * @param mixed $rawData Raw data from source
+     * @param int $languageUid Language uid of current import row
      * @param array $configuration Filter configuration
      * @return bool
      */
-    public function includeRow($column, $key, array $rowData, array $configuration): bool;
+    public function includeRow($column, $key, $rawData, int $languageUid, array $configuration): bool;
 }

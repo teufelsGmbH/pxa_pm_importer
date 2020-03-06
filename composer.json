@@ -12,8 +12,8 @@
     }
   ],
   "require": {
-    "php": ">=7.1.0",
-    "typo3/cms-core": "^8.7 || ^9.3",
+    "php": ">=7.2.0",
+    "typo3/cms-core": "^9.3",
     "symfony/yaml": "*",
     "pixelant/pxa-product-manager": "^9.5.1"
   },
@@ -25,7 +25,6 @@
     "phpoffice/phpspreadsheet": "Import data from XLS files"
   },
   "replace": {
-    "pxa_pm_importer": "self.version"
   },
   "autoload": {
     "psr-4": {
@@ -49,6 +48,7 @@
   },
   "extra": {
     "typo3/cms": {
+      "extension-key": "pxa_pm_importer",
       "cms-package-dir": "{$vendor-dir}/typo3/cms",
       "web-dir": ".Build/Web"
     }

@@ -3,13 +3,12 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Tests\Functional\Processors;
 
-use Nimut\TestingFramework\MockObject\AccessibleMockObjectInterface;
 use Nimut\TestingFramework\TestCase\FunctionalTestCase;
-use PHPUnit\Framework\MockObject\MockObject;
+use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Processors\ProductAttributeProcessor;
-use TYPO3\CMS\Core\Database\ConnectionPool;
+use Pixelant\PxaProductManager\Domain\Model\Attribute;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class ProductAttributeProcessorTest
@@ -18,7 +17,7 @@ use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 class ProductAttributeProcessorTest extends FunctionalTestCase
 {
     /**
-     * @var ProductAttributeProcessor|MockObject|AccessibleMockObjectInterface
+     * @var ProductAttributeProcessor
      */
     protected $subject = null;
 
@@ -29,13 +28,11 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
         parent::setUp();
         $this->importDataSet(__DIR__ . '/../Fixtures/tx_pxaproductmanager_domain_model_option.xml');
 
-        $this->subject = $this->getAccessibleMock(
-            ProductAttributeProcessor::class,
-            ['dummy'],
-            [],
-            '',
-            false
-        );
+        $context = GeneralUtility::makeInstance(ImportContext::class);
+        $context->setNewRecordsPid(1);
+        $context->setStoragePids([1]);
+
+        $this->subject = GeneralUtility::makeInstance(ObjectManager::class)->get(ProductAttributeProcessor::class);
     }
 
     protected function tearDown()
@@ -51,41 +48,13 @@ class ProductAttributeProcessorTest extends FunctionalTestCase
     {
         $values = 'BWM,Tesla';
 
-        $expect = [131, 141];
+        $expect = '131,141';
 
-        $importer = new class
-        {
-            public function getPid()
-            {
-                return 1;
-            }
-        };
-        $mockedAttribute = $this->createPartialMock(AbstractEntity::class, ['dummy']);
-        $mockedAttribute->_setProperty('uid', 3344);
+        $attribute = new Attribute();
+        $attribute->_setProperty('uid', 3344);
 
-        $this->subject->_set('importer', $importer);
-        $this->subject->_set('attribute', $mockedAttribute);
+        $this->inject($this->subject, 'attribute', $attribute);
 
-        $this->assertEquals($expect, $this->subject->_call('getOptions', $values));
-    }
-
-    protected function getAttributeRecordForProductAndAttribute($product, $attiribute)
-    {
-        $row = GeneralUtility::makeInstance(ConnectionPool::class)
-            ->getConnectionForTable('tx_pxaproductmanager_domain_model_attributevalue')
-            ->select(
-                ['*'],
-                'tx_pxaproductmanager_domain_model_attributevalue',
-                [
-                    'product' => $product,
-                    'attribute' => $attiribute
-                ],
-                [],
-                [],
-                1
-            )
-            ->fetch();
-
-        return $row;
+        $this->assertEquals($expect, $this->callInaccessibleMethod($this->subject, 'getOptions', $values));
     }
 }

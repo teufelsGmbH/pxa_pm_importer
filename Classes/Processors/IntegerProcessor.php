@@ -7,35 +7,14 @@ namespace Pixelant\PxaPmImporter\Processors;
  * Class IntegerProcessor
  * @package Pixelant\PxaPmImporter\Processors
  */
-class IntegerProcessor extends AbstractFieldProcessor
+class IntegerProcessor extends AbstractFieldProcessor implements PreProcessorInterface
 {
     /**
-     * Check if numeric
-     *
-     * @param $value
-     * @return bool
+     * @param mixed $value
+     * @return int
      */
-    public function isValid($value): bool
+    public function preProcess($value)
     {
-        $valid = parent::isValid($value);
-
-        // Empty value is valid if not required
-        if (!empty($value) && !is_numeric($value)) {
-            $this->addError('Value "' . $value . '" is not numeric');
-
-            return false;
-        }
-
-        return $valid;
-    }
-
-    /**
-     * Set as int
-     *
-     * @param $value
-     */
-    public function process($value): void
-    {
-        $this->simplePropertySet(intval($value));
+        return (int)$value;
     }
 }

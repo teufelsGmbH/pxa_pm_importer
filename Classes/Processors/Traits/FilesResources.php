@@ -115,44 +115,21 @@ trait FilesResources
         /** @var File[] $files */
         $files = [];
 
-        foreach ($list as $filePath) {
-            $fileIdentifier = $folder->getIdentifier() . ltrim($filePath, '/');
-
+        foreach ($list as $file) {
             // Emit signal
-            $this->emitSignal('beforeImportFileGet', [$fileIdentifier, $this->configuration]);
+            $this->emitSignal(__CLASS__, 'beforeImportFileGet', [$folder, $file, $this->configuration]);
 
-            if ($storage->hasFile($fileIdentifier)) {
-                $files[$filePath] = $storage->getFile($fileIdentifier);
+            if ($folder->hasFile($file)) {
+                $files[] = $storage->getFileInFolder($file, $folder);
             } elseif ($logger !== null) {
                 $logger->error(sprintf(
-                    'File "%s" doesn\'t exist',
-                    $fileIdentifier
+                    'File "%s" doesn\'t exist in folder %s',
+                    $file,
+                    $folder->getCombinedIdentifier()
                 ));
             }
         }
 
         return $files;
-    }
-
-    /**
-     * Convert to array if list is string.
-     *
-     * @param array|string $list Only array or string comma separated list is allowed as files list
-     * @return array
-     */
-    protected function convertFilesListValueToArray($list): array
-    {
-        if (!is_array($list) && !is_string($list)) {
-            $type = gettype($list);
-            throw new \InvalidArgumentException(
-                "Expect to get array or string as files list. '{$type}' given.",
-                1560319588819
-            );
-        }
-        if (is_string($list)) {
-            $list = GeneralUtility::trimExplode(',', $list, true);
-        }
-
-        return $list;
     }
 }

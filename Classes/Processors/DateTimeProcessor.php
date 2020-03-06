@@ -12,11 +12,25 @@ use Pixelant\PxaPmImporter\Exception\InvalidProcessorConfigurationException;
 class DateTimeProcessor extends AbstractFieldProcessor
 {
     /**
-     * Prepare for process
+     * Set property according the "outputFormat"
      *
-     * @param mixed $value
+     * @param $value
      */
-    public function preProcess(&$value): void
+    public function process($value): void
+    {
+        $this->checkConfiguration();
+
+        $inputFormat = $this->configuration['inputFormat'];
+        $outputFormat = $this->configuration['outputFormat'];
+        $inputDate = \DateTime::createFromFormat($inputFormat . '|', $value);
+
+        $this->simplePropertySet($inputDate->format($outputFormat));
+    }
+
+    /**
+     * Checks if configuration is valid
+     */
+    protected function checkConfiguration(): void
     {
         if (empty($this->configuration['inputFormat'])) {
             // @codingStandardsIgnoreStart
@@ -29,62 +43,5 @@ class DateTimeProcessor extends AbstractFieldProcessor
             throw new InvalidProcessorConfigurationException('Missing "outputFormat" of processor configuration. Name - "' . $this->property . '"', 1538032831);
             // @codingStandardsIgnoreEnd
         }
-
-        parent::preProcess($value);
-    }
-
-    /**
-     * Check if value can be formatted according input format
-     *
-     * @param $value
-     * @return bool
-     */
-    public function isValid($value): bool
-    {
-        $inputFormat = $this->configuration['inputFormat'];
-        $inputDate = \DateTime::createFromFormat($inputFormat . '|', $value);
-        if ($inputDate && $inputDate->format($inputFormat) === $value) {
-            return parent::isValid($value);
-        } else {
-            $this->addError(
-                sprintf(
-                    'Can\'t create a DateTime from "%s" with format "%s" (%s)',
-                    $value,
-                    $inputFormat,
-                    $this->getDateTimeErrorString()
-                )
-            );
-            return false;
-        }
-    }
-
-    /**
-     * Set property according the "outputFormat"
-     *
-     * @param $value
-     */
-    public function process($value): void
-    {
-        $inputFormat = $this->configuration['inputFormat'];
-        $outputFormat = $this->configuration['outputFormat'];
-        $inputDate = \DateTime::createFromFormat($inputFormat . '|', $value);
-        $this->simplePropertySet($inputDate->format($outputFormat));
-    }
-
-    /**
-     * Generate string of errors in getLastErrors
-     *
-     * @return string
-     */
-    protected function getDateTimeErrorString(): string
-    {
-        $errorString = '';
-        $lastErrors = \DateTime::getLastErrors();
-
-        if (is_array($lastErrors['errors']) && $lastErrors['error_count'] > 0) {
-            $errorString = '"' . implode('", "', $lastErrors['errors']) . '"';
-        }
-
-        return $errorString;
     }
 }

@@ -3,11 +3,10 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Adapter;
 
-use Pixelant\PxaPmImporter\Exception\InvalidAdapterFieldMapping;
 use Pixelant\PxaPmImporter\Adapter\Filters\FilterInterface;
-use Pixelant\PxaPmImporter\Service\Source\SourceInterface;
+use Pixelant\PxaPmImporter\Source\SourceInterface;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
 
 /**
  * Class AbstractDefaultAdapter
@@ -42,6 +41,19 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      * @var array
      */
     protected $filters = [];
+
+    /**
+     * @var ObjectManager
+     */
+    protected $objectManager = null;
+
+    /**
+     * @param ObjectManager $objectManager
+     */
+    public function injectObjectManager(ObjectManager $objectManager)
+    {
+        $this->objectManager = $objectManager;
+    }
 
     /**
      * Initialize default settings
@@ -99,20 +111,21 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
      *
      * @param mixed $key Row key
      * @param array $dataRow
+     * @param int $languageUid Current import language
      * @return boolean
      */
-    public function includeRow($key, array $dataRow): bool
+    public function includeRow($key, $dataRow, int $languageUid): bool
     {
         if (is_array($this->filters) && count($this->filters) > 0) {
             foreach ($this->filters as $column => $filter) {
                 if (!empty($filter['filter'])) {
-                    $filterObject = GeneralUtility::makeInstance($filter['filter']);
+                    $filterObject = $this->getFilterInstance($filter['filter']);
                     if (!($filterObject instanceof FilterInterface)) {
                         // @codingStandardsIgnoreStart
                         throw new \UnexpectedValueException('Filter "' . $filter['filter'] . '" should be instance of "FilterInterface"', 1538142318);
                         // @codingStandardsIgnoreEnd
                     }
-                    if (!$filterObject->includeRow($column, $key, $dataRow, $filter)) {
+                    if (!$filterObject->includeRow($column, $key, $dataRow, $languageUid, $filter)) {
                         return false;
                     }
                 }
@@ -139,44 +152,6 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
     public function countAmountOfItems(SourceInterface $source): int
     {
         return count($this->getImportLanguages()) * $source->count();
-    }
-
-    /**
-     * Get single field data from row
-     *
-     * @param $column
-     * @param array $row
-     * @return mixed
-     */
-    protected function getFieldData($column, array $row)
-    {
-        if (is_array($column)) {
-            return $this->getMultipleFieldData($column, $row);
-        }
-
-        if (array_key_exists($column, $row)) {
-            return $row[$column];
-        }
-
-        throw new InvalidAdapterFieldMapping('Data column "' . $column . '" is not set', 1536051927592);
-    }
-
-    /**
-     * Get multiple field data from row
-     *
-     * @param array $columns
-     * @param array $row
-     * @return mixed
-     */
-    protected function getMultipleFieldData(array $columns, array $row): string
-    {
-        $fieldData = '';
-
-        foreach ($columns as $column) {
-            $fieldData .= $this->getFieldData($column, $row);
-        }
-
-        return $fieldData;
     }
 
     /**
@@ -223,5 +198,24 @@ abstract class AbstractDefaultAdapter implements AdapterInterface
         }
 
         return $mappingResult;
+    }
+
+    /**
+     * @param string $filter
+     * @return FilterInterface
+     */
+    protected function getFilterInstance(string $filter): FilterInterface
+    {
+        $filterObject = $this->objectManager->get($filter);
+        if (!$filterObject instanceof FilterInterface) {
+            $type = gettype($filterObject);
+
+            throw new \UnexpectedValueException(
+                "Expect filter to be instance of FilterInterface, '$type' given",
+                1538142318
+            );
+        }
+
+        return $filterObject;
     }
 }

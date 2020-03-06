@@ -1,11 +1,33 @@
 #log:
-#  path: 'fileadmin/custom_path/test.log'
-source:
-  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+  #path: 'fileadmin/custom_path/test.log'
+sources:
+  Pixelant\PxaPmImporter\Source\ExcelSource:
     skipRows: 1
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/products.xlsx
 importers:
-  Pixelant\PxaPmImporter\Service\Importer\ProductsImporter:
+  ProductsImport:
+    # Unique identifier field provided by Adapter
+    identifierField: 'id'
+
+    # Domain model name
+    domainModel: Pixelant\PxaProductManager\Domain\Model\Product
+
+    # Allowed import operations
+    # default is 'create,localize,createLocalize'
+    allowedOperations: 'create,localize'
+
+    # Settings for new records
+    importNewRecords:
+      # Storage of new records
+      pid: 22
+
+    # Storage of records. Import will check storage for records
+    storage:
+      # Comma-separated list of folders
+      pid: 22
+      # Recursive level
+      recursive: 0
+
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
@@ -38,21 +60,15 @@ importers:
             falLinks: 'Q'
             metaDescription: 'R'
 
-    # Default
-    identifierField: 'id'
-    # Storage
-    pid: 706
-
-    # Shall we create an independent language layer record if parent record doesn't exist
-    allowCreateLocalizationIfDefaultNotFound: false
+    # Validation settings
+    validation:
+      name:
+        - required
 
     # Mapping fields, data adapter should return array with associative array
     mapping:
       name:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-          - required
       sku:
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
       teaser:

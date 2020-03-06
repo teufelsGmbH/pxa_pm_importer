@@ -1,10 +1,34 @@
-source:
-  Pixelant\PxaPmImporter\Service\Source\ExcelSource:
+sources:
+  Pixelant\PxaPmImporter\Source\ExcelSource:
     skipRows: 1
     sheet: -1
     filePath: EXT:pxa_pm_importer/Resources/Private/ExampleData/categoriesxls.xlsx
 importers:
-  Pixelant\PxaPmImporter\Service\Importer\CategoriesImporter:
+  CategoriesImport:
+    # Unique identifier field provided by Adapter
+    identifierField: 'id'
+
+    # Domain model name
+    domainModel: Pixelant\PxaProductManager\Domain\Model\Category
+
+    # Allowed import operations
+    # default is 'create,localize,createLocalize'
+    allowedOperations: 'create,localize'
+
+    # Settings for new records
+    importNewRecords:
+      # Storage of new records
+      pid: 440
+      defaultFields:
+        title: ''
+
+    # Storage of records. Import will check storage for records
+    storage:
+      # Comma-separated list of folders
+      pid: 440
+      # Recursive level
+      recursive: 0
+
     # Layer between raw data and importer
     adapter:
       className: 'Pixelant\PxaPmImporter\Adapter\DefaultDataAdapter'
@@ -21,10 +45,11 @@ importers:
           1:
             # Or use column letter
             title: 'C'
-    # Default
-    identifierField: 'id'
-    # Storage
-    pid: 706
+
+    # Validation settings
+    validation:
+      title:
+        - required
 
     # Mapping fields, data adapter should return array with associative array
     mapping:
@@ -32,8 +57,5 @@ importers:
         # Property name is necessary only if it differ from field name
         property: 'title'
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-          - required
       parent:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'

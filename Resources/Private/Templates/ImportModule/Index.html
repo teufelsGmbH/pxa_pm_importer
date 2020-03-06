@@ -5,29 +5,25 @@
     <f:section name="main">
         <div class="pxa-after-import-messages">
             <f:flashMessages />
-            <f:if condition="{errors}">
-                <p class="bg-warning" style="padding: 15px;"><f:translate key="be.with_errors" /></p>
-                <f:for each="{errors}" as="error">
-                    <p class="bg-danger" style="padding: 15px;">{error}</p>
-                </f:for>
-            </f:if>
-            <f:if condition="{logFile}">
-                <p class="bg-info" style="padding: 15px;"><f:translate key="be.check_log" />: "{logFile}"</p>
-            </f:if>
         </div>
+
         <h4><f:translate key="be.index.title" /></h4>
         <p class="lead"><f:translate key="be.index.description" /></p>
 
         <f:form action="import" class="form-horizontal">
             <div class="form-group">
                 <div class="col-sm-10">
-                    <f:form.select name="import"
-                                   id="pxa-import-select"
-                                   options="{configurations}"
-                                   optionLabelField="name"
-                                   prependOptionValue="0"
-                                   prependOptionLabel="{f:translate(key: 'be.select_conf')}"
-                                   class="form-control" />
+                    <f:form.select name="configuration" id="pxa-import-select" class="form-control">
+                        <f:form.select.option value="0"><f:translate key="be.select_conf" /></f:form.select.option>
+
+                        <f:for as="extCofigurations" key="extKey" each="{configurations}">
+                            <f:form.select.optgroup label="{extKey}">
+                                <f:for as="configuration" each="{extCofigurations}">
+                                    <f:form.select.option value="{configuration}">{configuration}</f:form.select.option>
+                                </f:for>
+                            </f:form.select.optgroup>
+                        </f:for>
+                    </f:form.select>
                 </div>
             </div>
 
@@ -53,6 +49,7 @@
                 <br>
                 <b><f:translate key="be.progress" />:</b>
                 <div class="import-progress-bar"><f:comment><!--Place holder for progress bar--></f:comment></div>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
             </div>
         </div>
     </f:section>

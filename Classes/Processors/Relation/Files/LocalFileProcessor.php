@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Relation\Files;
 
-use Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor;
+use Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor;
+use Pixelant\PxaPmImporter\Processors\Relation\Updater\RelationPropertyUpdater;
 use Pixelant\PxaPmImporter\Processors\Traits\FilesResources;
+use Pixelant\PxaPmImporter\Utility\MainUtility;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
@@ -15,25 +17,49 @@ use TYPO3\CMS\Extbase\Reflection\ObjectAccess;
  * Class LocalFileProcessor
  * @package Pixelant\PxaPmImporter\Processors\File
  */
-class LocalFileProcessor extends AbstractRelationFieldProcessor
+class LocalFileProcessor extends AbstractFieldProcessor
 {
     use FilesResources;
 
     /**
+     * @var RelationPropertyUpdater
+     */
+    protected $propertyUpdater = null;
+
+    /**
+     * Initialize
+     * @param RelationPropertyUpdater $propertyUpdater
+     */
+    public function __construct(RelationPropertyUpdater $propertyUpdater)
+    {
+        $this->propertyUpdater = $propertyUpdater;
+    }
+
+    /**
+     * Process update
+     *
+     * @param $value
+     */
+    public function process($value): void
+    {
+        $this->propertyUpdater->update($this->entity, $this->property, $this->initEntities($value));
+    }
+
+    /**
      * Get files from value list and convert to extbase domain file reference
      *
-     * @param mixed $value
+     * @param string|array $value
      * @return array
      */
     protected function initEntities($value): array
     {
         $entities = [];
-        $value = $this->convertFilesListValueToArray($value);
+        $value = MainUtility::convertListToArray($value, $this->configuration['delim'] ?? ',');
 
         try {
             $folder = $this->getFolder();
         } catch (FolderDoesNotExistException $exception) {
-            $this->addError($exception->getMessage());
+            $this->logger->error($exception->getMessage());
 
             return [];
         }
@@ -52,11 +78,11 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
         if ($propertyValue instanceof ObjectStorage) {
             /** @var FileReference $file */
             foreach ($propertyValue as $file) {
-                $existingFiles[$this->getEntityUidForCompare($file)] = $file;
+                $existingFiles[$this->propertyUpdater->getEntityUidForCompare($file)] = $file;
             }
         } elseif ($propertyValue !== null) {
             // If one file and not set yet
-            $existingFiles[$this->getEntityUidForCompare($propertyValue)] = $propertyValue;
+            $existingFiles[$this->propertyUpdater->getEntityUidForCompare($propertyValue)] = $propertyValue;
         }
 
         foreach ($this->collectFilesFromList($folder, $value, $this->logger) as $file) {
@@ -65,7 +91,7 @@ class LocalFileProcessor extends AbstractRelationFieldProcessor
                 $entities[] = $this->createFileReference(
                     $file,
                     $this->entity->getUid(),
-                    $this->importer->getPid(),
+                    $this->context->getNewRecordsPid(),
                     $this->entity->_getProperty('_languageUid')
                 );
             } else {

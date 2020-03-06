@@ -15,11 +15,45 @@ class MainUtilityTest extends UnitTestCase
     /**
      * @test
      */
-    public function getImportIdHashReturnImportHash()
+    public function convertFilesListValueToArrayThrowExceptionIfNonArrayOrNonStringGiven()
     {
-        $id = 'test';
+        $list = 123;
 
-        $this->assertEquals(md5($id), MainUtility::getImportIdHash($id));
+        $this->expectException(\InvalidArgumentException::class);
+
+        MainUtility::convertListToArray($list);
+    }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayReturnGivenArray()
+    {
+        $list = ['path1', 'path2'];
+
+        $this->assertEquals($list, MainUtility::convertListToArray($list));
+    }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayConvertStringToArray()
+    {
+        $list = 'path1,path2, path3';
+        $expect = ['path1', 'path2', 'path3'];
+
+        $this->assertEquals($expect, MainUtility::convertListToArray($list));
+    }
+
+    /**
+     * @test
+     */
+    public function convertFilesListValueToArrayConvertStringToArrayWithCustomDelim()
+    {
+        $list = 'path1;path2; path3';
+        $expect = ['path1', 'path2', 'path3'];
+
+        $this->assertEquals($expect, MainUtility::convertListToArray($list, ';'));
     }
 
     /**
