@@ -75,7 +75,9 @@ Example:
 ```yaml
 log:
   # Custom log path
-  path: 'fileadmin/import/log/product_import.log' 
+  path: 'fileadmin/import/log/product_import.log'
+  # Only track errors
+  # severity: 3 
 sources:
   SourceClass:
     # Different source settings
@@ -125,15 +127,17 @@ importers:
             title: 3
             parent: 4
     
+    # Validation settings
+    validation:
+      name:
+        - required
+    
     # Mapping fields, data adapter should return array with associative array
     mapping:
       title:
         # Property name is necessary only if it differ from field name
         property: 'title'
         processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-        # Custom settings
-        validation:
-            - required
       parent:
         processor: 'Pixelant\PxaPmImporter\Processors\Relation\CategoryProcessor'
 ```
@@ -142,7 +146,7 @@ importers:
 
 ###### Log
 
-In log settings it's possible to set custom path where to write file log.
+In log settings it's possible to set custom path where to write file log and severity.
 
 ###### Source
 
@@ -271,6 +275,14 @@ storage:
   # Recursive level
   recursive: 0
 
+# Validation settings
+# Only required is supported so far. But you can implement more
+# Add custom class name here
+# If just a name is provided extension will try to load it from validators folder
+validation:
+  title:
+    - required
+
 # Mapping fields, data adapter should return array with associative array
 mapping:
   # Field to Extbase property model mapping rules. Support next settings:
@@ -279,11 +291,6 @@ mapping:
     property: 'title'
     # Custom field processor. If set processor take care of setting model property value, otherwise value will be set as simple string without any processing.
     processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-    # Only required is supported so far. But you can implement more
-    # Add custom class name here
-    # If just a name is provided extension will try to load it from validators folder
-    validation:
-        - required
     # Any other options will be passed as configuration array to processor
     customSetting: true
     anotherSettingValue: 123321
@@ -317,9 +324,6 @@ title:
   property: 'title'
   # Custom field processor. If set processor take care of setting model property value, otherwise value will be set as simple string without any processing.
   processor: 'Pixelant\PxaPmImporter\Processors\StringProcessor'
-  # Validators:
-  validation:
-    - required
 ```
 - DateTimeProcessor
 
@@ -391,16 +395,16 @@ images:
 ```
 
 ##### Processor validation
-Every processor may have many validators.
-Custom validators should implement instance of `\Pixelant\PxaPmImporter\Domain\Validation\Validator\ProcessorFieldValueValidatorInterface`.
-See `RequiredValidator` for example on how to validate value and `ProcessorFieldValueValidatorInterface` for available validation statuses.
+Every property may have many validators.
+Custom validators should implement instance of `\Pixelant\PxaPmImporter\Validation\Validator\ValidatorInterface`.
+See `RequiredValidator` for example.
 
 ```yaml
 validation:
- # Will use \Pixelant\PxaPmImporter\Domain\Validation\Validator\RequiredValidator
- - required
- # Or provide custom validator
- - Pixelant\MyExtension\Domain\Validation\Validator\CustomValidator
+  title:
+    - required
+    # Or provide custom validator
+    - Pixelant\MyExtension\Domain\Validation\Validator\CustomValidator
 ```
 
 **Important** that your custom classes implements required interface.
@@ -409,9 +413,9 @@ validation:
 - Processor implement `Pixelant\PxaPmImporter\Processors\FieldProcessorInterface`
     - `Pixelant\PxaPmImporter\Processors\Relation\AbstractRelationFieldProcessor` is useful to handle relation like 1:1, 1:n and n:m
     - `Pixelant\PxaPmImporter\Processors\AbstractFieldProcessor` basic class to work with simple values, like string and numbers
-- Source implement `Pixelant\PxaPmImporter\Service\Source\SourceInterface`
-- Importer implement `Pixelant\PxaPmImporter\Service\Importer\ImporterInterface`
-    - `Pixelant\PxaPmImporter\Service\Importer\AbstractImporter` - basic class for products, categories and attributes import
+- Source implement `Pixelant\PxaPmImporter\Source\SourceInterface`
+- Importer implement `Pixelant\PxaPmImporter\Importer\ImporterInterface`
+    - `Pixelant\PxaPmImporter\Importer\Importer` - basic class for products, categories and attributes import
 
 
 ## Import inside YAML
