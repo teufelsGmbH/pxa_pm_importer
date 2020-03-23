@@ -165,8 +165,14 @@ class RelationPropertyUpdaterTest extends UnitTestCase
         $mockedFileReference->expects($this->once())->method('getOriginalResource')->willReturn($mockedCoreReference);
 
 
-        $mockedOldFileReference = $this->createPartialMock(ExtbaseFileReference::class, ['getUid']);
-        $mockedOldFileReference->expects($this->once())->method('getUid')->willReturn(33);
+        $mockedOldFile = $this->createPartialMock(File::class, ['getUid']);
+        $mockedOldFile->expects($this->once())->method('getUid')->willReturn(33);
+
+        $mockedOldCoreReference = $this->createPartialMock(FileReference::class, ['getOriginalFile']);
+        $mockedOldCoreReference->expects($this->once())->method('getOriginalFile')->willReturn($mockedOldFile);
+
+        $mockedOldFileReference = $this->createPartialMock(ExtbaseFileReference::class, ['getOriginalResource']);
+        $mockedOldFileReference->expects($this->once())->method('getOriginalResource')->willReturn($mockedOldCoreReference);
 
 
         $entity = new \Pixelant\PxaProductManager\Domain\Model\Category();
