@@ -56,7 +56,7 @@ class RelationPropertyUpdater
             if ($propertyValue instanceof AbstractEntity
                 && (
                     $firstEntity === null
-                    || $this->getEntityUidForCompare($firstEntity) !== $propertyValue->getUid()
+                    || $this->getEntityUidForCompare($firstEntity) !== $this->getEntityUidForCompare($propertyValue)
                 )
             ) {
                 // If entity is null we need to use direct access, because it's high risk that
