@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Context;
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Context\Context;
 use Pixelant\PxaPmImporter\Exception\ContextDataAlreadyExistException;
 use Pixelant\PxaPmImporter\Configuration\ConfigurationInterface;
 use Pixelant\PxaPmImporter\Importer\ImporterInterface;
@@ -91,7 +93,7 @@ class ImportContext implements SingletonInterface
      */
     public function __construct()
     {
-        $this->importStartTimeStamp = $GLOBALS['EXEC_TIME'];
+        $this->importStartTimeStamp = GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp');
     }
 
     /**

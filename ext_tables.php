@@ -1,15 +1,15 @@
 <?php
-defined('TYPO3_MODE') || die('Access denied.');
+defined('TYPO3') || die('Access denied.');
 
 if (TYPO3_MODE === 'BE') {
     // Register BE module
     \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerModule(
-        'Pixelant.pxa_pm_importer',
+        'PxaPmImporter',
         'tools',          // Main area
         'import',         // Name of the module
         '',             // Position of the module
         [
-            'ImportModule' => 'index, import'
+            \Pixelant\PxaPmImporter\Controller\ImportModuleController::class => 'index, import'
         ],
         [          // Additional configuration
             'access' => 'user,group',

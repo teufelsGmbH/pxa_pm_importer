@@ -20,7 +20,7 @@ class ConfigurationServiceFactory
      */
     public function createConfiguration(string $configuration): ConfigurationInterface
     {
-        if (StringUtility::endsWith($configuration, '.yaml')) {
+        if (\str_ends_with($configuration, '.yaml')) {
             return GeneralUtility::makeInstance(YamlConfiguration::class, $configuration);
         }
 

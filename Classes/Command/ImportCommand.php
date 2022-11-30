@@ -127,9 +127,8 @@ class ImportCommand extends Command
             ->setFrom($sender)
             ->setTo($receivers)
             ->setSubject($subject)
-            ->setBody(
-                $message,
-                'text/html'
+            ->html(
+                $message
             );
 
         $mailMessage->send();

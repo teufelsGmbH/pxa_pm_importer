@@ -1,5 +1,5 @@
 <?php
-defined('TYPO3_MODE') || die;
+defined('TYPO3') || die;
 
 // This table is invisible, no sense to put labels in XLF file
 return [
@@ -12,9 +12,6 @@ return [
         'searchFields' => 'configuration',
         'rootLevel' => 1,
         'hideTable' => true,
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'configuration, progress',
     ],
     'types' => [
         '1' => ['showitem' => '--palette--;;1, configuration, progress'],

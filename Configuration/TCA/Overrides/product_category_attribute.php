@@ -1,5 +1,5 @@
 <?php
-defined('TYPO3_MODE') || die('Access denied.');
+defined('TYPO3') || die('Access denied.');
 
 call_user_func(function () {
     // Add TCA config of import fields for all tables where it's possible to import

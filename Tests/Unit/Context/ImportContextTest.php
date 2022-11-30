@@ -2,6 +2,8 @@
 
 namespace Pixelant\PxaPmImporter\Tests\Unit\Context;
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Context\Context;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use Pixelant\PxaPmImporter\Context\ImportContext;
 use Pixelant\PxaPmImporter\Exception\ContextDataAlreadyExistException;
@@ -19,13 +21,13 @@ class ImportContextTest extends UnitTestCase
 
     protected function setUp()
     {
-        $GLOBALS['EXEC_TIME'] = time();
+        GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp') = time();
         $this->subject = new ImportContext();
     }
 
     protected function tearDown()
     {
-        unset($this->subject, $GLOBALS['EXEC_TIME']);
+        unset($this->subject, GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'));
     }
 
     /**
@@ -33,7 +35,7 @@ class ImportContextTest extends UnitTestCase
      */
     public function importStartTimeStampIfSetFromExecTime()
     {
-        $this->assertEquals($GLOBALS['EXEC_TIME'], $this->subject->getImportStartTimeStamp());
+        $this->assertEquals(GeneralUtility::makeInstance(Context::class)->getPropertyFromAspect('date', 'timestamp'), $this->subject->getImportStartTimeStamp());
     }
 
     /**

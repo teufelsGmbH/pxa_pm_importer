@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Controller;
 
+use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use Psr\Http\Message\ResponseInterface;
+use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use Pixelant\PxaPmImporter\Service\ImportService;
 use Pixelant\PxaPmImporter\Utility\ImportersRegistry;
 use TYPO3\CMS\Backend\View\BackendTemplateView;
@@ -19,23 +22,14 @@ use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 class ImportModuleController extends ActionController
 {
     /**
-     * BackendTemplateContainer
-     *
-     * @var BackendTemplateView
-     */
-    protected $view = null;
-
-    /**
-     * Backend Template Container
-     *
-     * @var BackendTemplateView
-     */
-    protected $defaultViewObjectName = BackendTemplateView::class;
-
-    /**
      * @var PageRenderer
      */
     protected $pageRenderer = null;
+    private ModuleTemplateFactory $moduleTemplateFactory;
+    public function __construct(ModuleTemplateFactory $moduleTemplateFactory)
+    {
+        $this->moduleTemplateFactory = $moduleTemplateFactory;
+    }
 
     /**
      * @param PageRenderer $pageRenderer
@@ -71,11 +65,14 @@ class ImportModuleController extends ActionController
     /**
      * Main view
      */
-    public function indexAction()
+    public function indexAction(): ResponseInterface
     {
+        $moduleTemplate = $this->moduleTemplateFactory->create($this->request);
         $configurations = ImportersRegistry::getImportersAvailableConfigurations();
 
         $this->view->assignMultiple(compact('configurations'));
+        $moduleTemplate->setContent($this->view->render());
+        return $this->htmlResponse($moduleTemplate->renderContent());
     }
 
     /**
@@ -93,21 +90,21 @@ class ImportModuleController extends ActionController
             $this->addFlashMessage(
                 $this->translate('be.executed', [$importManager->getLogFilePath()]),
                 $this->translate('be.success'),
-                FlashMessage::OK
+                AbstractMessage::OK
             );
 
             foreach ($importManager->getErrors() as $error) {
                 $this->addFlashMessage(
                     $error,
                     $this->translate('be.error'),
-                    FlashMessage::ERROR
+                    AbstractMessage::ERROR
                 );
             }
         } catch (\Exception $exception) {
             $this->addFlashMessage(
                 $this->translate('be.failed_execution', [$exception->getMessage()]),
                 $this->translate('be.error'),
-                FlashMessage::ERROR
+                AbstractMessage::ERROR
             );
         }
 

@@ -2,6 +2,8 @@
 
 namespace Pixelant\PxaPmImporter\Tests\Unit\Logging;
 
+use TYPO3\CMS\Core\Log\LogLevel;
+use Pixelant\PxaPmImporter\Logging\Writer\FileWriter;
 use Nimut\TestingFramework\TestCase\UnitTestCase;
 use Pixelant\PxaPmImporter\Logging\Logger;
 
@@ -14,8 +16,8 @@ class LoggerTest extends UnitTestCase
     protected function setUp()
     {
         $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
-            \TYPO3\CMS\Core\Log\LogLevel::INFO => [
-                \Pixelant\PxaPmImporter\Logging\Writer\FileWriter::class => [
+            LogLevel::INFO => [
+                FileWriter::class => [
                     'logFile' => 'fake/pm_importer.log'
                 ]
             ]

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Pixelant\PxaPmImporter\Processors\Traits;
 
+use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
 use Pixelant\PxaPmImporter\Logging\Logger;
 use Pixelant\PxaPmImporter\Traits\EmitSignalTrait;
 use TYPO3\CMS\Core\Resource\File;
@@ -34,7 +35,7 @@ trait FilesResources
     protected function getResourceFactory(): ResourceFactory
     {
         if ($this->resourceFactory === null) {
-            $this->resourceFactory = ResourceFactory::getInstance();
+            $this->resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
         }
 
         return $this->resourceFactory;
@@ -54,7 +55,7 @@ trait FilesResources
      * Get folder from configuration or root folder from storage
      *
      * @return Folder
-     * @throws \TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException
+     * @throws InsufficientFolderAccessPermissionsException
      */
     protected function getFolder(): Folder
     {
