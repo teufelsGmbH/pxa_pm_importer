@@ -157,10 +157,7 @@ class Logger
     {
         $customPath = $customPath ?? (Environment::getVarPath() . '/log/pm_importer.log');
         static::$logSeverity = $severity ?? LogLevel::INFO;
-
-        debug(static::$logSeverity);
-        debug(LogLevel::normalizeLevel(static::$logSeverity));
-
+        
         LogLevel::validateLevel(LogLevel::normalizeLevel(static::$logSeverity));
 
         $GLOBALS['TYPO3_CONF_VARS']['LOG']['Pixelant']['PxaPmImporter']['writerConfiguration'] = [
