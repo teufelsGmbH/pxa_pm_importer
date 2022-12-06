@@ -12,13 +12,14 @@ use Pixelant\PxaPmImporter\Utility\ExtbaseUtility;
 use Pixelant\PxaPmImporter\Utility\HashUtility;
 use Pixelant\PxaPmImporter\Utility\MainUtility;
 use Pixelant\PxaProductManager\Domain\Model\Attribute;
-use Pixelant\PxaProductManager\Domain\Model\AttributeFalFile;
+use Pixelant\PxaProductManager\Domain\Model\AttributeFile;
 use Pixelant\PxaProductManager\Domain\Model\AttributeValue;
 use Pixelant\PxaProductManager\Domain\Model\Product;
 use Pixelant\PxaProductManager\Domain\Repository\AttributeRepository;
 use Pixelant\PxaProductManager\Utility\TCAUtility;
 use TYPO3\CMS\Core\Resource\Exception\FolderDoesNotExistException;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 
 /**
  * Class ProductAttributeProcessor
@@ -81,7 +82,10 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     {
         $this->initAttribute();
 
-        $attributeValues = unserialize($this->entity->getSerializedAttributesValues()) ?: [];
+        //old v9: $attributeValues = unserialize($this->entity->getSerializedAttributesValues()) ?: [];
+        //$attributeValues = $this->entity->getAttributesValues();
+
+        $attributeValues = $this->entity->getAttributeValue() ?: [];
         $currentValue = $attributeValues[$this->attribute->getUid()] ?? '';
 
         // If value is same and attribute value record exist
@@ -118,9 +122,11 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 );
         }
 
+        //debug($attributeValues);
+
         // We don't need to save value for fal attribute, since fal reference is already set
         if (false === $this->attribute->isFalType()) {
-            $this->entity->setSerializedAttributesValues(serialize($attributeValues));
+            //old v9: $this->entity->setSerializedAttributesValues(serialize($attributeValues));
             $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
         }
     }
@@ -163,7 +169,11 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $attributeValue->setValue($value);
         $attributeValue->setAttribute($this->attribute);
 
-        $this->entity->addAttributeValue($attributeValue);
+        $objectStorage = new ObjectStorage();
+        $objectStorage->attach($attributeValue);
+
+        //old v9: $this->entity->addAttributeValue($attributeValue);
+        $this->entity->setAttributesValues($objectStorage);
     }
 
     /**
@@ -174,7 +184,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
     protected function getAttributeValue(): ?AttributeValue
     {
         /** @var AttributeValue $attributeValue */
-        foreach ($this->entity->getAttributeValues() as $attributeValue) {
+        //old v9: foreach ($this->entity->getAttributeValues() as $attributeValue) {
+        foreach ($this->entity->getAttributesValues() as $attributeValue) {
             if ($attributeValue->getAttribute()->getUid() === $this->attribute->getUid()) {
                 return $attributeValue;
             }
@@ -334,6 +345,8 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      */
     protected function initAttribute(): void
     {
+        debug($this->configuration['attributeUid']);
+
         if (empty($this->configuration['attributeUid'])) {
             throw new InvalidProcessorConfigurationException(
                 "Missing 'attributeUid' of processor configuration. Name - '{$this->property}'",

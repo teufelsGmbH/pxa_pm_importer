@@ -62,3 +62,14 @@ CREATE TABLE tx_pxapmimporter_domain_model_progress (
     progress double(11,2) DEFAULT '0.00' NOT NULL
 
 );
+
+#
+# Table structure for table 'tx_pxaproductmanager_domain_model_producttype'
+#
+CREATE TABLE tx_pxaproductmanager_domain_model_producttype (
+    pm_importer_import_id_hash varchar(55) DEFAULT '' NOT NULL,
+    pm_importer_import_id varchar(255) DEFAULT '' NOT NULL,
+    pm_importer_placeholder tinyint(1) unsigned DEFAULT '0' NOT NULL,
+
+    KEY importhash (pm_importer_import_id_hash ,sys_language_uid, pid)
+);
