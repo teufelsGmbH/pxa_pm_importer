@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Pixelant\PxaPmImporter\Processors\Relation\Updater;
 
 use Pixelant\PxaPmImporter\Domain\Repository\FileReferenceRepository;
+use Pixelant\PxaProductManager\Domain\Model\ProductType;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference;
 use TYPO3\CMS\Extbase\DomainObject\AbstractEntity;
 use TYPO3\CMS\Extbase\Persistence\Generic\LazyLoadingProxy;
@@ -48,6 +49,14 @@ class RelationPropertyUpdater
 
         // If already has some values
         if (is_object($propertyValue)) {
+
+            // If  product type
+            /*
+            if ($propertyValue instanceof ProductType) {
+                $this->updateProductType($entity, $property, $propertyValue, $importEntities);
+            }
+            */
+
             // If  object storage
             if ($propertyValue instanceof ObjectStorage) {
                 $this->updateObjectStorage($entity, $property, $propertyValue, $importEntities);
@@ -140,5 +149,39 @@ class RelationPropertyUpdater
 
         // Since it has only integer uids - compare
         return $storageUids !== $entitiesUids;
+    }
+
+    /**
+     * Add update product type with import items, remove that items are not in a list
+     * Update domain model relation like 1:1
+     *
+     * @param AbstractEntity $processingEntity
+     * @param string $property
+     * @param ProductType $productType
+     * @param AbstractEntity[] $importEntities
+     */
+    protected function updateProductType(
+        AbstractEntity $processingEntity,
+        string $property,
+        ProductType $productType,
+        array $importEntities
+    ): void {
+        if ($this->doesProductTypeDiff($productType, $importEntities)) {
+            ObjectAccess::setProperty($processingEntity, $property, $importEntities[0]);
+        }
+    }
+
+    /**
+     * Check if product type is different than import entities and need to be replaced
+     *
+     * @param ProductType $productType
+     * @param array $entities
+     * @return bool
+     */
+    protected function doesProductTypeDiff(ProductType $productType, array $entities): bool
+    {
+        $productTypeUid = $productType->getUid();
+        $entitiesUid = $entities[0]->getUid();
+        return $productTypeUid !== $entitiesUid;
     }
 }

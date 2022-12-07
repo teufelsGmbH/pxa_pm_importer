@@ -17,7 +17,7 @@ class RelatedProductsProcessor extends AbstractRelationFieldProcessor implements
     public function createMissingEntity(string $importId)
     {
         $fields = [
-            $this->tcaHiddenField() => 1,
+            $this->tcaHiddenField() => 0,
             $this->tcaLabelField() => $importId
         ];
 

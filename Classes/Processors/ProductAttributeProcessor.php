@@ -83,10 +83,13 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $this->initAttribute();
 
         //old v9: $attributeValues = unserialize($this->entity->getSerializedAttributesValues()) ?: [];
-        //$attributeValues = $this->entity->getAttributesValues();
 
         $attributeValues = $this->entity->getAttributeValue() ?: [];
-        $currentValue = $attributeValues[$this->attribute->getUid()] ?? '';
+        $currentValue = $attributeValues[$this->attribute->getIdentifier()] ?? '';
+        if ($currentValue instanceof AttributeValue) {
+            //ToDo: Handle compare other Types than String
+            $currentValue = $currentValue->getValue() ?? '';
+        }
 
         // If value is same and attribute value record exist
         // Fal type doesn't have attribute values
@@ -97,19 +100,19 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         switch ($this->attribute->getType()) {
             case Attribute::ATTRIBUTE_TYPE_DROPDOWN:
             case Attribute::ATTRIBUTE_TYPE_MULTISELECT:
-                $attributeValues[$this->attribute->getUid()] = $this->getOptions($value);
+                $attributeValues[$this->attribute->getIdentifier()] = $this->getOptions($value);
                 break;
             case Attribute::ATTRIBUTE_TYPE_CHECKBOX:
-                $attributeValues[$this->attribute->getUid()] = ((bool)$value) ? 1 : 0;
+                $attributeValues[$this->attribute->getIdentifier()] = ((bool)$value) ? 1 : 0;
                 break;
             case Attribute::ATTRIBUTE_TYPE_INPUT:
             case Attribute::ATTRIBUTE_TYPE_LABEL:
             case Attribute::ATTRIBUTE_TYPE_TEXT:
             case Attribute::ATTRIBUTE_TYPE_LINK:
-                $attributeValues[$this->attribute->getUid()] = (string)$value;
+                $attributeValues[$this->attribute->getIdentifier()] = (string)$value;
                 break;
             case Attribute::ATTRIBUTE_TYPE_DATETIME:
-                $attributeValues[$this->attribute->getUid()] = $this->importDateTimeString($value);
+                $attributeValues[$this->attribute->getIdentifier()] = $this->importDateTimeString($value);
                 break;
             case Attribute::ATTRIBUTE_TYPE_IMAGE:
             case Attribute::ATTRIBUTE_TYPE_FILE:
@@ -122,12 +125,10 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
                 );
         }
 
-        //debug($attributeValues);
-
         // We don't need to save value for fal attribute, since fal reference is already set
         if (false === $this->attribute->isFalType()) {
             //old v9: $this->entity->setSerializedAttributesValues(serialize($attributeValues));
-            $this->updateAttributeValue((string)$attributeValues[$this->attribute->getUid()]);
+            $this->updateAttributeValue((string)$attributeValues[$this->attribute->getIdentifier()]);
         }
     }
 
@@ -169,11 +170,11 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
         $attributeValue->setValue($value);
         $attributeValue->setAttribute($this->attribute);
 
-        $objectStorage = new ObjectStorage();
-        $objectStorage->attach($attributeValue);
-
         //old v9: $this->entity->addAttributeValue($attributeValue);
-        $this->entity->setAttributesValues($objectStorage);
+
+        $attributesValues = $this->entity->getAttributesValues();
+        $attributesValues->attach($attributeValue);
+        $this->entity->setAttributesValues($attributesValues);
     }
 
     /**
@@ -345,8 +346,6 @@ class ProductAttributeProcessor extends AbstractFieldProcessor
      */
     protected function initAttribute(): void
     {
-        debug($this->configuration['attributeUid']);
-
         if (empty($this->configuration['attributeUid'])) {
             throw new InvalidProcessorConfigurationException(
                 "Missing 'attributeUid' of processor configuration. Name - '{$this->property}'",
