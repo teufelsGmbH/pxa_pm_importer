@@ -52,7 +52,9 @@ class ImportCommand extends Command
     protected $importManager = null;
 
     /**
-     * Configure
+     * Configures the command by setting its name, description and options.
+     *
+     * @return void
      */
     protected function configure()
     {
@@ -77,27 +79,34 @@ class ImportCommand extends Command
     }
 
     /**
-     * Execute import
+     * Executes the command that runs the given import
      *
      * @param InputInterface $input
      * @param OutputInterface $output
-     * @return int|void|null
+     * @return int error code
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // Set email options
-        $this->adminEmails = $input->getArgument('adminEmails');
-        $this->senderEmail = $input->getArgument('senderEmail');
+        try {
+            // Set email options
+            $this->adminEmails = $input->getArgument('adminEmails');
+            $this->senderEmail = $input->getArgument('senderEmail');
 
-        $this->initializeRequired();
+            $this->initializeRequired();
 
-        $importConfigurations = $input->getArgument('configurations');
+            $importConfigurations = $input->getArgument('configurations');
 
-        foreach (GeneralUtility::trimExplode(',', $importConfigurations) as $configuration) {
-            $this->import($configuration);
+            foreach (GeneralUtility::trimExplode(',', $importConfigurations) as $configuration) {
+                $this->import($configuration);
+            }
+
+            $this->sendEmails();
+
+            return Command::SUCCESS;
+        } catch (\Exception $e) {
+            //an error occurred
+            return Command::FAILURE;
         }
-
-        $this->sendEmails();
     }
 
     /**
