@@ -1,0 +1,15 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Pixelant\PxaPmImporter\:
+    resource: '../Classes/*'
+
+  Pixelant\PxaPmImporter\Command\ImportCommand:
+    tags:
+      - name: 'console.command'
+        command: 'pxapmimporter:import'
+        description: 'Run Product Import synchronisations from the command line.'
+        schedulable: true
